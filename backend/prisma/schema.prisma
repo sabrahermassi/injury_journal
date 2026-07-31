@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  injuries Injury[]
+}
+
+model Injury {
+  id          Int      @id @default(autoincrement())
+  name        String
+  bodyArea    String
+  side        String
+  startDate   DateTime
+  cause       String
+  description String
+  status      String  
+  createdAt   DateTime @default(now())
+
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+
+  timelineEvents TimelineEvent[]
+  symptoms       Symptom[]
+  treatments     Treatment[]
+  medicalVisits  MedicalVisit[]
+}
+
+model TimelineEvent {
+  id          Int      @id @default(autoincrement())
+  type        String
+  date        DateTime
+  description String
+  result      String?
+
+  injuryId Int
+  injury   Injury @relation(fields: [injuryId], references: [id])
+}
+
+model Symptom {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  painLevel Int
+  location  String
+  trigger   String?
+  duration  String?
+  notes     String?
+
+  injuryId Int
+  injury   Injury @relation(fields: [injuryId], references: [id])
+}
+
+model Treatment {
+  id        Int      @id @default(autoincrement())
+  name      String
+  provider  String?
+  date      DateTime
+  cost      Float?
+  outcome   String?
+
+  injuryId Int
+  injury   Injury @relation(fields: [injuryId], references: [id])
+}
+
+model MedicalVisit {
+  id      Int      @id @default(autoincrement())
+  doctor  String
+  clinic  String?
+  date    DateTime
+  notes   String?
+
+  injuryId Int
+  injury   Injury @relation(fields: [injuryId], references: [id])
+}

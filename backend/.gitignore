@@ -1,2 +1,13 @@
-.env
+# Dependencies
 node_modules/
+
+# Environment variables
+.env
+
+# Prisma generated files
+src/generated/prisma/
+
+# AI/editor configuration
+.agents/
+.claude/
+.windsurf/
