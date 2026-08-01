@@ -5,9 +5,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "eslint .",
     "format": "prettier --write ."
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +30,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "eslint": "^10.8.0",
-    "prettier": "^3.9.6"
+    "jest": "^30.4.2",
+    "jest-environment-node": "^30.4.1",
+    "prettier": "^3.9.6",
+    "supertest": "^7.2.2"
   }
 }
