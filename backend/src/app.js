@@ -25,7 +25,9 @@ app.use(morgan('dev'));
 // Body parsing
 app.use(express.json());
 
-app.use(apiLimiter);
+if (process.env.NODE_ENV !== 'test') {
+  app.use(apiLimiter);
+}
 
 // Routes
 app.use('/api', routes);

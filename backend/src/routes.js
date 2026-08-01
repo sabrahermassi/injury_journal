@@ -42,11 +42,24 @@ import {
 
 const router = express.Router();
 
-// POST /api/auth/register
-router.post('/auth/register', authLimiter, validate(registerSchema), register);
+if (process.env.NODE_ENV !== 'test') {
+  // POST /api/auth/register
+  router.post(
+    '/auth/register',
+    authLimiter,
+    validate(registerSchema),
+    register
+  );
 
-// POST /api/auth/login
-router.post('/auth/login', authLimiter, validate(loginSchema), login);
+  // POST /api/auth/login
+  router.post('/auth/login', authLimiter, validate(loginSchema), login);
+} else {
+  // POST /api/auth/register
+  router.post('/auth/register', validate(registerSchema), register);
+
+  // POST /api/auth/login
+  router.post('/auth/login', validate(loginSchema), login);
+}
 
 // POST /api/injuries
 router.post(

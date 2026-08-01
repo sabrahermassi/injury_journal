@@ -1,11 +1,6 @@
 export const errorHandler = (error, req, res, next) => {
   console.error(error.message);
 
-  console.log(
-    '------------------>>>>>>>>>>>>>>>>>< register errorHandler',
-    error.message
-  );
-
   if (error.statusCode) {
     return res.status(error.statusCode).json({
       error: error.message,
