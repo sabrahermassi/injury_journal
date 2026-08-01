@@ -9,6 +9,18 @@ import {
   updateInjury,
   deleteInjury,
 } from './services/injuryService.js';
+import {
+  createTimelineEvent,
+  getTimelineEvents,
+  updateTimelineEvent,
+  deleteTimelineEvent,
+} from './services/timelineService.js';
+import {
+  createSymptom,
+  getSymptoms,
+  updateSymptom,
+  deleteSymptom,
+} from './services/symptomService.js';
 
 // POST /api/auth/register
 export const register = async (req, res) => {
@@ -116,6 +128,177 @@ export const deleteInjuryController = async (req, res) => {
     if (!injury) {
       return res.status(404).json({
         error: 'Injury not found',
+      });
+    }
+
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// POST /api/injuries/:injuryId/events
+export const createTimelineEventController = async (req, res) => {
+  try {
+    const event = await createTimelineEvent(
+      Number(req.params.injuryId),
+      req.userId,
+      req.body
+    );
+
+    if (!event) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(event);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/injuries/:injuryId/events
+export const getTimelineEventsController = async (req, res) => {
+  try {
+    const events = await getTimelineEvents(
+      Number(req.params.injuryId),
+      req.userId
+    );
+
+    if (!events) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+// PUT /api/events/:id
+export const updateTimelineEventController = async (req, res) => {
+  try {
+    const event = await updateTimelineEvent(
+      Number(req.params.id),
+      req.userId,
+      req.body
+    );
+
+    if (!event) {
+      return res.status(404).json({
+        error: 'Event not found',
+      });
+    }
+
+    res.json(event);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// DELETE /api/events/:id
+export const deleteTimelineEventController = async (req, res) => {
+  try {
+    const event = await deleteTimelineEvent(Number(req.params.id), req.userId);
+
+    if (!event) {
+      return res.status(404).json({
+        error: 'Event not found',
+      });
+    }
+
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// POST /api/injuries/:injuryId/symptoms
+export const createSymptomController = async (req, res) => {
+  try {
+    const symptom = await createSymptom(
+      Number(req.params.injuryId),
+      req.userId,
+      req.body
+    );
+
+    if (!symptom) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(symptom);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/injuries/:injuryId/symptoms
+export const getSymptomsController = async (req, res) => {
+  try {
+    const symptoms = await getSymptoms(Number(req.params.injuryId), req.userId);
+
+    if (!symptoms) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.json(symptoms);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+// PUT /api/symptoms/:id
+export const updateSymptomController = async (req, res) => {
+  try {
+    const symptom = await updateSymptom(
+      Number(req.params.id),
+      req.userId,
+      req.body
+    );
+
+    if (!symptom) {
+      return res.status(404).json({
+        error: 'Symptom not found',
+      });
+    }
+
+    res.json(symptom);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// DELETE /api/symptoms/:id
+export const deleteSymptomController = async (req, res) => {
+  try {
+    const symptom = await deleteSymptom(Number(req.params.id), req.userId);
+
+    if (!symptom) {
+      return res.status(404).json({
+        error: 'Symptom not found',
       });
     }
 

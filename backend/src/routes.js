@@ -7,6 +7,14 @@ import {
   getInjuryController,
   updateInjuryController,
   deleteInjuryController,
+  createTimelineEventController,
+  getTimelineEventsController,
+  updateTimelineEventController,
+  deleteTimelineEventController,
+  createSymptomController,
+  getSymptomsController,
+  updateSymptomController,
+  deleteSymptomController,
 } from './controllers.js';
 import { authenticate } from './middleware.js';
 
@@ -32,5 +40,41 @@ router.put('/injuries/:id', authenticate, updateInjuryController);
 
 // DELETE /api/injuries/:id
 router.delete('/injuries/:id', authenticate, deleteInjuryController);
+
+// POST /api/injuries/:injuryId/events
+router.post(
+  '/injuries/:injuryId/events',
+  authenticate,
+  createTimelineEventController
+);
+
+// GET /api/injuries/:injuryId/events
+router.get(
+  '/injuries/:injuryId/events',
+  authenticate,
+  getTimelineEventsController
+);
+
+// PUT /api/events/:id
+router.put('/events/:id', authenticate, updateTimelineEventController);
+
+// DELETE /api/events/:id
+router.delete('/events/:id', authenticate, deleteTimelineEventController);
+
+// POST /api/injuries/:injuryId/symptoms
+router.post(
+  '/injuries/:injuryId/symptoms',
+  authenticate,
+  createSymptomController
+);
+
+// GET /api/injuries/:injuryId/symptoms
+router.get('/injuries/:injuryId/symptoms', authenticate, getSymptomsController);
+
+// PUT /api/symptoms/:id
+router.put('/symptoms/:id', authenticate, updateSymptomController);
+
+// DELETE /api/symptoms/:id
+router.delete('/symptoms/:id', authenticate, deleteSymptomController);
 
 export default router;
