@@ -17,10 +17,10 @@ beforeEach(async () => {
   await cleanDatabase();
 
   // User A
-  userAToken = await createTestUser('usera@test.com');
+  userAToken = await createTestUser();
 
   // User B
-  userBToken = await createTestUser('userb@test.com');
+  userBToken = await createTestUser();
 
   // Create injury owned by User B
   injuryB = await createTestInjury(userBToken);

@@ -14,7 +14,7 @@ let injury;
 beforeEach(async () => {
   await cleanDatabase();
 
-  token = await createTestUser('usera@test.com');
+  token = await createTestUser();
 
   injury = await createTestInjury(token);
 });

@@ -18,7 +18,9 @@ export const disconnectDatabase = async () => {
   await prisma.$disconnect();
 };
 
-export const createTestUser = async (email) => {
+export const createTestUser = async () => {
+  const email = `test-${Date.now()}@example.com`;
+
   await request(app).post('/api/auth/register').send({
     email,
     password: 'password123',
