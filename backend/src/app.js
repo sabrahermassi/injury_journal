@@ -31,6 +31,11 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Routes
 app.use('/api', routes);
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+  });
+});
 
 // Error handler
 app.use(errorHandler);
