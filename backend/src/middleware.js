@@ -1,4 +1,5 @@
 import { verifyToken } from './utils.js';
+import rateLimit from 'express-rate-limit';
 
 // JWT authentication
 export const authenticate = (req, res, next) => {
@@ -44,3 +45,21 @@ export const validate = (schema) => {
     next();
   };
 };
+
+// General API limiter
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: {
+    error: 'Too many requests, please try again later',
+  },
+});
+
+// Strict limiter for authentication
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    error: 'Too many login attempts, please try again later',
+  },
+});

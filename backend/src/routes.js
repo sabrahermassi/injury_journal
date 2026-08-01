@@ -24,7 +24,7 @@ import {
   updateMedicalVisitController,
   deleteMedicalVisitController,
 } from './controllers.js';
-import { authenticate, validate } from './middleware.js';
+import { authenticate, validate, authLimiter } from './middleware.js';
 import {
   registerSchema,
   loginSchema,
@@ -43,10 +43,10 @@ import {
 const router = express.Router();
 
 // POST /api/auth/register
-router.post('/auth/register', validate(registerSchema), register);
+router.post('/auth/register', authLimiter, validate(registerSchema), register);
 
 // POST /api/auth/login
-router.post('/auth/login', validate(loginSchema), login);
+router.post('/auth/login', authLimiter, validate(loginSchema), login);
 
 // POST /api/injuries
 router.post(
