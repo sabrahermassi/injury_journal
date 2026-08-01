@@ -15,6 +15,10 @@ import {
   getSymptomsController,
   updateSymptomController,
   deleteSymptomController,
+  createTreatmentController,
+  getTreatmentsController,
+  updateTreatmentController,
+  deleteTreatmentController,
 } from './controllers.js';
 import { authenticate } from './middleware.js';
 
@@ -76,5 +80,25 @@ router.put('/symptoms/:id', authenticate, updateSymptomController);
 
 // DELETE /api/symptoms/:id
 router.delete('/symptoms/:id', authenticate, deleteSymptomController);
+
+// POST /api/injuries/:injuryId/treatments
+router.post(
+  '/injuries/:injuryId/treatments',
+  authenticate,
+  createTreatmentController
+);
+
+// GET /api/injuries/:injuryId/treatments
+router.get(
+  '/injuries/:injuryId/treatments',
+  authenticate,
+  getTreatmentsController
+);
+
+// PUT /api/treatments/:id
+router.put('/treatments/:id', authenticate, updateTreatmentController);
+
+// DELETE /api/treatments/:id
+router.delete('/treatments/:id', authenticate, deleteTreatmentController);
 
 export default router;

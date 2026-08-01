@@ -21,6 +21,12 @@ import {
   updateSymptom,
   deleteSymptom,
 } from './services/symptomService.js';
+import {
+  createTreatment,
+  getTreatments,
+  updateTreatment,
+  deleteTreatment,
+} from './services/treatmentService.js';
 
 // POST /api/auth/register
 export const register = async (req, res) => {
@@ -299,6 +305,93 @@ export const deleteSymptomController = async (req, res) => {
     if (!symptom) {
       return res.status(404).json({
         error: 'Symptom not found',
+      });
+    }
+
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// POST /api/injuries/:injuryId/treatments
+export const createTreatmentController = async (req, res) => {
+  try {
+    const treatment = await createTreatment(
+      Number(req.params.injuryId),
+      req.userId,
+      req.body
+    );
+
+    if (!treatment) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(treatment);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/injuries/:injuryId/treatments
+export const getTreatmentsController = async (req, res) => {
+  try {
+    const treatments = await getTreatments(
+      Number(req.params.injuryId),
+      req.userId
+    );
+
+    if (!treatments) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.json(treatments);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+// PUT /api/treatments/:id
+export const updateTreatmentController = async (req, res) => {
+  try {
+    const treatment = await updateTreatment(
+      Number(req.params.id),
+      req.userId,
+      req.body
+    );
+
+    if (!treatment) {
+      return res.status(404).json({
+        error: 'Treatment not found',
+      });
+    }
+
+    res.json(treatment);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// DELETE /api/treatments/:id
+export const deleteTreatmentController = async (req, res) => {
+  try {
+    const treatment = await deleteTreatment(Number(req.params.id), req.userId);
+
+    if (!treatment) {
+      return res.status(404).json({
+        error: 'Treatment not found',
       });
     }
 
