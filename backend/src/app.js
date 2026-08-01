@@ -8,11 +8,12 @@ import { apiLimiter } from './middleware.js';
 
 const app = express();
 
+const allowedOrigins = ['http://localhost:3000', process.env.FRONTEND_URL];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,
+  origin: allowedOrigins,
   credentials: true,
 };
-
 // Security middleware
 app.use(helmet());
 
