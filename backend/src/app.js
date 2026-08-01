@@ -9,12 +9,6 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use("/api/auth", routes);
-
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok'
-  });
-});
+app.use("/api", routes);
 
 export default app;
