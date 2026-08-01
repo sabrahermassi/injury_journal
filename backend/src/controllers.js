@@ -35,7 +35,7 @@ import {
 } from './services/medicalVisitService.js';
 
 // POST /api/auth/register
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -43,14 +43,12 @@ export const register = async (req, res) => {
 
     res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/auth/login
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -58,40 +56,34 @@ export const login = async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(401).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/injuries
-export const createInjuryController = async (req, res) => {
+export const createInjuryController = async (req, res, next) => {
   try {
     const injury = await createInjury(req.userId, req.body);
 
     res.status(201).json(injury);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /api/injuries
-export const getInjuriesController = async (req, res) => {
+export const getInjuriesController = async (req, res, next) => {
   try {
     const injuries = await getInjuries(req.userId);
 
     res.json(injuries);
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /api/injuries/:id
-export const getInjuryController = async (req, res) => {
+export const getInjuryController = async (req, res, next) => {
   try {
     const injury = await getInjuryById(Number(req.params.id), req.userId);
 
@@ -103,14 +95,12 @@ export const getInjuryController = async (req, res) => {
 
     res.json(injury);
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // PUT /api/injuries/:id
-export const updateInjuryController = async (req, res) => {
+export const updateInjuryController = async (req, res, next) => {
   try {
     const injury = await updateInjury(
       Number(req.params.id),
@@ -126,14 +116,12 @@ export const updateInjuryController = async (req, res) => {
 
     res.json(injury);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // DELETE /api/injuries/:id
-export const deleteInjuryController = async (req, res) => {
+export const deleteInjuryController = async (req, res, next) => {
   try {
     const injury = await deleteInjury(Number(req.params.id), req.userId);
 
@@ -145,14 +133,12 @@ export const deleteInjuryController = async (req, res) => {
 
     res.status(204).end();
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/injuries/:injuryId/events
-export const createTimelineEventController = async (req, res) => {
+export const createTimelineEventController = async (req, res, next) => {
   try {
     const event = await createTimelineEvent(
       Number(req.params.injuryId),
@@ -168,14 +154,12 @@ export const createTimelineEventController = async (req, res) => {
 
     res.status(201).json(event);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /api/injuries/:injuryId/events
-export const getTimelineEventsController = async (req, res) => {
+export const getTimelineEventsController = async (req, res, next) => {
   try {
     const events = await getTimelineEvents(
       Number(req.params.injuryId),
@@ -190,14 +174,12 @@ export const getTimelineEventsController = async (req, res) => {
 
     res.json(events);
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // PUT /api/events/:id
-export const updateTimelineEventController = async (req, res) => {
+export const updateTimelineEventController = async (req, res, next) => {
   try {
     const event = await updateTimelineEvent(
       Number(req.params.id),
@@ -213,14 +195,12 @@ export const updateTimelineEventController = async (req, res) => {
 
     res.json(event);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // DELETE /api/events/:id
-export const deleteTimelineEventController = async (req, res) => {
+export const deleteTimelineEventController = async (req, res, next) => {
   try {
     const event = await deleteTimelineEvent(Number(req.params.id), req.userId);
 
@@ -232,14 +212,12 @@ export const deleteTimelineEventController = async (req, res) => {
 
     res.status(204).end();
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/injuries/:injuryId/symptoms
-export const createSymptomController = async (req, res) => {
+export const createSymptomController = async (req, res, next) => {
   try {
     const symptom = await createSymptom(
       Number(req.params.injuryId),
@@ -255,14 +233,12 @@ export const createSymptomController = async (req, res) => {
 
     res.status(201).json(symptom);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /api/injuries/:injuryId/symptoms
-export const getSymptomsController = async (req, res) => {
+export const getSymptomsController = async (req, res, next) => {
   try {
     const symptoms = await getSymptoms(Number(req.params.injuryId), req.userId);
 
@@ -274,14 +250,12 @@ export const getSymptomsController = async (req, res) => {
 
     res.json(symptoms);
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // PUT /api/symptoms/:id
-export const updateSymptomController = async (req, res) => {
+export const updateSymptomController = async (req, res, next) => {
   try {
     const symptom = await updateSymptom(
       Number(req.params.id),
@@ -297,14 +271,12 @@ export const updateSymptomController = async (req, res) => {
 
     res.json(symptom);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // DELETE /api/symptoms/:id
-export const deleteSymptomController = async (req, res) => {
+export const deleteSymptomController = async (req, res, next) => {
   try {
     const symptom = await deleteSymptom(Number(req.params.id), req.userId);
 
@@ -316,14 +288,12 @@ export const deleteSymptomController = async (req, res) => {
 
     res.status(204).end();
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/injuries/:injuryId/treatments
-export const createTreatmentController = async (req, res) => {
+export const createTreatmentController = async (req, res, next) => {
   try {
     const treatment = await createTreatment(
       Number(req.params.injuryId),
@@ -339,14 +309,12 @@ export const createTreatmentController = async (req, res) => {
 
     res.status(201).json(treatment);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /api/injuries/:injuryId/treatments
-export const getTreatmentsController = async (req, res) => {
+export const getTreatmentsController = async (req, res, next) => {
   try {
     const treatments = await getTreatments(
       Number(req.params.injuryId),
@@ -361,14 +329,12 @@ export const getTreatmentsController = async (req, res) => {
 
     res.json(treatments);
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // PUT /api/treatments/:id
-export const updateTreatmentController = async (req, res) => {
+export const updateTreatmentController = async (req, res, next) => {
   try {
     const treatment = await updateTreatment(
       Number(req.params.id),
@@ -384,14 +350,12 @@ export const updateTreatmentController = async (req, res) => {
 
     res.json(treatment);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // DELETE /api/treatments/:id
-export const deleteTreatmentController = async (req, res) => {
+export const deleteTreatmentController = async (req, res, next) => {
   try {
     const treatment = await deleteTreatment(Number(req.params.id), req.userId);
 
@@ -403,14 +367,12 @@ export const deleteTreatmentController = async (req, res) => {
 
     res.status(204).end();
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/injuries/:injuryId/visits
-export const createMedicalVisitController = async (req, res) => {
+export const createMedicalVisitController = async (req, res, next) => {
   try {
     const visit = await createMedicalVisit(
       Number(req.params.injuryId),
@@ -426,14 +388,12 @@ export const createMedicalVisitController = async (req, res) => {
 
     res.status(201).json(visit);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /api/injuries/:injuryId/visits
-export const getMedicalVisitsController = async (req, res) => {
+export const getMedicalVisitsController = async (req, res, next) => {
   try {
     const visits = await getMedicalVisits(
       Number(req.params.injuryId),
@@ -448,14 +408,12 @@ export const getMedicalVisitsController = async (req, res) => {
 
     res.json(visits);
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // PUT /api/visits/:id
-export const updateMedicalVisitController = async (req, res) => {
+export const updateMedicalVisitController = async (req, res, next) => {
   try {
     const visit = await updateMedicalVisit(
       Number(req.params.id),
@@ -471,14 +429,12 @@ export const updateMedicalVisitController = async (req, res) => {
 
     res.json(visit);
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // DELETE /api/visits/:id
-export const deleteMedicalVisitController = async (req, res) => {
+export const deleteMedicalVisitController = async (req, res, next) => {
   try {
     const visit = await deleteMedicalVisit(Number(req.params.id), req.userId);
 
@@ -490,8 +446,6 @@ export const deleteMedicalVisitController = async (req, res) => {
 
     res.status(204).end();
   } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
+    next(error);
   }
 };
