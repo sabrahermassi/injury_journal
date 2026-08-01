@@ -27,6 +27,12 @@ import {
   updateTreatment,
   deleteTreatment,
 } from './services/treatmentService.js';
+import {
+  createMedicalVisit,
+  getMedicalVisits,
+  updateMedicalVisit,
+  deleteMedicalVisit,
+} from './services/medicalVisitService.js';
 
 // POST /api/auth/register
 export const register = async (req, res) => {
@@ -392,6 +398,93 @@ export const deleteTreatmentController = async (req, res) => {
     if (!treatment) {
       return res.status(404).json({
         error: 'Treatment not found',
+      });
+    }
+
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// POST /api/injuries/:injuryId/visits
+export const createMedicalVisitController = async (req, res) => {
+  try {
+    const visit = await createMedicalVisit(
+      Number(req.params.injuryId),
+      req.userId,
+      req.body
+    );
+
+    if (!visit) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(visit);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/injuries/:injuryId/visits
+export const getMedicalVisitsController = async (req, res) => {
+  try {
+    const visits = await getMedicalVisits(
+      Number(req.params.injuryId),
+      req.userId
+    );
+
+    if (!visits) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.json(visits);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+// PUT /api/visits/:id
+export const updateMedicalVisitController = async (req, res) => {
+  try {
+    const visit = await updateMedicalVisit(
+      Number(req.params.id),
+      req.userId,
+      req.body
+    );
+
+    if (!visit) {
+      return res.status(404).json({
+        error: 'Visit not found',
+      });
+    }
+
+    res.json(visit);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
+
+// DELETE /api/visits/:id
+export const deleteMedicalVisitController = async (req, res) => {
+  try {
+    const visit = await deleteMedicalVisit(Number(req.params.id), req.userId);
+
+    if (!visit) {
+      return res.status(404).json({
+        error: 'Visit not found',
       });
     }
 

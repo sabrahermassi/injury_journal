@@ -19,6 +19,10 @@ import {
   getTreatmentsController,
   updateTreatmentController,
   deleteTreatmentController,
+  createMedicalVisitController,
+  getMedicalVisitsController,
+  updateMedicalVisitController,
+  deleteMedicalVisitController,
 } from './controllers.js';
 import { authenticate } from './middleware.js';
 
@@ -100,5 +104,25 @@ router.put('/treatments/:id', authenticate, updateTreatmentController);
 
 // DELETE /api/treatments/:id
 router.delete('/treatments/:id', authenticate, deleteTreatmentController);
+
+// POST /api/injuries/:injuryId/visits
+router.post(
+  '/injuries/:injuryId/visits',
+  authenticate,
+  createMedicalVisitController
+);
+
+// GET /api/injuries/:injuryId/visits
+router.get(
+  '/injuries/:injuryId/visits',
+  authenticate,
+  getMedicalVisitsController
+);
+
+// PUT /api/visits/:id
+router.put('/visits/:id', authenticate, updateMedicalVisitController);
+
+// DELETE /api/visits/:id
+router.delete('/visits/:id', authenticate, deleteMedicalVisitController);
 
 export default router;
