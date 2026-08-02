@@ -11,6 +11,7 @@ import { InjuryCard } from "@/components/dashboard/injury-card";
 
 export default function DashboardPage() {
   const [injuries, setInjuries] = useState<any[]>([]);
+  const [activeSection, setActiveSection] = useState("overview");
 
   useEffect(() => {
     async function fetchInjuries() {
@@ -36,23 +37,64 @@ export default function DashboardPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar activeSection={activeSection} onNavigate={setActiveSection} />
 
       <SidebarInset>
         <DashboardHeader onInjuryCreated={refreshInjuries} />
 
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-          <h1 className="text-2xl font-semibold">Recovery Overview</h1>
+          <h1 className="text-2xl font-semibold">
+            {activeSection === "overview" && "Recovery Overview"}
+            {activeSection === "injuries" && "Your Injuries"}
+            {activeSection === "symptoms" && "Symptoms"}
+            {activeSection === "treatments" && "Treatments"}
+            {activeSection === "visits" && "Medical Visits"}
+            {activeSection === "timeline" && "Timeline"}
+          </h1>
 
-          {injuries.length === 0 ? (
+          {activeSection === "overview" && (
             <div className="rounded-xl border bg-card p-6">
-              <p className="text-muted-foreground">No injuries yet.</p>
+              <p className="text-muted-foreground">Recovery overview content</p>
             </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {injuries.map((injury) => (
-                <InjuryCard key={injury.id} injury={injury} />
-              ))}
+          )}
+
+          {activeSection === "injuries" && (
+            <>
+              {injuries.length === 0 ? (
+                <div className="rounded-xl border bg-card p-6">
+                  <p className="text-muted-foreground">No injuries yet.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {injuries.map((injury) => (
+                    <InjuryCard key={injury.id} injury={injury} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeSection === "symptoms" && (
+            <div className="rounded-xl border bg-card p-6">
+              <p className="text-muted-foreground">No symptoms yet.</p>
+            </div>
+          )}
+
+          {activeSection === "treatments" && (
+            <div className="rounded-xl border bg-card p-6">
+              <p className="text-muted-foreground">No treatments yet.</p>
+            </div>
+          )}
+
+          {activeSection === "visits" && (
+            <div className="rounded-xl border bg-card p-6">
+              <p className="text-muted-foreground">No medical visits yet.</p>
+            </div>
+          )}
+
+          {activeSection === "timeline" && (
+            <div className="rounded-xl border bg-card p-6">
+              <p className="text-muted-foreground">No timeline events yet.</p>
             </div>
           )}
         </main>

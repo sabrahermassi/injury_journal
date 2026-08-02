@@ -31,37 +31,33 @@ import Link from "next/link";
 const mainNav = [
   {
     title: "Overview",
-    url: "/dashboard",
+    key: "overview",
     icon: LayoutDashboard,
-    active: true,
   },
   {
     title: "Injuries",
-    url: "/dashboard/injuries",
+    key: "injuries",
     icon: HeartPulse,
-    badge: "3",
-  },
-  {
-    title: "Timeline",
-    url: "/dashboard/timeline",
-    icon: Clock,
   },
   {
     title: "Symptoms",
-    url: "/dashboard/symptoms",
+    key: "symptoms",
     icon: Activity,
-    badge: "5",
   },
   {
     title: "Treatments",
-    url: "/dashboard/treatments",
+    key: "treatments",
     icon: Pill,
   },
   {
     title: "Medical Visits",
-    url: "/dashboard/visits",
+    key: "visits",
     icon: CalendarDays,
-    badge: "3",
+  },
+  {
+    title: "Timeline",
+    key: "timeline",
+    icon: Clock,
   },
 ];
 
@@ -71,7 +67,13 @@ const secondaryNav = [
   { title: "Help & Support", icon: LifeBuoy },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({
+  activeSection,
+  onNavigate,
+}: {
+  activeSection: string;
+  onNavigate: (section: string) => void;
+}) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -98,14 +100,12 @@ export function AppSidebar() {
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
-                    isActive={item.active}
+                    onClick={() => onNavigate(item.key)}
+                    isActive={item.key === activeSection}
                     tooltip={item.title}
                   >
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                   {item.badge ? (
                     <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
