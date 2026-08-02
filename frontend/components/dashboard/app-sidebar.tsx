@@ -9,6 +9,7 @@ import {
   Pill,
   Settings,
   Stethoscope,
+  Clock,
 } from "lucide-react";
 
 import {
@@ -39,6 +40,11 @@ const mainNav = [
     url: "/dashboard/injuries",
     icon: HeartPulse,
     badge: "3",
+  },
+  {
+    title: "Timeline",
+    url: "/dashboard/timeline",
+    icon: Clock,
   },
   {
     title: "Symptoms",
