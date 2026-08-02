@@ -91,3 +91,43 @@ export async function createInjury(injury: {
 
   return response.json();
 }
+
+export async function getSymptoms(injuryId: number) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/symptoms`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch symptoms");
+  }
+
+  return response.json();
+}
+
+export async function createSymptom(
+  injuryId: number,
+  symptom: {
+    date: string;
+    painLevel: number;
+    location: string;
+    trigger?: string;
+    duration?: string;
+    notes?: string;
+  },
+) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/symptoms`,
+    {
+      method: "POST",
+      body: JSON.stringify(symptom),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(error);
+    throw new Error("Failed to create symptom");
+  }
+
+  return response.json();
+}

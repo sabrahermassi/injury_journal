@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { getInjury } from "@/services/api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SymptomsCard } from "@/components/dashboard/symptoms-card";
 
 export default function InjuryDetailsPage() {
   const params = useParams();
@@ -37,7 +38,7 @@ export default function InjuryDetailsPage() {
   }
 
   return (
-    <main className="p-6">
+    <main className="flex flex-col gap-6 p-6">
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl">{injury.name}</CardTitle>
@@ -77,6 +78,8 @@ export default function InjuryDetailsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <SymptomsCard injuryId={injury.id} />
     </main>
   );
 }
