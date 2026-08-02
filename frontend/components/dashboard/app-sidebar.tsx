@@ -39,26 +39,6 @@ const mainNav = [
     key: "injuries",
     icon: HeartPulse,
   },
-  {
-    title: "Symptoms",
-    key: "symptoms",
-    icon: Activity,
-  },
-  {
-    title: "Treatments",
-    key: "treatments",
-    icon: Pill,
-  },
-  {
-    title: "Medical Visits",
-    key: "visits",
-    icon: CalendarDays,
-  },
-  {
-    title: "Timeline",
-    key: "timeline",
-    icon: Clock,
-  },
 ];
 
 const secondaryNav = [

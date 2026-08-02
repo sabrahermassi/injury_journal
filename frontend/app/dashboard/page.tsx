@@ -46,10 +46,6 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-semibold">
             {activeSection === "overview" && "Recovery Overview"}
             {activeSection === "injuries" && "Your Injuries"}
-            {activeSection === "symptoms" && "Symptoms"}
-            {activeSection === "treatments" && "Treatments"}
-            {activeSection === "visits" && "Medical Visits"}
-            {activeSection === "timeline" && "Timeline"}
           </h1>
 
           {activeSection === "overview" && (
@@ -72,30 +68,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </>
-          )}
-
-          {activeSection === "symptoms" && (
-            <div className="rounded-xl border bg-card p-6">
-              <p className="text-muted-foreground">No symptoms yet.</p>
-            </div>
-          )}
-
-          {activeSection === "treatments" && (
-            <div className="rounded-xl border bg-card p-6">
-              <p className="text-muted-foreground">No treatments yet.</p>
-            </div>
-          )}
-
-          {activeSection === "visits" && (
-            <div className="rounded-xl border bg-card p-6">
-              <p className="text-muted-foreground">No medical visits yet.</p>
-            </div>
-          )}
-
-          {activeSection === "timeline" && (
-            <div className="rounded-xl border bg-card p-6">
-              <p className="text-muted-foreground">No timeline events yet.</p>
-            </div>
           )}
         </main>
       </SidebarInset>
