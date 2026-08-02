@@ -131,3 +131,118 @@ export async function createSymptom(
 
   return response.json();
 }
+
+export async function getTreatments(injuryId: number) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/treatments`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch treatments");
+  }
+
+  return response.json();
+}
+
+export async function createTreatment(
+  injuryId: number,
+  treatment: {
+    name: string;
+    date: string;
+    provider?: string;
+    cost?: number;
+    outcome?: string;
+  },
+) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/treatments`,
+    {
+      method: "POST",
+      body: JSON.stringify(treatment),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(error);
+    throw new Error("Failed to create treatment");
+  }
+
+  return response.json();
+}
+
+export async function getMedicalVisits(injuryId: number) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/visits`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch medical visits");
+  }
+
+  return response.json();
+}
+
+export async function createMedicalVisit(
+  injuryId: number,
+  visit: {
+    doctor: string;
+    clinic?: string;
+    date: string;
+    notes?: string;
+  },
+) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/visits`,
+    {
+      method: "POST",
+      body: JSON.stringify(visit),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(error);
+    throw new Error("Failed to create medical visit");
+  }
+
+  return response.json();
+}
+
+export async function getTimelineEvents(injuryId: number) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/timeline`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch timeline events");
+  }
+
+  return response.json();
+}
+
+export async function createTimelineEvent(
+  injuryId: number,
+  event: {
+    type: string;
+    date: string;
+    description: string;
+    result?: string;
+  },
+) {
+  const response = await authFetch(
+    `${API_URL}/api/injuries/${injuryId}/timeline`,
+    {
+      method: "POST",
+      body: JSON.stringify(event),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(error);
+    throw new Error("Failed to create timeline event");
+  }
+
+  return response.json();
+}

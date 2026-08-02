@@ -7,6 +7,9 @@ import { getInjury } from "@/services/api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SymptomsCard } from "@/components/dashboard/symptoms-card";
+import { TreatmentsCard } from "@/components/dashboard/treatments-card";
+import { MedicalVisitsCard } from "@/components/dashboard/medical-visits-card";
+import { TimelineCard } from "@/components/dashboard/timeline-card";
 
 export default function InjuryDetailsPage() {
   const params = useParams();
@@ -80,6 +83,12 @@ export default function InjuryDetailsPage() {
       </Card>
 
       <SymptomsCard injuryId={injury.id} />
+
+      <TreatmentsCard injuryId={injury.id} />
+
+      <MedicalVisitsCard injuryId={injury.id} />
+
+      <TimelineCard injuryId={injury.id} />
     </main>
   );
 }
