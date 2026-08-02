@@ -25,13 +25,38 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link";
 
 const mainNav = [
-  { title: "Overview", icon: LayoutDashboard, active: true },
-  { title: "Injuries", icon: HeartPulse, badge: "3" },
-  { title: "Symptoms", icon: Activity, badge: "5" },
-  { title: "Treatments", icon: Pill },
-  { title: "Medical Visits", icon: CalendarDays, badge: "3" },
+  {
+    title: "Overview",
+    url: "/dashboard",
+    icon: LayoutDashboard,
+    active: true,
+  },
+  {
+    title: "Injuries",
+    url: "/dashboard/injuries",
+    icon: HeartPulse,
+    badge: "3",
+  },
+  {
+    title: "Symptoms",
+    url: "/dashboard/symptoms",
+    icon: Activity,
+    badge: "5",
+  },
+  {
+    title: "Treatments",
+    url: "/dashboard/treatments",
+    icon: Pill,
+  },
+  {
+    title: "Medical Visits",
+    url: "/dashboard/visits",
+    icon: CalendarDays,
+    badge: "3",
+  },
 ];
 
 const secondaryNav = [
@@ -67,11 +92,14 @@ export function AppSidebar() {
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
+                    asChild
                     isActive={item.active}
                     tooltip={item.title}
                   >
-                    <item.icon />
-                    <span>{item.title}</span>
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                   {item.badge ? (
                     <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
