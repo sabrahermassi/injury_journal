@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react";
 import type { SubmitEventHandler } from "react";
 import { loginUser } from "../../services/api";
+import { saveToken } from "../../services/utils";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -28,10 +31,8 @@ export default function LoginPage() {
     try {
       const data = await loginUser(email, password);
 
-      localStorage.setItem("token", data.token);
-      setMessage(`User logged in: ${data.user.email}`);
-      setEmail("");
-      setPassword("");
+      saveToken(data.token);
+      router.push("/dashboard");
     } catch {
       setMessage("Login failed");
     } finally {
