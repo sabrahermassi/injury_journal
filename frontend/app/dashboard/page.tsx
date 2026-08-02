@@ -11,7 +11,6 @@ import { InjuryCard } from "@/components/dashboard/injury-card";
 
 export default function DashboardPage() {
   const [injuries, setInjuries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchInjuries() {
@@ -20,16 +19,19 @@ export default function DashboardPage() {
         setInjuries(data);
       } catch (error) {
         console.error(error);
-      } finally {
-        setLoading(false);
       }
     }
 
     fetchInjuries();
   }, []);
 
-  if (loading) {
-    return <p>Loading injuries...</p>;
+  async function refreshInjuries() {
+    try {
+      const data = await getInjuries();
+      setInjuries(data);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -37,7 +39,7 @@ export default function DashboardPage() {
       <AppSidebar />
 
       <SidebarInset>
-        <DashboardHeader />
+        <DashboardHeader onInjuryCreated={refreshInjuries} />
 
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
           <h1 className="text-2xl font-semibold">Recovery Overview</h1>

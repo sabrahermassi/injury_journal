@@ -7,7 +7,6 @@ import { InjuryCard } from "@/components/dashboard/injury-card";
 
 export default function InjuriesPage() {
   const [injuries, setInjuries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchInjuries() {
@@ -16,17 +15,11 @@ export default function InjuriesPage() {
         setInjuries(data);
       } catch (error) {
         console.error(error);
-      } finally {
-        setLoading(false);
       }
     }
 
     fetchInjuries();
   }, []);
-
-  if (loading) {
-    return <p>Loading injuries...</p>;
-  }
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">

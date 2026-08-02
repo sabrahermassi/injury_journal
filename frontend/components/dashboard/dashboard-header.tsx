@@ -1,14 +1,19 @@
 "use client";
 
 import { Bell, Plus, Search } from "lucide-react";
-import Link from "next/link";
-
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { LogEntryDialog } from "./log-entry-dialog";
 
-export function DashboardHeader() {
+export function DashboardHeader({
+  onInjuryCreated,
+}: {
+  onInjuryCreated: () => void;
+}) {
+  const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-10 flex flex-col gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur md:px-6">
       <div className="flex items-center gap-3">
@@ -35,12 +40,16 @@ export function DashboardHeader() {
         <Button variant="outline" size="icon" aria-label="Notifications">
           <Bell />
         </Button>
-        <Link href="/dashboard/injuries/new">
-          <Button>
-            <Plus data-icon="inline-start" />
-            <span className="hidden sm:inline">Log entry</span>
-          </Button>
-        </Link>
+        <Button onClick={() => setOpen(true)}>
+          <Plus />
+          <span className="hidden sm:inline">Add Injury</span>
+        </Button>
+
+        <LogEntryDialog
+          open={open}
+          onOpenChange={setOpen}
+          onCreated={() => window.location.reload()}
+        />
       </div>
     </header>
   );
