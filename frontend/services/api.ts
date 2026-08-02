@@ -62,6 +62,16 @@ export async function getInjuries() {
   return response.json();
 }
 
+export async function getInjury(id: string) {
+  const response = await authFetch(`${API_URL}/api/injuries/${id}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch injury");
+  }
+
+  return response.json();
+}
+
 export async function createInjury(injury: {
   name: string;
   bodyArea: string;
