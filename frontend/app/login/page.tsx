@@ -5,9 +5,19 @@ import type { SubmitEventHandler } from "react";
 import { loginUser } from "../../services/api";
 import { saveToken } from "../../services/utils";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+import PageContainer from "@/components/PageContainer";
+import AuthCard from "@/components/AuthCard";
+import AuthHeader from "@/components/AuthHeader";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -27,7 +37,7 @@ export default function LoginPage() {
     event.preventDefault();
 
     setLoading(true);
-    setMessage("Logging User...");
+
     try {
       const data = await loginUser(email, password);
 
@@ -41,34 +51,49 @@ export default function LoginPage() {
   };
 
   return (
-    <main>
-      <h1>Login</h1>
+    <PageContainer>
+      <div className="w-full max-w-md">
+        <AuthHeader />
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.currentTarget.value)}
-          />
-        </div>
+        <AuthCard title="Welcome back!">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
 
-        <div>
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.currentTarget.value)}
-          />
-        </div>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.currentTarget.value)}
+              />
+            </div>
 
-        <button type="submit" disabled={loading}>
-          Login
-        </button>
-      </form>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
 
-      <p>{message}</p>
-    </main>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.currentTarget.value)}
+              />
+            </div>
+
+            <Button type="submit" disabled={loading} className="w-full">
+              Login
+            </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link href="/register" className="underline">
+                Create one
+              </Link>
+            </p>
+          </form>
+
+          {message && <p className="mt-4 text-center text-sm">{message}</p>}
+        </AuthCard>
+      </div>
+    </PageContainer>
   );
 }

@@ -61,3 +61,23 @@ export async function getInjuries() {
 
   return response.json();
 }
+
+export async function createInjury(injury: {
+  name: string;
+  bodyArea: string;
+  side: string;
+  status: string;
+}) {
+  const response = await authFetch(`${API_URL}/api/injuries`, {
+    method: "POST",
+    body: JSON.stringify(injury),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Backend error:", error);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
