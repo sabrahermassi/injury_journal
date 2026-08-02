@@ -211,7 +211,7 @@ export async function createMedicalVisit(
 
 export async function getTimelineEvents(injuryId: number) {
   const response = await authFetch(
-    `${API_URL}/api/injuries/${injuryId}/timeline`,
+    `${API_URL}/api/injuries/${injuryId}/events`,
   );
 
   if (!response.ok) {
@@ -231,7 +231,7 @@ export async function createTimelineEvent(
   },
 ) {
   const response = await authFetch(
-    `${API_URL}/api/injuries/${injuryId}/timeline`,
+    `${API_URL}/api/injuries/${injuryId}/events`,
     {
       method: "POST",
       body: JSON.stringify(event),
