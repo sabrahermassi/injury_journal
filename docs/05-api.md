@@ -2,59 +2,28 @@
 
 ## Overview
 
-The application uses a REST API to allow communication between the React frontend and Node.js/Express backend.
+The application uses a REST API for communication between the React frontend and Node.js/Express backend.
 
 The API handles:
 
-- User authentication.
-- Injury management.
-- Timeline events.
-- Symptoms.
-- Treatments.
-- Medical visits.
+- Authentication
+- Injury management
+- Timeline events
+- Symptoms
+- Treatments
+- Medical visits
 
 ---
 
-# API Decisions
+# API Style
 
-## API Style
+**Decision: REST API**
 
-**Decision:** REST API
-
-### Reasons
-
-- Simple CRUD operations.
-- Easy integration with React.
-- Easy to test and maintain.
-- Appropriate for MVP complexity.
-
-### Tradeoff
-
-**Advantages:**
-
-- Simple and predictable structure.
-- Good tooling support.
-- Easy debugging.
-
-**Disadvantages:**
-
-- Can require multiple requests for complex data.
-- Less flexible than GraphQL for highly dynamic clients.
-
----
+REST was chosen because the application mainly requires CRUD operations and simple resource-based communication.
 
 ## Data Format
 
-**Decision:** JSON
-
-Example:
-
-```json
-{
-  "name": "Left hip pain",
-  "status": "Active"
-}
-```
+All API communication uses JSON.
 
 ---
 
