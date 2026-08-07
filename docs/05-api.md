@@ -161,7 +161,7 @@ Returns one injury and related information.
 
 ## Update Injury
 
-### PATCH
+### PUT
 
 ```text
 /api/injuries/:id
@@ -223,7 +223,7 @@ Returns injury history ordered chronologically.
 
 ## Update Timeline Event
 
-### PATCH
+### PUT
 
 ```text
 /api/events/:id
@@ -327,7 +327,6 @@ Request:
   "doctor": "Sports Medicine Specialist",
   "clinic": "Clinic A",
   "date": "2026-07-15",
-  "tests": "MRI",
   "notes": "Assessment notes"
 }
 ```

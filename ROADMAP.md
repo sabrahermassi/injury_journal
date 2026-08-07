@@ -4,47 +4,47 @@
 
 ## Product
 
-- [ ] Users can register and log in.
-- [ ] Users can securely access only their own data.
-- [ ] Users can create, view, update, and delete injury profiles.
-- [ ] Users can record symptoms, treatments, and medical events.
-- [ ] Users can view injury history as a timeline.
-- [ ] Users can manage their healthcare journey information.
+- [x] Users can register and log in.
+- [x] Users can securely access only their own data.
+- [x] Users can create, view, update, and delete injury profiles.
+- [x] Users can record symptoms, treatments, and medical events.
+- [x] Users can view injury history as a timeline.
+- [x] Users can manage their healthcare journey information.
 
 ---
 
 # Backend
 
-- [ ] Express server runs successfully.
-- [ ] PostgreSQL connection works.
-- [ ] Database schema is implemented.
-- [ ] Prisma database layer is configured.
-- [ ] User registration and login work.
-- [ ] Passwords are securely hashed.
-- [ ] JWT authentication works.
-- [ ] Protected API routes require authentication.
-- [ ] Users can only access their own resources.
-- [ ] Injury CRUD operations work.
-- [ ] Timeline events work.
-- [ ] Symptoms work.
-- [ ] Treatments work.
-- [ ] Medical visits work.
+- [x] Express server runs successfully.
+- [x] PostgreSQL connection works.
+- [x] Database schema is implemented.
+- [x] Prisma database layer is configured.
+- [x] User registration and login work.
+- [x] Passwords are securely hashed.
+- [x] JWT authentication works.
+- [x] Protected API routes require authentication.
+- [x] Users can only access their own resources.
+- [x] Injury CRUD operations work.
+- [x] Timeline events work.
+- [x] Symptoms work.
+- [x] Treatments work.
+- [x] Medical visits work.
 - [ ] API matches the API Design document.
 
 ---
 
 # Frontend
 
-- [ ] Users can register.
-- [ ] Users can login.
-- [ ] Users can logout.
-- [ ] Dashboard displays injuries.
-- [ ] Users can create injuries.
+- [x] Users can register.
+- [x] Users can login.
+- [x] Users can logout.
+- [x] Dashboard displays injuries.
+- [x] Users can create injuries.
 - [ ] Users can view timelines.
 - [ ] Users can add symptoms.
 - [ ] Users can add treatments.
 - [ ] Users can add medical visits.
-- [ ] Frontend communicates with backend API.
+- [x] Frontend communicates with backend API.
 
 ---
 

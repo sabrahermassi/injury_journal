@@ -17,6 +17,7 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   injuries Injury[]
 }
@@ -25,11 +26,11 @@ model Injury {
   id          Int      @id @default(autoincrement())
   name        String
   bodyArea    String
-  side        String
+  side        String?
   startDate   DateTime
-  cause       String
-  description String
-  status      String  
+  cause       String?
+  description String?
+  status      String? 
   createdAt   DateTime @default(now())
 
   userId Int
@@ -56,7 +57,7 @@ model Symptom {
   id        Int      @id @default(autoincrement())
   date      DateTime
   painLevel Int
-  location  String
+  location  String?
   trigger   String?
   duration  String?
   notes     String?
@@ -79,7 +80,7 @@ model Treatment {
 
 model MedicalVisit {
   id      Int      @id @default(autoincrement())
-  doctor  String
+  doctor  String?
   clinic  String?
   date    DateTime
   notes   String?

@@ -19,15 +19,15 @@ export const injurySchema = z.object({
 
   bodyArea: z.string().min(1),
 
-  side: z.string().min(1),
+  side: z.string().min(1).optional().nullable(),
 
   startDate: z.string().datetime(),
 
-  cause: z.string().min(1),
+  cause: z.string().min(1).optional().nullable(),
 
-  description: z.string().min(1),
+  description: z.string().min(1).optional().nullable(),
 
-  status: z.string().min(1),
+  status: z.string().min(1).optional().nullable(),
 });
 
 export const updateInjurySchema = injurySchema.partial();
@@ -40,7 +40,7 @@ export const timelineSchema = z.object({
 
   description: z.string().min(1),
 
-  result: z.string().optional(),
+  result: z.string().min(1).optional().nullable(),
 });
 
 export const updateTimelineSchema = timelineSchema.partial();
@@ -51,13 +51,13 @@ export const symptomSchema = z.object({
 
   painLevel: z.number().min(1).max(10),
 
-  location: z.string().min(1),
+  location: z.string().min(1).optional().nullable(),
 
-  trigger: z.string().optional(),
+  trigger: z.string().min(1).optional().nullable(),
 
-  duration: z.string().optional(),
+  duration: z.string().min(1).optional().nullable(),
 
-  notes: z.string().optional(),
+  notes: z.string().min(1).optional().nullable(),
 });
 
 export const updateSymptomSchema = symptomSchema.partial();
@@ -66,26 +66,26 @@ export const updateSymptomSchema = symptomSchema.partial();
 export const treatmentSchema = z.object({
   name: z.string().min(1),
 
-  provider: z.string().optional(),
+  provider: z.string().min(1).optional().nullable(),
 
   date: z.string().datetime(),
 
-  cost: z.number().nonnegative().optional(),
+  cost: z.number().nonnegative().optional().nullable(),
 
-  outcome: z.string().optional(),
+  outcome: z.string().min(1).optional().nullable(),
 });
 
 export const updateTreatmentSchema = treatmentSchema.partial();
 
 // MEDICAL VISIT
 export const medicalVisitSchema = z.object({
-  doctor: z.string().min(1),
+  doctor: z.string().min(1).optional().nullable(),
 
-  clinic: z.string().optional(),
+  clinic: z.string().min(1).optional().nullable(),
 
   date: z.string().datetime(),
 
-  notes: z.string().optional(),
+  notes: z.string().min(1).optional().nullable(),
 });
 
 export const updateMedicalVisitSchema = medicalVisitSchema.partial();
