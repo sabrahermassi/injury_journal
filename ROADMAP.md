@@ -104,15 +104,22 @@
 
 # Security Improvements
 
-## Current Authentication
+## Authentication Hardening Before Production Deployment
 
-The MVP currently uses JWT authentication with tokens stored in `localStorage`.
+Current MVP authentication:
 
-Future authentication hardening:
+- JWT authentication.
+- Tokens stored in `localStorage`.
+- Authorization header used for protected requests.
+
+This implementation is acceptable for development/testing but should be migrated before handling production healthcare data.
+
+Before production deployment:
 
 - [ ] Replace localStorage JWT storage with HttpOnly Secure cookies.
   - Update `frontend/services/utils.ts`.
-- [ ] Use SameSite cookie policies to reduce cross-site attacks.
+  - Update frontend authentication flow.
+- [ ] Configure SameSite cookie policies.
 - [ ] Add CSRF protection for cookie-based authentication.
 - [ ] Update frontend API requests to use credentialed requests.
 - [ ] Update backend authentication middleware to validate session cookies instead of Authorization headers.
