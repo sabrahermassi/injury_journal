@@ -157,7 +157,7 @@ Example:
 
 ```text
 Frontend:
-localhost:5173
+localhost:3000
 
 Backend:
 localhost:3001

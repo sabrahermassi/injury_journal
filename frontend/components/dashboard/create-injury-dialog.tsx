@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 
 import { createInjury } from "@/services/api";
 
-export function LogEntryDialog({
+export function CreateInjuryDialog({
   open,
   onOpenChange,
   onCreated,

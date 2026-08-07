@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { LogEntryDialog } from "./log-entry-dialog";
+import { CreateInjuryDialog } from "./create-injury-dialog";
 
 export function DashboardHeader({
   onInjuryCreated,
@@ -45,7 +45,7 @@ export function DashboardHeader({
           <span className="hidden sm:inline">Add Injury</span>
         </Button>
 
-        <LogEntryDialog
+        <CreateInjuryDialog
           open={open}
           onOpenChange={setOpen}
           onCreated={() => window.location.reload()}
