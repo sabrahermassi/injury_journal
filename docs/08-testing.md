@@ -4,16 +4,6 @@
 
 This document defines the testing strategy for the Injury Journal MVP.
 
-The goal is to ensure:
-
-- Backend reliability.
-- Frontend correctness.
-- API functionality.
-- Security.
-- Good user experience.
-
-Testing will focus on important user journeys and business logic.
-
 ---
 
 # Testing Strategy
