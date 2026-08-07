@@ -24,7 +24,12 @@ export function DashboardHeader({
             Recovery Overview
           </h1>
           <p className="hidden text-sm text-muted-foreground sm:block">
-            Monday, August 3, 2026
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
           </p>
         </div>
 
@@ -48,7 +53,7 @@ export function DashboardHeader({
         <CreateInjuryDialog
           open={open}
           onOpenChange={setOpen}
-          onCreated={() => window.location.reload()}
+          onCreated={onInjuryCreated}
         />
       </div>
     </header>

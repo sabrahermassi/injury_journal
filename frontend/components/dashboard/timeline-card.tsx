@@ -5,14 +5,18 @@ import { getTimelineEvents } from "@/services/api";
 
 export function TimelineCard({ injuryId }: { injuryId: number }) {
   const [events, setEvents] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadEvents() {
       try {
+        setError(null);
+
         const data = await getTimelineEvents(injuryId);
         setEvents(data);
       } catch (error) {
         console.error(error);
+        setError("Failed to load timeline events");
       }
     }
 
@@ -23,7 +27,9 @@ export function TimelineCard({ injuryId }: { injuryId: number }) {
     <div className="max-w-2xl rounded-xl border bg-card p-5">
       <h2 className="text-lg font-semibold">Timeline</h2>
 
-      {events.length === 0 ? (
+      {error ? (
+        <p className="mt-3 text-muted-foreground">{error}</p>
+      ) : events.length === 0 ? (
         <p className="mt-3 text-muted-foreground">
           No timeline events recorded.
         </p>

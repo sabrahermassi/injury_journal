@@ -18,18 +18,34 @@ export default function InjuryDetailsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    setLoading(true);
+    setInjury(null);
+
     async function fetchInjury() {
       try {
         const data = await getInjury(String(params.id));
-        setInjury(data);
+
+        if (!cancelled) {
+          setInjury(data);
+        }
       } catch (error) {
-        console.error(error);
+        if (!cancelled) {
+          console.error(error);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     fetchInjury();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params.id]);
 
   if (loading) {

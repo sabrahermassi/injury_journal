@@ -1,5 +1,10 @@
 import { getToken } from "./utils";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is not defined");
+}
 
 export async function authFetch(url: string, options: RequestInit = {}) {
   const token = getToken();
@@ -76,6 +81,9 @@ export async function createInjury(injury: {
   name: string;
   bodyArea: string;
   side: string;
+  startDate: string;
+  cause: string;
+  description: string;
   status: string;
 }) {
   const response = await authFetch(`${API_URL}/api/injuries`, {

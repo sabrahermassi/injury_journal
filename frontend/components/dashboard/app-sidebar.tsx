@@ -33,6 +33,7 @@ const mainNav = [
     title: "Overview",
     key: "overview",
     icon: LayoutDashboard,
+    badge: "",
   },
   {
     title: "Injuries",

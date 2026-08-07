@@ -12,14 +12,18 @@ import { InjuryCard } from "@/components/dashboard/injury-card";
 export default function DashboardPage() {
   const [injuries, setInjuries] = useState<any[]>([]);
   const [activeSection, setActiveSection] = useState("overview");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchInjuries() {
       try {
+        setError(null);
+
         const data = await getInjuries();
         setInjuries(data);
       } catch (error) {
         console.error(error);
+        setError("Failed to load injuries");
       }
     }
 
@@ -28,10 +32,13 @@ export default function DashboardPage() {
 
   async function refreshInjuries() {
     try {
+      setError(null);
+
       const data = await getInjuries();
       setInjuries(data);
     } catch (error) {
       console.error(error);
+      setError("Failed to load injuries");
     }
   }
 
@@ -56,7 +63,16 @@ export default function DashboardPage() {
 
           {activeSection === "injuries" && (
             <>
-              {injuries.length === 0 ? (
+              {error ? (
+                <div className="rounded-xl border bg-card p-6">
+                  <p className="text-muted-foreground">
+                    Failed to load injuries.
+                  </p>
+                  <button onClick={refreshInjuries} className="mt-4 underline">
+                    Retry
+                  </button>
+                </div>
+              ) : injuries.length === 0 ? (
                 <div className="rounded-xl border bg-card p-6">
                   <p className="text-muted-foreground">No injuries yet.</p>
                 </div>
