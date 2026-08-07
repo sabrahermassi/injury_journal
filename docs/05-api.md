@@ -23,7 +23,10 @@ REST was chosen because the application mainly requires CRUD operations and simp
 
 ## Data Format
 
-All API communication uses JSON.
+JSON requests use:
+
+```http
+Content-Type: application/json
 
 ---
 
@@ -34,8 +37,10 @@ All API communication uses JSON.
 ### POST
 
 ```
+
 /api/auth/register
-```
+
+````
 
 Purpose:
 
@@ -48,7 +53,7 @@ Request:
   "email": "user@example.com",
   "password": "password123"
 }
-```
+````
 
 Response:
 
@@ -374,7 +379,7 @@ Example:
 
 ```json
 {
-  "error": "Invalid token"
+  "error": "Authorization token missing"
 }
 ```
 

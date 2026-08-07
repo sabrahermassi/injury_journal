@@ -19,6 +19,19 @@ A relational database provides:
 
 ---
 
+## Database Models
+
+| Model          | Fields                                                                             |
+| -------------- | ---------------------------------------------------------------------------------- |
+| User           | id, email, password, createdAt                                                     |
+| Injury         | id, userId, name, bodyArea, side, startDate, cause, description, status, createdAt |
+| Timeline Event | id, injuryId, type, date, description, result                                      |
+| Symptom        | id, injuryId, date, painLevel, location, trigger, duration, notes                  |
+| Treatment      | id, injuryId, name, provider, date, cost, outcome                                  |
+| Medical Visit  | id, injuryId, doctor, clinic, date, notes                                          |
+
+---
+
 # Entity Relationship Overview
 
 ```text
@@ -52,3 +65,8 @@ The system should enforce:
 - Required fields must be validated before saving.
 - Related records must be handled safely when data is deleted.
 - Users must only access their own data through application authorization.
+
+- Deletion policies prevent orphan records:
+  - Users cannot be deleted while they have associated injuries.
+  - Injuries cannot be deleted while related timeline events, symptoms, treatments, or medical visits exist.
+  - Related records must be removed explicitly before deleting parent records.

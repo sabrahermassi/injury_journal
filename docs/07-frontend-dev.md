@@ -52,6 +52,22 @@ Use React Context API. The MVP only requires simple global state. It stores:
 
 ---
 
+## JWT Token Handling
+
+- JWT is returned by the backend after login.
+- Token is stored in localStorage.
+- On application startup, the token is loaded to restore authentication state.
+- Logout removes the stored token.
+- Expired or invalid tokens clear the session and require login again.
+
+Protected API requests include:
+
+```http
+Authorization: Bearer <token>
+```
+
+---
+
 ## Authentication Flow
 
 ```text id="7kq8m1"

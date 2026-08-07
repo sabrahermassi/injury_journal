@@ -45,19 +45,6 @@ src/
 
 ---
 
-## Database Models
-
-| Model          | Fields                                                                     |
-| -------------- | -------------------------------------------------------------------------- |
-| User           | id, email, password_hash, created_at                                       |
-| Injury         | id, user_id, name, body_area, side, start_date, cause, description, status |
-| Timeline Event | id, injury_id, type, date, description, result, notes                      |
-| Symptom        | id, injury_id, date, pain_level, location, trigger, duration, notes        |
-| Treatment      | id, injury_id, name, provider, date, cost, outcome, notes                  |
-| Medical Visit  | id, injury_id, doctor, clinic, date, tests, notes, recommendations         |
-
----
-
 # Authentication Implementation
 
 ## Authentication Method
