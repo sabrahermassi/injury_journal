@@ -1,24 +1,123 @@
+# Completion Criteria & Roadmap
+
+# MVP Completion Checklist
+
+## Product
+
+- [ ] Users can register and log in.
+- [ ] Users can securely access only their own data.
+- [ ] Users can create, view, update, and delete injury profiles.
+- [ ] Users can record symptoms, treatments, and medical events.
+- [ ] Users can view injury history as a timeline.
+- [ ] Users can manage their healthcare journey information.
+
+---
+
+# Backend
+
+- [ ] Express server runs successfully.
+- [ ] PostgreSQL connection works.
+- [ ] Database schema is implemented.
+- [ ] Prisma database layer is configured.
+- [ ] User registration and login work.
+- [ ] Passwords are securely hashed.
+- [ ] JWT authentication works.
+- [ ] Protected API routes require authentication.
+- [ ] Users can only access their own resources.
+- [ ] Injury CRUD operations work.
+- [ ] Timeline events work.
+- [ ] Symptoms work.
+- [ ] Treatments work.
+- [ ] Medical visits work.
+- [ ] API matches the API Design document.
+
+---
+
+# Frontend
+
+- [ ] Users can register.
+- [ ] Users can login.
+- [ ] Users can logout.
+- [ ] Dashboard displays injuries.
+- [ ] Users can create injuries.
+- [ ] Users can view timelines.
+- [ ] Users can add symptoms.
+- [ ] Users can add treatments.
+- [ ] Users can add medical visits.
+- [ ] Frontend communicates with backend API.
+
+---
+
+# Deployment
+
+- [ ] Frontend is publicly accessible.
+- [ ] Backend API is publicly accessible.
+- [ ] Database is connected.
+- [ ] Authentication works in production.
+- [ ] Users can manage injury data online.
+- [ ] Production environment works independently from local development.
+
+---
+
+# Future Roadmap
+
+## Version 2 — Patient History Organizer
+
+- [ ] Medical document storage.
+- [ ] Upload MRI reports, X-rays, lab results, and medical notes.
+- [ ] Secure document access control.
+- [ ] AI-generated medical summaries from user data.
+- [ ] Appointment preparation tools.
+- [ ] Translation support for healthcare communication.
+
+---
+
+## Version 3 — Healthcare Navigation Platform
+
+- [ ] Healthcare provider search.
+- [ ] Specialist discovery.
+- [ ] Healthcare navigation tools.
+- [ ] Community support features.
+
+---
+
+# Future Product Principles
+
+- [ ] Continue protecting user privacy.
+- [ ] Improve communication with healthcare professionals.
+- [ ] Organize healthcare information.
+- [ ] Avoid diagnosis features.
+- [ ] Avoid replacing healthcare professionals.
+- [ ] Avoid unsafe treatment recommendations.
+
 ## Future Improvements
 
-Planned features:
+### Planned Features
 
-- React frontend improvements
-- Medical document uploads
-- AI-generated medical timeline summaries
-- Exportable medical history reports
-- Improved healthcare navigation support
+- [ ] React frontend improvements.
+- [ ] Medical document uploads.
+- [ ] AI-generated medical timeline summaries.
+- [ ] Exportable medical history reports.
+- [ ] Improved healthcare navigation support.
 
-### Security Improvements
+---
 
-The MVP currently uses JWT authentication with tokens stored in localStorage.
+# Security Improvements
+
+## Current Authentication
+
+The MVP currently uses JWT authentication with tokens stored in `localStorage`.
 
 Future authentication hardening:
 
-- Replace localStorage JWT storage with HttpOnly, Secure cookies (change in frontend/services/utils.ts file)
-- Use SameSite cookie policies to reduce cross-site attacks.
-- Add CSRF protection for cookie-based authentication.
-- Update frontend API requests to use credentialed requests.
-- Update backend authentication middleware to validate session cookies instead of Authorization headers.
+- [ ] Replace localStorage JWT storage with HttpOnly Secure cookies.
+  - Update `frontend/services/utils.ts`.
+- [ ] Use SameSite cookie policies to reduce cross-site attacks.
+- [ ] Add CSRF protection for cookie-based authentication.
+- [ ] Update frontend API requests to use credentialed requests.
+- [ ] Update backend authentication middleware to validate session cookies instead of Authorization headers.
+
+---
 
 ## UI Improvements
 
