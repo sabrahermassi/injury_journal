@@ -27,6 +27,7 @@ JSON requests use:
 
 ```http
 Content-Type: application/json
+```
 
 ---
 
@@ -36,11 +37,9 @@ Content-Type: application/json
 
 ### POST
 
-```
-
+```text
 /api/auth/register
-
-````
+```
 
 Purpose:
 
@@ -53,7 +52,7 @@ Request:
   "email": "user@example.com",
   "password": "password123"
 }
-````
+```
 
 Response:
 
@@ -69,7 +68,7 @@ Response:
 
 ### POST
 
-```
+```text
 /api/auth/login
 ```
 
@@ -106,7 +105,7 @@ Response:
 
 ### POST
 
-```
+```text
 /api/injuries
 ```
 
@@ -136,7 +135,7 @@ Request:
 
 ### GET
 
-```
+```text
 /api/injuries
 ```
 
@@ -152,7 +151,7 @@ Returns all injuries belonging to the logged-in user.
 
 ### GET
 
-```
+```text
 /api/injuries/:id
 ```
 
@@ -164,7 +163,7 @@ Returns one injury and related information.
 
 ### PATCH
 
-```
+```text
 /api/injuries/:id
 ```
 
@@ -176,7 +175,7 @@ Updates injury information.
 
 ### DELETE
 
-```
+```text
 /api/injuries/:id
 ```
 
@@ -190,7 +189,7 @@ Deletes an injury.
 
 ### POST
 
-```
+```text
 /api/injuries/:injuryId/events
 ```
 
@@ -214,7 +213,7 @@ Request:
 
 ### GET
 
-```
+```text
 /api/injuries/:injuryId/events
 ```
 
@@ -226,7 +225,7 @@ Returns injury history ordered chronologically.
 
 ### PATCH
 
-```
+```text
 /api/events/:id
 ```
 
@@ -236,7 +235,7 @@ Returns injury history ordered chronologically.
 
 ### DELETE
 
-```
+```text
 /api/events/:id
 ```
 
@@ -248,7 +247,7 @@ Returns injury history ordered chronologically.
 
 ### POST
 
-```
+```text
 /api/injuries/:injuryId/symptoms
 ```
 
@@ -271,7 +270,7 @@ Request:
 
 ### GET
 
-```
+```text
 /api/injuries/:injuryId/symptoms
 ```
 
@@ -283,7 +282,7 @@ Request:
 
 ### POST
 
-```
+```text
 /api/injuries/:injuryId/treatments
 ```
 
@@ -305,7 +304,7 @@ Request:
 
 ### GET
 
-```
+```text
 /api/injuries/:injuryId/treatments
 ```
 
@@ -317,7 +316,7 @@ Request:
 
 ### POST
 
-```
+```text
 /api/injuries/:injuryId/visits
 ```
 
@@ -339,7 +338,7 @@ Request:
 
 ### GET
 
-```
+```text
 /api/injuries/:injuryId/visits
 ```
 
@@ -353,7 +352,7 @@ The API returns consistent JSON error responses.
 
 Status:
 
-```
+```text
 400 Bad Request
 ```
 
@@ -371,7 +370,7 @@ Example:
 
 Status:
 
-```
+```text
 401 Unauthorized
 ```
 
@@ -389,7 +388,7 @@ Example:
 
 Status:
 
-```
+```text
 404 Not Found
 ```
 
