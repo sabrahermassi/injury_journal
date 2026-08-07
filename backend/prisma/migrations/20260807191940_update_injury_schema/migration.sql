@@ -13,6 +13,12 @@ ALTER TABLE "MedicalVisit" ALTER COLUMN "doctor" DROP NOT NULL;
 -- AlterTable
 ALTER TABLE "Symptom" ALTER COLUMN "location" DROP NOT NULL;
 
--- AlterTable
+-- Add updatedAt safely
+ALTER TABLE "User"
+ADD COLUMN "updatedAt" TIMESTAMP(3);
+
+UPDATE "User"
+SET "updatedAt" = "createdAt";
+
 ALTER TABLE "User"
 ALTER COLUMN "updatedAt" SET NOT NULL;
