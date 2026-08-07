@@ -25,11 +25,11 @@ model Injury {
   id          Int      @id @default(autoincrement())
   name        String
   bodyArea    String
-  side        String
+  side        String?
   startDate   DateTime
-  cause       String
+  cause       String?
   description String
-  status      String  
+  status      String? 
   createdAt   DateTime @default(now())
 
   userId Int
