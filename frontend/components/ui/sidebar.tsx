@@ -79,10 +79,10 @@ function SidebarProvider({
       if (setOpenProp) {
         setOpenProp(openState);
       } else {
-        setOpenState(openState);
+        _setOpen(openState);
       }
     },
-    [setOpenProp, setOpenState, open],
+    [setOpenProp, open],
   );
 
   // Helper to toggle the sidebar.

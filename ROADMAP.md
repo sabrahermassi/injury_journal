@@ -52,3 +52,5 @@ Changes required:
 - Keep updating the cookie whenever the user toggles the sidebar.
 
 Expected behavior:
+After a page refresh, `SidebarProvider` restores the open or closed state
+from the `sidebar_state` cookie.

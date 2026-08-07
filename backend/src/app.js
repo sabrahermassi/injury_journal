@@ -8,10 +8,19 @@ import { apiLimiter } from './middleware.js';
 
 const app = express();
 
+const environment = process.env.NODE_ENV;
+const frontendUrl = process.env.FRONTEND_URL?.trim();
+
+if (!['development', 'test', 'production'].includes(environment)) {
+  throw new Error('NODE_ENV must be explicitly set to a supported environment');
+}
+
+if (environment === 'production' && !frontendUrl) {
+  throw new Error('FRONTEND_URL is required in production');
+}
+
 const allowedOrigins =
-  process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL]
-    : ['http://localhost:3000'];
+  environment === 'production' ? [frontendUrl] : ['http://localhost:3000'];
 
 const corsOptions = {
   origin: allowedOrigins,
