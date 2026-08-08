@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { SubmitEventHandler } from "react";
+import { InjuryBasicInfoForm } from "./injury-form/injury-basic-info-form";
 
 import {
   Dialog,
@@ -32,9 +33,17 @@ export function CreateInjuryDialog({
   const [startDate, setStartDate] = useState("");
   const [cause, setCause] = useState("");
   const [description, setDescription] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const resetForm = () => {
+    setName("");
+    setBodyArea("");
+    setSide("");
+    setStartDate("");
+    setCause("");
+    setDescription("");
+  };
 
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
@@ -46,14 +55,15 @@ export function CreateInjuryDialog({
       await createInjury({
         name,
         bodyArea,
-        side,
+        side: side || null,
         startDate: new Date(startDate).toISOString(),
-        cause,
-        description,
+        cause: cause || null,
+        description: description || null,
         status: "Active",
       });
 
       onCreated();
+      resetForm();
       onOpenChange(false);
     } catch {
       setError("Could not create injury");
@@ -70,75 +80,20 @@ export function CreateInjuryDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Injury name</Label>
-
-            <Input
-              id="name"
-              placeholder="Lower back pain and pelvis"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bodyArea">Body area</Label>
-
-            <Input
-              id="bodyArea"
-              placeholder="Lower back and pelvis"
-              value={bodyArea}
-              onChange={(e) => setBodyArea(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="side">Side</Label>
-
-            <Input
-              id="side"
-              placeholder="Left"
-              value={side}
-              onChange={(e) => setSide(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="startDate">Start date</Label>
-
-            <Input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cause">Cause</Label>
-
-            <Input
-              id="cause"
-              placeholder="Deadlift"
-              value={cause}
-              onChange={(e) => setCause(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-
-            <Textarea
-              id="description"
-              placeholder="Started after heavy lifting"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+          <InjuryBasicInfoForm
+            name={name}
+            setName={setName}
+            bodyArea={bodyArea}
+            setBodyArea={setBodyArea}
+            side={side}
+            setSide={setSide}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            cause={cause}
+            setCause={setCause}
+            description={description}
+            setDescription={setDescription}
+          />
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Creating..." : "Create Injury"}
