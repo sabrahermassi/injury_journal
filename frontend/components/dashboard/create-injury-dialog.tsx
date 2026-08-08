@@ -89,6 +89,10 @@ export function CreateInjuryDialog({
             setSide={setSide}
             startDate={startDate}
             setStartDate={setStartDate}
+            cause={cause}
+            setCause={setCause}
+            description={description}
+            setDescription={setDescription}
           />
 
           <Button type="submit" disabled={loading} className="w-full">

@@ -89,6 +89,8 @@ flowchart LR
 
 ## Database Design
 
+> **Note:** Fields marked as nullable in the Prisma schema may contain `NULL`.
+
 ```mermaid
 erDiagram
 
@@ -314,7 +316,5 @@ Planned features:
 
 Current focus:
 
-- Frontend user experience improvements
-- Multi-step injury workflow
-- Documentation
-- Future AI-assisted healthcare features
+- Multi-step injury creation workflow
+- Dashboard UX improvements
