@@ -57,6 +57,104 @@ Current features:
 - JWT authentication
 - Zod validation
 
+## Architecture
+
+```mermaid
+flowchart LR
+
+    U[User]
+
+    FE[Next.js Frontend]
+
+    API[Express REST API]
+
+    AUTH[JWT Authentication]
+
+    DB[(PostgreSQL)]
+
+    ORM[Prisma ORM]
+
+    U --> FE
+
+    FE -->|HTTP / JSON| API
+
+    API --> AUTH
+
+    AUTH --> API
+
+    API --> ORM
+
+    ORM --> DB
+```
+
+## Database Design
+
+```mermaid
+erDiagram
+
+    User ||--o{ Injury : owns
+
+    Injury ||--o{ TimelineEvent : contains
+    Injury ||--o{ Symptom : tracks
+    Injury ||--o{ Treatment : has
+    Injury ||--o{ MedicalVisit : records
+
+    User {
+        int id
+        string email
+        string password
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Injury {
+        int id
+        string name
+        string bodyArea
+        string side
+        datetime startDate
+        string cause
+        string description
+        string status
+        datetime createdAt
+    }
+
+    TimelineEvent {
+        int id
+        string type
+        datetime date
+        string description
+        string result
+    }
+
+    Symptom {
+        int id
+        datetime date
+        int painLevel
+        string location
+        string trigger
+        string duration
+        string notes
+    }
+
+    Treatment {
+        int id
+        string name
+        string provider
+        datetime date
+        float cost
+        string outcome
+    }
+
+    MedicalVisit {
+        int id
+        string doctor
+        string clinic
+        datetime date
+        string notes
+    }
+```
+
 ### Security
 
 - Helmet security headers
@@ -212,4 +310,11 @@ Planned features:
 
 ## Status
 
-🚧 Currently under active development.
+🚧 MVP backend completed.
+
+Current focus:
+
+- Frontend user experience improvements
+- Multi-step injury workflow
+- Documentation
+- Future AI-assisted healthcare features

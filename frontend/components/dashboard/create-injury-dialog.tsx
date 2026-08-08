@@ -36,16 +36,6 @@ export function CreateInjuryDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [step, setStep] = useState(1);
-
-  const nextStep = () => {
-    setStep((prev) => prev + 1);
-  };
-
-  const previousStep = () => {
-    setStep((prev) => prev - 1);
-  };
-
   const resetForm = () => {
     setName("");
     setBodyArea("");
@@ -53,7 +43,6 @@ export function CreateInjuryDialog({
     setStartDate("");
     setCause("");
     setDescription("");
-    setStep(1);
   };
 
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (event) => {
