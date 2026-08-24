@@ -23,6 +23,8 @@ import {
   getMedicalVisitsController,
   updateMedicalVisitController,
   deleteMedicalVisitController,
+  getVoiceTokenController,
+  extractVoiceEntryController,
 } from './controllers.js';
 import { authenticate, validate, authLimiter } from './middleware.js';
 import {
@@ -38,6 +40,7 @@ import {
   updateTreatmentSchema,
   medicalVisitSchema,
   updateMedicalVisitSchema,
+  voiceExtractSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -185,5 +188,16 @@ router.put(
 
 // DELETE /api/visits/:id
 router.delete('/visits/:id', authenticate, deleteMedicalVisitController);
+
+// POST /api/voice/token
+router.post('/voice/token', authenticate, getVoiceTokenController);
+
+// POST /api/voice/extract
+router.post(
+  '/voice/extract',
+  authenticate,
+  validate(voiceExtractSchema),
+  extractVoiceEntryController
+);
 
 export default router;

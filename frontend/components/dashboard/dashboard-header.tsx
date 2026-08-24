@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, Plus, Search } from "lucide-react";
+import { Bell, Mic, Plus, Search } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,12 @@ export function DashboardHeader({
 
         <Button variant="outline" size="icon" aria-label="Notifications">
           <Bell />
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/voice">
+            <Mic />
+            <span className="hidden sm:inline">Log by voice</span>
+          </Link>
         </Button>
         <Button onClick={() => setOpen(true)}>
           <Plus />
