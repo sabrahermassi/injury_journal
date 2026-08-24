@@ -33,6 +33,8 @@ import {
   updateMedicalVisit,
   deleteMedicalVisit,
 } from './services/medicalVisitService.js';
+import { getTranscribeToken } from './services/cortiService.js';
+import { extractInjuryEntry } from './services/voiceExtractionService.js';
 
 // POST /api/auth/register
 export const register = async (req, res, next) => {
@@ -445,6 +447,43 @@ export const deleteMedicalVisitController = async (req, res, next) => {
     }
 
     res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/voice/token
+export const getVoiceTokenController = async (req, res, next) => {
+  try {
+    const token = await getTranscribeToken();
+
+    res.json({
+      accessToken: token.accessToken,
+      expiresIn: token.expiresIn,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/voice/extract
+export const extractVoiceEntryController = async (req, res, next) => {
+  try {
+    const injury = await getInjuryById(req.body.injuryId, req.userId);
+
+    if (!injury) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    const extraction = await extractInjuryEntry({
+      transcript: req.body.transcript,
+      injury,
+      entryDate: new Date().toISOString(),
+    });
+
+    res.json(extraction);
   } catch (error) {
     next(error);
   }

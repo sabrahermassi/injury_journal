@@ -89,3 +89,10 @@ export const medicalVisitSchema = z.object({
 });
 
 export const updateMedicalVisitSchema = medicalVisitSchema.partial();
+
+// VOICE ENTRY
+export const voiceExtractSchema = z.object({
+  injuryId: z.number().int().positive(),
+
+  transcript: z.string().min(1),
+});

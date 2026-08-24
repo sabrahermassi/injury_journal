@@ -80,10 +80,10 @@ export async function getInjury(id: string) {
 export async function createInjury(injury: {
   name: string;
   bodyArea: string;
-  side: string;
+  side: string | null;
   startDate: string;
-  cause: string;
-  description: string;
+  cause: string | null;
+  description: string | null;
   status: string;
 }) {
   const response = await authFetch(`${API_URL}/api/injuries`, {
@@ -224,6 +224,71 @@ export async function getTimelineEvents(injuryId: number) {
 
   if (!response.ok) {
     throw new Error("Failed to fetch timeline events");
+  }
+
+  return response.json();
+}
+
+export async function getVoiceToken(): Promise<{
+  accessToken: string;
+  expiresIn: number;
+}> {
+  const response = await authFetch(`${API_URL}/api/voice/token`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Backend error:", error);
+    throw new Error("Failed to get voice token");
+  }
+
+  return response.json();
+}
+
+export type VoiceExtraction = {
+  symptoms: Array<{
+    date: string;
+    painLevel: number;
+    location: string | null;
+    trigger: string | null;
+    duration: string | null;
+    notes: string | null;
+  }>;
+  treatments: Array<{
+    name: string;
+    provider: string | null;
+    date: string;
+    cost: number | null;
+    outcome: string | null;
+  }>;
+  medicalVisits: Array<{
+    doctor: string | null;
+    clinic: string | null;
+    date: string;
+    notes: string | null;
+  }>;
+  timelineEvents: Array<{
+    type: string;
+    date: string;
+    description: string;
+    result: string | null;
+  }>;
+};
+
+export async function extractVoiceEntry(
+  injuryId: number,
+  transcript: string,
+): Promise<VoiceExtraction> {
+  const response = await authFetch(`${API_URL}/api/voice/extract`, {
+    method: "POST",
+    body: JSON.stringify({ injuryId, transcript }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Backend error:", error);
+    throw new Error(error || "Failed to extract voice entry");
   }
 
   return response.json();
