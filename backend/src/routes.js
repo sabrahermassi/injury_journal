@@ -2,6 +2,7 @@ import express from 'express';
 import {
   register,
   login,
+  logout,
   createInjuryController,
   getInjuriesController,
   getInjuryController,
@@ -24,7 +25,7 @@ import {
   updateMedicalVisitController,
   deleteMedicalVisitController,
 } from './controllers.js';
-import { authenticate, validate, authLimiter } from './middleware.js';
+import { authenticate, validate, authLimiter, verifyCsrf } from './middleware.js';
 import {
   registerSchema,
   loginSchema,
@@ -41,6 +42,9 @@ import {
 } from './validators.js';
 
 const router = express.Router();
+
+// Must run before any route handlers so it applies to every mutating route.
+router.use(verifyCsrf);
 
 if (process.env.NODE_ENV !== 'test') {
   // POST /api/auth/register
@@ -60,6 +64,9 @@ if (process.env.NODE_ENV !== 'test') {
   // POST /api/auth/login
   router.post('/auth/login', validate(loginSchema), login);
 }
+
+// POST /api/auth/logout
+router.post('/auth/logout', logout);
 
 // POST /api/injuries
 router.post(

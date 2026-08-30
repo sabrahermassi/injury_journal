@@ -1,19 +1,28 @@
-import { getToken } from "./utils";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined");
 }
 
+function getCsrfToken(): string | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
+
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export async function authFetch(url: string, options: RequestInit = {}) {
-  const token = getToken();
+  const csrfToken = getCsrfToken();
 
   return fetch(url, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       ...options.headers,
     },
   });
@@ -22,6 +31,7 @@ export async function authFetch(url: string, options: RequestInit = {}) {
 export async function registerUser(email: string, password: string) {
   const response = await fetch(`${API_URL}/api/auth/register`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -41,6 +51,7 @@ export async function registerUser(email: string, password: string) {
 export async function loginUser(email: string, password: string) {
   const response = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -55,6 +66,16 @@ export async function loginUser(email: string, password: string) {
   }
 
   return response.json();
+}
+
+export async function logoutUser() {
+  const response = await authFetch(`${API_URL}/api/auth/logout`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("Logout failed");
+  }
 }
 
 export async function getInjuries() {
