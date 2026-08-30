@@ -101,10 +101,10 @@ export async function getInjury(id: string) {
 export async function createInjury(injury: {
   name: string;
   bodyArea: string;
-  side: string;
+  side: string | null;
   startDate: string;
-  cause: string;
-  description: string;
+  cause: string | null;
+  description: string | null;
   status: string;
 }) {
   const response = await authFetch(`${API_URL}/api/injuries`, {
