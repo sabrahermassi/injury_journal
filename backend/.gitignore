@@ -14,3 +14,4 @@ src/generated/prisma/
 .windsurf/
 
 requests.http
+requests_USER_*.http
