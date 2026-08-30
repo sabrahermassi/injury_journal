@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { getInjuries } from "@/services/api";
+import { getInjuries, type Injury } from "@/services/api";
 import { InjuryCard } from "@/components/dashboard/injury-card";
 
 export default function InjuriesPage() {
-  const [injuries, setInjuries] = useState<any[]>([]);
+  const [injuries, setInjuries] = useState<Injury[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

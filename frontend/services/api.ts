@@ -4,6 +4,53 @@ if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined");
 }
 
+export interface Injury {
+  id: number;
+  name: string;
+  bodyArea: string;
+  side: string | null;
+  startDate: string;
+  cause: string | null;
+  description: string | null;
+  status: string | null;
+  createdAt: string;
+}
+
+export interface Symptom {
+  id: number;
+  date: string;
+  painLevel: number;
+  location: string | null;
+  trigger: string | null;
+  duration: string | null;
+  notes: string | null;
+}
+
+export interface Treatment {
+  id: number;
+  name: string;
+  provider: string | null;
+  date: string;
+  cost: number | null;
+  outcome: string | null;
+}
+
+export interface MedicalVisit {
+  id: number;
+  doctor: string | null;
+  clinic: string | null;
+  date: string;
+  notes: string | null;
+}
+
+export interface TimelineEvent {
+  id: number;
+  type: string;
+  date: string;
+  description: string;
+  result: string | null;
+}
+
 function getCsrfToken(): string | null {
   if (typeof sessionStorage === "undefined") {
     return null;
@@ -86,7 +133,7 @@ export async function logoutUser() {
   }
 }
 
-export async function getInjuries() {
+export async function getInjuries(): Promise<Injury[]> {
   const response = await authFetch(`${API_URL}/api/injuries`);
 
   if (!response.ok) {
@@ -96,7 +143,7 @@ export async function getInjuries() {
   return response.json();
 }
 
-export async function getInjury(id: string) {
+export async function getInjury(id: string): Promise<Injury> {
   const response = await authFetch(`${API_URL}/api/injuries/${id}`);
 
   if (!response.ok) {
@@ -129,7 +176,7 @@ export async function createInjury(injury: {
   return response.json();
 }
 
-export async function getSymptoms(injuryId: number) {
+export async function getSymptoms(injuryId: number): Promise<Symptom[]> {
   const response = await authFetch(
     `${API_URL}/api/injuries/${injuryId}/symptoms`,
   );
@@ -169,7 +216,7 @@ export async function createSymptom(
   return response.json();
 }
 
-export async function getTreatments(injuryId: number) {
+export async function getTreatments(injuryId: number): Promise<Treatment[]> {
   const response = await authFetch(
     `${API_URL}/api/injuries/${injuryId}/treatments`,
   );
@@ -208,7 +255,9 @@ export async function createTreatment(
   return response.json();
 }
 
-export async function getMedicalVisits(injuryId: number) {
+export async function getMedicalVisits(
+  injuryId: number,
+): Promise<MedicalVisit[]> {
   const response = await authFetch(
     `${API_URL}/api/injuries/${injuryId}/visits`,
   );
@@ -246,7 +295,9 @@ export async function createMedicalVisit(
   return response.json();
 }
 
-export async function getTimelineEvents(injuryId: number) {
+export async function getTimelineEvents(
+  injuryId: number,
+): Promise<TimelineEvent[]> {
   const response = await authFetch(
     `${API_URL}/api/injuries/${injuryId}/events`,
   );

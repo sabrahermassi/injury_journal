@@ -1,13 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-
-type Injury = {
-  id: string;
-  name: string;
-  bodyArea: string;
-  side: string;
-  status: string;
-};
+import type { Injury } from "@/services/api";
 
 type InjuryCardProps = {
   injury: Injury;

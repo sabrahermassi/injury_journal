@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getInjuries } from "../../services/api";
+import { getInjuries, type Injury } from "../../services/api";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -10,7 +10,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { InjuryCard } from "@/components/dashboard/injury-card";
 
 export default function DashboardPage() {
-  const [injuries, setInjuries] = useState<any[]>([]);
+  const [injuries, setInjuries] = useState<Injury[]>([]);
   const [activeSection, setActiveSection] = useState("overview");
   const [error, setError] = useState<string | null>(null);
 
