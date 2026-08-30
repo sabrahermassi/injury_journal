@@ -25,7 +25,13 @@ import {
   updateMedicalVisitController,
   deleteMedicalVisitController,
 } from './controllers.js';
-import { authenticate, validate, authLimiter, verifyCsrf } from './middleware.js';
+import {
+  authenticate,
+  validate,
+  validateNumericParam,
+  authLimiter,
+  verifyCsrf,
+} from './middleware.js';
 import {
   registerSchema,
   loginSchema,
@@ -80,23 +86,35 @@ router.post(
 router.get('/injuries', authenticate, getInjuriesController);
 
 // GET /api/injuries/:id
-router.get('/injuries/:id', authenticate, getInjuryController);
+router.get(
+  '/injuries/:id',
+  authenticate,
+  validateNumericParam('id'),
+  getInjuryController
+);
 
 // PUT /api/injuries/:id
 router.put(
   '/injuries/:id',
   authenticate,
+  validateNumericParam('id'),
   validate(updateInjurySchema),
   updateInjuryController
 );
 
 // DELETE /api/injuries/:id
-router.delete('/injuries/:id', authenticate, deleteInjuryController);
+router.delete(
+  '/injuries/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteInjuryController
+);
 
 // POST /api/injuries/:injuryId/events
 router.post(
   '/injuries/:injuryId/events',
   authenticate,
+  validateNumericParam('injuryId'),
   validate(timelineSchema),
   createTimelineEventController
 );
@@ -105,6 +123,7 @@ router.post(
 router.get(
   '/injuries/:injuryId/events',
   authenticate,
+  validateNumericParam('injuryId'),
   getTimelineEventsController
 );
 
@@ -112,39 +131,58 @@ router.get(
 router.put(
   '/events/:id',
   authenticate,
+  validateNumericParam('id'),
   validate(updateTimelineSchema),
   updateTimelineEventController
 );
 
 // DELETE /api/events/:id
-router.delete('/events/:id', authenticate, deleteTimelineEventController);
+router.delete(
+  '/events/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteTimelineEventController
+);
 
 // POST /api/injuries/:injuryId/symptoms
 router.post(
   '/injuries/:injuryId/symptoms',
   authenticate,
+  validateNumericParam('injuryId'),
   validate(symptomSchema),
   createSymptomController
 );
 
 // GET /api/injuries/:injuryId/symptoms
-router.get('/injuries/:injuryId/symptoms', authenticate, getSymptomsController);
+router.get(
+  '/injuries/:injuryId/symptoms',
+  authenticate,
+  validateNumericParam('injuryId'),
+  getSymptomsController
+);
 
 // PUT /api/symptoms/:id
 router.put(
   '/symptoms/:id',
   authenticate,
+  validateNumericParam('id'),
   validate(updateSymptomSchema),
   updateSymptomController
 );
 
 // DELETE /api/symptoms/:id
-router.delete('/symptoms/:id', authenticate, deleteSymptomController);
+router.delete(
+  '/symptoms/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteSymptomController
+);
 
 // POST /api/injuries/:injuryId/treatments
 router.post(
   '/injuries/:injuryId/treatments',
   authenticate,
+  validateNumericParam('injuryId'),
   validate(treatmentSchema),
   createTreatmentController
 );
@@ -153,6 +191,7 @@ router.post(
 router.get(
   '/injuries/:injuryId/treatments',
   authenticate,
+  validateNumericParam('injuryId'),
   getTreatmentsController
 );
 
@@ -160,17 +199,24 @@ router.get(
 router.put(
   '/treatments/:id',
   authenticate,
+  validateNumericParam('id'),
   validate(updateTreatmentSchema),
   updateTreatmentController
 );
 
 // DELETE /api/treatments/:id
-router.delete('/treatments/:id', authenticate, deleteTreatmentController);
+router.delete(
+  '/treatments/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteTreatmentController
+);
 
 // POST /api/injuries/:injuryId/visits
 router.post(
   '/injuries/:injuryId/visits',
   authenticate,
+  validateNumericParam('injuryId'),
   validate(medicalVisitSchema),
   createMedicalVisitController
 );
@@ -179,6 +225,7 @@ router.post(
 router.get(
   '/injuries/:injuryId/visits',
   authenticate,
+  validateNumericParam('injuryId'),
   getMedicalVisitsController
 );
 
@@ -186,11 +233,17 @@ router.get(
 router.put(
   '/visits/:id',
   authenticate,
+  validateNumericParam('id'),
   validate(updateMedicalVisitSchema),
   updateMedicalVisitController
 );
 
 // DELETE /api/visits/:id
-router.delete('/visits/:id', authenticate, deleteMedicalVisitController);
+router.delete(
+  '/visits/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteMedicalVisitController
+);
 
 export default router;
