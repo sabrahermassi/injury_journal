@@ -59,7 +59,7 @@ export const login = async (req, res, next) => {
 
     res.cookie('token', result.token, authCookieOptions);
     res.cookie('csrfToken', csrfToken, csrfCookieOptions);
-    res.json(result);
+    res.json({ ...result, csrfToken });
   } catch (error) {
     next(error);
   }

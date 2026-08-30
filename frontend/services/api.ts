@@ -5,13 +5,11 @@ if (!API_URL) {
 }
 
 function getCsrfToken(): string | null {
-  if (typeof document === "undefined") {
+  if (typeof sessionStorage === "undefined") {
     return null;
   }
 
-  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
-
-  return match ? decodeURIComponent(match[1]) : null;
+  return sessionStorage.getItem("csrfToken");
 }
 
 export async function authFetch(url: string, options: RequestInit = {}) {
@@ -65,7 +63,13 @@ export async function loginUser(email: string, password: string) {
     throw new Error("Login failed");
   }
 
-  return response.json();
+  const data = await response.json();
+
+  if (typeof sessionStorage !== "undefined" && data.csrfToken) {
+    sessionStorage.setItem("csrfToken", data.csrfToken);
+  }
+
+  return data;
 }
 
 export async function logoutUser() {
@@ -75,6 +79,10 @@ export async function logoutUser() {
 
   if (!response.ok) {
     throw new Error("Logout failed");
+  }
+
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("csrfToken");
   }
 }
 
