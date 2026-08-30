@@ -57,6 +57,13 @@ Current features:
 - JWT authentication
 - Zod validation
 
+### Frontend
+
+- Next.js (App Router)
+- React
+- Tailwind CSS
+- shadcn/radix UI components
+
 ## Architecture
 
 ```mermaid
@@ -249,16 +256,17 @@ Clone the repository:
 
 ```bash
 git clone <repository-url>
-cd injury_journal/backend
+cd injury_journal
 ```
 
-Install dependencies:
+## Backend setup
 
 ```bash
+cd backend
 npm install
 ```
 
-Create environment variables:
+Create a `.env` file:
 
 ```
 DATABASE_URL=
@@ -266,13 +274,34 @@ JWT_SECRET=
 FRONTEND_URL=
 ```
 
+`NODE_ENV` must also be set to `development`, `test`, or `production` — the server refuses to start otherwise, and `FRONTEND_URL` is required when `NODE_ENV=production`.
+
 Run database migrations:
 
 ```bash
 npx prisma migrate dev
 ```
 
-Start development server:
+Start the development server (default port 3001):
+
+```bash
+npm run dev
+```
+
+## Frontend setup
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env.local` file:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+Start the development server (default port 3000):
 
 ```bash
 npm run dev
@@ -282,7 +311,7 @@ npm run dev
 
 # Running Tests
 
-Run the test suite:
+From `backend/`, run the test suite (uses a real PostgreSQL database configured via `.env.test`):
 
 ```bash
 npm test
@@ -291,10 +320,12 @@ npm test
 Tests cover:
 
 - authentication
-- authorization
+- authorization (currently for the Injury resource; not yet for nested resources — see open issues)
 - protected routes
 - CRUD operations
 - validation
+
+The frontend does not currently have an automated test suite.
 
 ---
 
@@ -302,7 +333,6 @@ Tests cover:
 
 Planned features:
 
-- React frontend
 - Medical document uploads
 - AI-generated medical timeline summaries
 - Exportable medical history reports
@@ -312,9 +342,11 @@ Planned features:
 
 ## Status
 
-🚧 MVP backend completed.
+Backend MVP and a working Next.js dashboard frontend are in place (injury CRUD, symptoms, treatments, medical visits, timeline).
 
 Current focus:
 
 - Multi-step injury creation workflow
 - Dashboard UX improvements
+
+An initial audit of the codebase has been completed; open findings (bugs, security hardening, test coverage gaps) are tracked as GitHub issues.
