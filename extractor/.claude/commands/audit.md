@@ -4,7 +4,8 @@ yet — this is audit-only, followed by filing GitHub issues for me to triage.
 
 ## Step 1: Generate CLAUDE.md
 
-Create a CLAUDE.md at the project root covering:
+This directory (`extractor/`) is one part of a monorepo — not a standalone repo root. Create
+`extractor/CLAUDE.md` (not a repo-root file) covering:
 
 - Project purpose and high-level architecture (in your own words, based on what
   you find — not assumed)
@@ -38,8 +39,8 @@ and a one-line description of the problem (not the fix yet).
 
 ## Step 3: Update README
 
-Update the README to reflect the current actual state of the project (setup
-instructions, features, usage) based on what you learned in the audit. Don't
+Update `extractor/README.md` (not a repo-root README) to reflect the current actual state of the
+project (setup instructions, features, usage) based on what you learned in the audit. Don't
 fix the underlying bugs — just make the README accurate to what exists today.
 
 ## Step 4: File GitHub issues — one per finding

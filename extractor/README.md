@@ -12,7 +12,7 @@ The application accepts free-text injury descriptions, uses an LLM to extract st
 - Amazon DynamoDB
 - Terraform
 - Groq API (Llama 3.1)
-- GitHub Actions (coming soon)
+- GitHub Actions (extractor and frontend CI)
 
 ## Features
 
@@ -139,10 +139,9 @@ swapped without a code change if the model is deprecated.
   `extractor/infrastructure/**` (see `.github/workflows/extractor-ci.yml`).
 - Frontend: the extractor's component tests moved along with the
   components into `frontend/components/extractor/*.test.tsx` and
-  `frontend/services/extractor-api.test.ts`, but the main `frontend/` app
-  has no test runner configured yet, so they don't currently run anywhere
-  (see `frontend/CLAUDE.md`). Wiring up Vitest there is a separate,
-  not-yet-done task.
+  `frontend/services/extractor-api.test.ts`. The main `frontend/` app now
+  runs them with Vitest (`cd frontend && npm test`), also run in CI via
+  `.github/workflows/frontend-ci.yml`.
 
 There is no end-to-end/API integration test suite yet — changes touching
 request/response behavior should still be verified manually using the
@@ -206,7 +205,7 @@ aws lambda update-function-code \
 ```bash
 aws lambda update-function-configuration \
 --function-name injury-extractor \
---environment "Variables={GROQ_API_KEY=YOUR_KEY,DYNAMODB_TABLE=InjuryEntries}"
+--environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=llama-3.1-8b-instant,DYNAMODB_TABLE=InjuryEntries,ALLOWED_ORIGIN=http://localhost:3000}"
 ```
 
 ---
@@ -233,6 +232,7 @@ aws logs tail /aws/lambda/injury-extractor --follow
 ```bash
 aws lambda invoke \
 --function-name injury-extractor \
+--cli-binary-format raw-in-base64-out \
 --payload '{"body":"{\"text\":\"I have hip pain\"}"}' \
 response.json
 

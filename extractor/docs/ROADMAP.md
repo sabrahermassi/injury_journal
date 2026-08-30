@@ -30,5 +30,5 @@
 Tracked as GitHub issues (`security` / `bug` / `tech-debt` / `tests` labels), not duplicated here:
 
 ```
-gh issue list --repo sabrahermassi/ai-injury-extractor --state open --label security,bug,tech-debt,tests
+gh issue list --repo sabrahermassi/injury_journal --state open --label security,bug,tech-debt,tests
 ```

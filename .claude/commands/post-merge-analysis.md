@@ -1,3 +1,13 @@
+HISTORICAL COMMAND: this was written and run for one specific past event — the
+initial `apps/extractor` subtree merge, before the repo was restructured to its
+current top-level `extractor/` + `frontend/` + `backend/` layout (see
+`docs/post-merge-analysis.md`, the report it produced, and the restructuring
+PR that followed it). The `apps/extractor` / `apps/web` paths below are frozen
+to describe that layout as it existed at the time; they no longer match the
+current repo. If reusing this command for a future subtree merge (e.g.
+`apps/ai-assistant`), update the paths below to match whatever layout exists
+at that time first.
+
 Context: I just merged a standalone repo (injury-journal-extractor, a
 Lambda-based AI extraction service) into this monorepo via git subtree,
 now sitting at apps/extractor. This main app also has apps/web (backend +

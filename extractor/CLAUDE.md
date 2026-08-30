@@ -105,13 +105,12 @@ available skills automatically; follow the relevant one when invoked.
 
 ## 9. Verification
 
-There is no automated test suite yet (see `docs/ROADMAP.md` and the "no
-tests" GitHub issue) — verify changes manually:
-
-- Backend: no lint/test tooling configured — read the changed logic
-  carefully, and exercise it with the `curl` examples in `README.md`
-  against a deployed stack.
+- Backend: `cd lambda && pytest` runs the test suite (also run in CI via
+  `.github/workflows/extractor-ci.yml`). For anything not covered by a test,
+  read the changed logic carefully and exercise it with the `curl` examples
+  in `README.md` against a deployed stack.
 - Frontend changes now belong to the main `frontend/` app — see its own
-  `CLAUDE.md` §10 for verification commands.
+  `CLAUDE.md` §10 for verification commands (`npm test` now runs the
+  extractor's component tests via Vitest).
 
 Do not invent commands or scripts that don't exist in this repo.

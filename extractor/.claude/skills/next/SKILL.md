@@ -28,7 +28,7 @@ Briefly report:
 ## 2. Understand the scope
 
 Use the issue title/body and a quick read of directly relevant files
-(`lambda/handler.py`, `frontend/src/`, `infrastructure/*.tf`) to determine scope.
+(`extractor/lambda/handler.py`, `frontend/`, `extractor/infrastructure/*.tf`) to determine scope.
 
 Do not spawn a subagent if the scope is clear. Use `.claude/agents/explorer.md` only when the task
 is genuinely large or ambiguous (e.g. touches multiple unfamiliar areas, or the issue explicitly
@@ -67,22 +67,23 @@ Make only changes required for the issue.
 
 Run the verification steps from `CLAUDE.md` §9:
 
-- Frontend changes: `cd frontend && npm run lint`, then `npm run dev` and exercise the flow
-- Backend changes: no lint/test tooling exists — read the changed logic carefully and exercise it
-  with the `curl` examples in `README.md` against a deployed stack if possible
+- Backend changes: `cd extractor/lambda && pytest` (also run in CI via
+  `.github/workflows/extractor-ci.yml`); for anything not covered, read the changed logic carefully
+  and exercise it with the `curl` examples in `extractor/README.md` against a deployed stack.
+- Frontend changes: `cd frontend && npm run lint && npm run build` (also run in CI via
+  `.github/workflows/frontend-ci.yml`), then `npm run dev` and exercise the flow.
 
 Do not invent commands or scripts that don't exist.
 
 ## 6. Check test coverage
 
-There is no test suite in this repo yet (tracked separately as the "no automated tests" issue).
-Before handing off, explicitly note:
+`extractor/lambda` has a pytest suite; add cases there for backend logic changes where it makes
+sense. Before handing off, explicitly note:
 
-- whether this change would be a good candidate to include a first test for (only if I approve
-  adding test infrastructure as part of this issue — don't silently introduce a test framework)
-- any other pre-existing gap in the area touched, and whether it's already tracked
+- whether this change would be a good candidate for a new test case
+- any pre-existing coverage gap in the area touched, and whether it's already tracked
 
-Do not add new tests or test infrastructure without my approval.
+Do not add new test infrastructure (a different framework, a new CI job) without my approval.
 
 ## 7. Handoff
 

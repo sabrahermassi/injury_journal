@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -59,6 +60,24 @@ class TestExtractInjurySuccess:
         assert saved[0]["extractedData"] == VALID_EXTRACTION
         assert saved[0]["userId"] == "test-user-001"
 
+    def test_fractional_pain_level_saved_and_returned(self, handler_module, monkeypatch):
+        fractional = dict(VALID_EXTRACTION, pain_level=6.5)
+        monkeypatch.setattr(
+            handler_module.client.chat.completions, "create",
+            MagicMock(return_value=make_groq_response(fractional)),
+        )
+
+        result = handler_module.extract_injury(
+            make_event({"text": "I twisted my ankle running."})
+        )
+
+        assert result["statusCode"] == 200
+        assert json.loads(result["body"]) == fractional
+
+        saved = handler_module.table.scan()["Items"]
+        assert len(saved) == 1
+        assert saved[0]["extractedData"]["pain_level"] == Decimal("6.5")
+
 
 class TestExtractInjuryMalformedAiResponse:
     def test_missing_required_field_returns_502(self, handler_module, monkeypatch):
@@ -67,6 +86,17 @@ class TestExtractInjuryMalformedAiResponse:
         monkeypatch.setattr(
             handler_module.client.chat.completions, "create",
             MagicMock(return_value=make_groq_response(bad)),
+        )
+
+        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+
+        assert result["statusCode"] == 502
+        assert json.loads(result["body"]) == {"error": "Invalid AI response format"}
+
+    def test_non_dict_ai_response_returns_502(self, handler_module, monkeypatch):
+        monkeypatch.setattr(
+            handler_module.client.chat.completions, "create",
+            MagicMock(return_value=make_groq_response(list(VALID_EXTRACTION.keys()))),
         )
 
         result = handler_module.extract_injury(make_event({"text": "hurts"}))

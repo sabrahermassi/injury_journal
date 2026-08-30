@@ -14,7 +14,7 @@ reasoned from naming/structure without direct confirmation.
 
 **[confirmed]** Current top-level layout:
 
-```
+```text
 injury_journal/
 ├── backend/              Express API (existing app, at repo root)
 ├── frontend/              Next.js app (existing app, at repo root)
@@ -51,7 +51,7 @@ injury_journal/
 
 **Proposed target structure** (no moves made — this is a proposal only):
 
-```
+```text
 injury_journal/
 ├── apps/
 │   ├── web/           ← rename: backend/ + frontend/ moved here, OR

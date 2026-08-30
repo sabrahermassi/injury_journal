@@ -62,6 +62,28 @@ describe("api", () => {
         "Unexpected response from server",
       );
     });
+
+    it("uses the server error message when the error response is valid JSON", async () => {
+      mockFetchOnce({ error: "text too long" }, false);
+
+      await expect(extractInjury("my ankle hurts")).rejects.toThrow("text too long");
+    });
+
+    it("falls back to the default message when the error body isn't valid JSON", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          json: async () => {
+            throw new SyntaxError("Unexpected token");
+          },
+        }),
+      );
+
+      await expect(extractInjury("my ankle hurts")).rejects.toThrow(
+        "Failed to extract injury",
+      );
+    });
   });
 
   describe("getInjuryHistory", () => {
@@ -78,6 +100,22 @@ describe("api", () => {
 
       await expect(getInjuryHistory()).rejects.toThrow(
         "Unexpected response from server",
+      );
+    });
+
+    it("falls back to the default message when the error body isn't valid JSON", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          json: async () => {
+            throw new SyntaxError("Unexpected token");
+          },
+        }),
+      );
+
+      await expect(getInjuryHistory()).rejects.toThrow(
+        "Failed to fetch injury history",
       );
     });
   });

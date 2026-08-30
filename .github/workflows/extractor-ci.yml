@@ -14,6 +14,9 @@ on:
       - "extractor/infrastructure/**"
       - ".github/workflows/extractor-ci.yml"
 
+permissions:
+  contents: read
+
 jobs:
   lambda:
     name: Lambda (pytest)
@@ -23,6 +26,8 @@ jobs:
         working-directory: extractor/lambda
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:

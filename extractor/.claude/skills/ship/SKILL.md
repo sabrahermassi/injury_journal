@@ -38,9 +38,9 @@ Before committing:
 
 Read only the documentation relevant to the changed area:
 
-- Lambda/API changes → `docs/lambda-design.md`
-- DynamoDB changes → `docs/dynamodb-design.md`
-- Anything else → `README.md`
+- Lambda/API changes → `extractor/docs/lambda-design.md`
+- DynamoDB changes → `extractor/docs/dynamodb-design.md`
+- Anything else → `extractor/README.md`
 
 Do NOT reread `CLAUDE.md` — it's already in context. Read any document at most once per session.
 
@@ -140,6 +140,7 @@ Report:
 
 Then STOP.
 
-Do not poll for CI results or review comments — there is no CI configured in this repo yet
-(tracked as a separate issue). CodeRabbit review, if it runs, will post automatically; use
-`/address-review` when it does.
+Report the result of the configured CI (`.github/workflows/extractor-ci.yml` for backend changes,
+`.github/workflows/frontend-ci.yml` for frontend changes) once it completes, but do not poll for it
+in a tight loop. CodeRabbit review, if it runs, will post automatically; use `/address-review` when
+it does.

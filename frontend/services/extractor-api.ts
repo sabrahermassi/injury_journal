@@ -26,6 +26,18 @@ function isInjuryExtractionPayload(data: unknown): data is {
   );
 }
 
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const error = await response.json();
+    if (error && typeof error.error === "string") {
+      return error.error;
+    }
+  } catch {
+    // response body wasn't valid JSON (empty, plain text, HTML, etc.)
+  }
+  return fallback;
+}
+
 function isInjuryHistoryPayload(data: unknown): data is InjuryHistoryEntry[] {
   if (!Array.isArray(data)) return false;
 
@@ -59,8 +71,7 @@ export async function extractInjury(text: string): Promise<InjuryExtraction> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to extract injury");
+    throw new Error(await readErrorMessage(response, "Failed to extract injury"));
   }
 
   const data = await response.json();
@@ -86,8 +97,7 @@ export async function getInjuryHistory(): Promise<InjuryHistoryEntry[]> {
   const response = await fetch(`${API_URL}/injuries`);
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to fetch injury history");
+    throw new Error(await readErrorMessage(response, "Failed to fetch injury history"));
   }
 
   const data = await response.json();
