@@ -1,7 +1,9 @@
+import crypto from 'node:crypto';
 import {
   register as registerUser,
   login as loginUser,
 } from './services/authService.js';
+import { authCookieOptions, csrfCookieOptions } from './utils.js';
 import {
   createInjury,
   getInjuries,
@@ -53,11 +55,21 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     const result = await loginUser(email, password);
+    const csrfToken = crypto.randomBytes(32).toString('hex');
 
+    res.cookie('token', result.token, authCookieOptions);
+    res.cookie('csrfToken', csrfToken, csrfCookieOptions);
     res.json(result);
   } catch (error) {
     next(error);
   }
+};
+
+// POST /api/auth/logout
+export const logout = async (req, res) => {
+  res.clearCookie('token', authCookieOptions);
+  res.clearCookie('csrfToken', csrfCookieOptions);
+  res.status(204).send();
 };
 
 // POST /api/injuries

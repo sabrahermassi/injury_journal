@@ -50,6 +50,13 @@ describe('Authentication', () => {
     expect(response.statusCode).toBe(200);
 
     expect(response.body.token).toBeDefined();
+
+    const cookies = response.headers['set-cookie'] || [];
+
+    expect(cookies.some((cookie) => cookie.startsWith('token='))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('csrfToken='))).toBe(
+      true
+    );
   });
 
   test('reject wrong password', async () => {
@@ -64,5 +71,97 @@ describe('Authentication', () => {
     });
 
     expect(response.statusCode).toBe(401);
+  });
+});
+
+describe('CSRF protection for cookie-authenticated requests', () => {
+  const extractCookieValue = (cookies, name) => {
+    const cookie = cookies.find((entry) => entry.startsWith(`${name}=`));
+
+    return cookie.split(';')[0].split('=')[1];
+  };
+
+  test('rejects a cookie-authenticated mutation with no CSRF header', async () => {
+    const agent = request.agent(app);
+
+    await agent.post('/api/auth/register').send({
+      email: 'csrf-test@test.com',
+      password: 'password123',
+    });
+    await agent.post('/api/auth/login').send({
+      email: 'csrf-test@test.com',
+      password: 'password123',
+    });
+
+    const response = await agent.post('/api/injuries').send({
+      name: 'Lower back pain',
+      bodyArea: 'Lower back',
+      side: 'Left',
+      startDate: '2025-01-01T00:00:00.000Z',
+      cause: 'Deadlift',
+      description: 'Started after heavy lifting',
+      status: 'Active',
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  test('accepts a cookie-authenticated mutation with a matching CSRF header', async () => {
+    const agent = request.agent(app);
+
+    await agent.post('/api/auth/register').send({
+      email: 'csrf-test-2@test.com',
+      password: 'password123',
+    });
+    const login = await agent.post('/api/auth/login').send({
+      email: 'csrf-test-2@test.com',
+      password: 'password123',
+    });
+
+    const csrfToken = extractCookieValue(
+      login.headers['set-cookie'],
+      'csrfToken'
+    );
+
+    const response = await agent
+      .post('/api/injuries')
+      .set('X-CSRF-Token', csrfToken)
+      .send({
+        name: 'Lower back pain',
+        bodyArea: 'Lower back',
+        side: 'Left',
+        startDate: '2025-01-01T00:00:00.000Z',
+        cause: 'Deadlift',
+        description: 'Started after heavy lifting',
+        status: 'Active',
+      });
+
+    expect(response.statusCode).toBe(201);
+  });
+
+  test('header-authenticated requests (no auth cookie) are exempt from CSRF check', async () => {
+    await request(app).post('/api/auth/register').send({
+      email: 'csrf-test-3@test.com',
+      password: 'password123',
+    });
+    const login = await request(app).post('/api/auth/login').send({
+      email: 'csrf-test-3@test.com',
+      password: 'password123',
+    });
+
+    const response = await request(app)
+      .post('/api/injuries')
+      .set('Authorization', `Bearer ${login.body.token}`)
+      .send({
+        name: 'Lower back pain',
+        bodyArea: 'Lower back',
+        side: 'Left',
+        startDate: '2025-01-01T00:00:00.000Z',
+        cause: 'Deadlift',
+        description: 'Started after heavy lifting',
+        status: 'Active',
+      });
+
+    expect(response.statusCode).toBe(201);
   });
 });

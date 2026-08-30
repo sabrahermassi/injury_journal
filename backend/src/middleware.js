@@ -5,15 +5,15 @@ import rateLimit from 'express-rate-limit';
 export const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  // Check if token exists
-  if (!authHeader) {
+  // Prefer the httpOnly cookie; fall back to the Authorization header
+  // (used by the .http manual test files and non-browser clients).
+  const token = req.cookies?.token || authHeader?.replace('Bearer ', '');
+
+  if (!token) {
     return res.status(401).json({
       error: 'Authorization token missing',
     });
   }
-
-  // Extract token
-  const token = authHeader.replace('Bearer ', '');
 
   try {
     // Verify token
@@ -27,6 +27,34 @@ export const authenticate = (req, res, next) => {
       error: 'Invalid or expired token',
     });
   }
+};
+
+// Double-submit CSRF check for cookie-authenticated mutating requests.
+// Clients authenticating via the Authorization header (tests, .http files)
+// never carry the auth cookie, so they're exempt — they're not susceptible
+// to browser-driven CSRF in the first place.
+const CSRF_EXEMPT_PATHS = new Set(['/auth/login', '/auth/register']);
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+export const verifyCsrf = (req, res, next) => {
+  if (SAFE_METHODS.has(req.method) || CSRF_EXEMPT_PATHS.has(req.path)) {
+    return next();
+  }
+
+  if (!req.cookies?.token) {
+    return next();
+  }
+
+  const cookieToken = req.cookies?.csrfToken;
+  const headerToken = req.headers['x-csrf-token'];
+
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    return res.status(403).json({
+      error: 'Invalid CSRF token',
+    });
+  }
+
+  next();
 };
 
 // Zod validation

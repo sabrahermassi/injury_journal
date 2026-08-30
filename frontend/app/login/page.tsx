@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import type { SubmitEventHandler } from "react";
 import { loginUser } from "../../services/api";
-import { saveToken } from "../../services/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -39,9 +38,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await loginUser(email, password);
+      await loginUser(email, password);
 
-      saveToken(data.token);
       router.push("/dashboard");
     } catch {
       setMessage("Login failed");

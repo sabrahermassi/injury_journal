@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import routes from './routes.js';
 import morgan from 'morgan';
 import { errorHandler } from './errorHandler.js';
@@ -38,6 +39,7 @@ app.use(morgan('dev'));
 
 // Body parsing
 app.use(express.json());
+app.use(cookieParser());
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(apiLimiter);
