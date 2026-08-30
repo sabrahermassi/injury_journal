@@ -9,8 +9,8 @@ Injury Journal is a full-stack app that lets a person track a personal injury ov
 ## 2. Architecture
 
 ```
-User -> Next.js frontend ("use client" pages, fetch + localStorage JWT) -> Express REST API
-(/api, JWT auth) -> Prisma ORM -> PostgreSQL
+User -> Next.js frontend ("use client" pages, fetch with credentials) -> Express REST API
+(/api, JWT in httpOnly cookie + CSRF double-submit) -> Prisma ORM -> PostgreSQL
 ```
 
 All backend resources (Injury, TimelineEvent, Symptom, Treatment, MedicalVisit) are scoped to the authenticated user, either directly (`Injury.userId`) or transitively through the parent Injury. Every read/update/delete in the service layer re-checks ownership before touching a nested resource — this is the central invariant of the app and must be preserved in any new endpoint.
@@ -37,8 +37,7 @@ backend/
 frontend/
   app/                   Next.js App Router pages: /, /login, /register, /dashboard, /dashboard/injuries/[id]
   components/            UI components; components/ui/ is the shadcn primitive layer, components/dashboard/ is feature-specific
-  services/api.ts        All backend API calls (fetch wrappers)
-  services/utils.ts       Token storage (localStorage) helpers
+  services/api.ts        All backend API calls (fetch wrappers, credentials: "include", reads CSRF token cookie)
   hooks/, lib/            Small shared utilities
 
 docs/                    Planning docs written before/during implementation (product, requirements, system design, DB, API, dev process, testing, deployment). Written pre-implementation — verify against actual code before trusting for current behavior; see Known constraints below for known drift.
@@ -97,7 +96,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 ## 8. Known constraints / gotchas (from audit)
 
 - Numeric route params (`:id`, `:injuryId`) are coerced with `Number()` and not validated — a non-numeric id crashes into a `500` instead of a clean `400` (Prisma throws a validation error that isn't specifically caught).
-- The JWT is stored in `localStorage` on the frontend, not an httpOnly cookie.
+- The JWT lives in an httpOnly cookie (`authenticate` in `backend/src/middleware.js` also falls back to an `Authorization: Bearer` header for `.http` files and tests). Mutating requests are additionally checked by `verifyCsrf` (double-submit cookie) — see `backend/src/middleware.js`. In production (frontend on Vercel, backend on Render, different domains), the CSRF cookie set by the backend is not readable via `document.cookie` on the frontend's origin, so the frontend can't currently attach the `X-CSRF-Token` header there and every cookie-authenticated mutation gets rejected with `403` — tracked as issue #25.
 - `backend/.gitignore` excludes `requests.http` but not `requests_USER_*.http` — those files (used for manual multi-user testing) contain real JWTs and are currently untracked; don't `git add -A` them.
 - `docs/` reflects planning-stage decisions and may lag the actual implementation (e.g. deployment target, frontend stack) — check current code/config rather than trusting docs at face value.
 - Two overlapping deployment docs exist (`docs/09-deployment.md` and `docs/14-deployment.md`); `14` is the more complete/current one.
