@@ -21,7 +21,9 @@ if (environment === 'production' && !frontendUrl) {
 }
 
 const allowedOrigins =
-  environment === 'production' ? [frontendUrl] : ['http://localhost:3000'];
+  environment === 'production'
+    ? [frontendUrl]
+    : [frontendUrl || 'http://localhost:3000'];
 
 const corsOptions = {
   origin: allowedOrigins,
