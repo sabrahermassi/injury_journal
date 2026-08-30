@@ -57,6 +57,29 @@ export const verifyCsrf = (req, res, next) => {
   next();
 };
 
+// Postgres Int4 max — every id column in schema.prisma is `Int`, and a
+// value beyond this range hits the same PrismaClientValidationError path
+// as a non-numeric one, even though it's all digits.
+const MAX_POSTGRES_INT = 2147483647;
+
+// Rejects non-numeric (or out-of-range) route params (e.g. NaN or an
+// oversized id reaching Prisma as an Int filter, which throws an
+// uncaught PrismaClientValidationError -> 500) before the
+// controller/service layer ever sees them.
+export const validateNumericParam = (paramName) => {
+  return (req, res, next) => {
+    const value = req.params[paramName];
+
+    if (!/^\d+$/.test(value) || Number(value) > MAX_POSTGRES_INT) {
+      return res.status(400).json({
+        error: `${paramName} must be a positive integer`,
+      });
+    }
+
+    next();
+  };
+};
+
 // Zod validation
 export const validate = (schema) => {
   return (req, res, next) => {

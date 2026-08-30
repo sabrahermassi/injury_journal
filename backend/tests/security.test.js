@@ -73,3 +73,74 @@ describe('Authorization security', () => {
     expect(response.statusCode).toBe(404);
   });
 });
+
+describe('Numeric id param validation', () => {
+  test('GET /injuries/:id with a non-numeric id returns 400, not 500', async () => {
+    const response = await request(app)
+      .get('/api/injuries/abc')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('PUT /injuries/:id with a non-numeric id returns 400', async () => {
+    const response = await request(app)
+      .put('/api/injuries/abc')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({ name: 'x' });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('DELETE /injuries/:id with a non-numeric id returns 400', async () => {
+    const response = await request(app)
+      .delete('/api/injuries/abc')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('GET /injuries/:injuryId/symptoms with a non-numeric injuryId returns 400', async () => {
+    const response = await request(app)
+      .get('/api/injuries/abc/symptoms')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('DELETE /events/:id with a non-numeric id returns 400', async () => {
+    const response = await request(app)
+      .delete('/api/events/abc')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('a decimal or negative id is also rejected as 400', async () => {
+    const decimal = await request(app)
+      .get('/api/injuries/1.5')
+      .set('Authorization', `Bearer ${userAToken}`);
+    const negative = await request(app)
+      .get('/api/injuries/-1')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(decimal.statusCode).toBe(400);
+    expect(negative.statusCode).toBe(400);
+  });
+
+  test('an id beyond the Postgres Int4 range is rejected as 400, not 500', async () => {
+    const response = await request(app)
+      .get('/api/injuries/99999999999')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('a valid numeric id for a non-existent injury still returns 404', async () => {
+    const response = await request(app)
+      .get('/api/injuries/999999')
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+});
