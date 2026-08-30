@@ -50,6 +50,7 @@ describe('Authentication', () => {
     expect(response.statusCode).toBe(200);
 
     expect(response.body.token).toBeDefined();
+    expect(response.body.csrfToken).toBeDefined();
 
     const cookies = response.headers['set-cookie'] || [];
 
