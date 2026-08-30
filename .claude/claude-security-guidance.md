@@ -33,13 +33,7 @@
 
 ## AI / LLM features
 
-This codebase does not currently call any AI/LLM API or implement retrieval (RAG). If that changes:
-
-- Any journal content sent to an AI/LLM API must be handled with the same care as journal content anywhere else in this app — no unnecessary retention, no logging into a system that isn't already covered by the app's data-access controls.
-- Retrieval, if added, must only return documents/journal content belonging to the authenticated user; a user's data must never be exposed to another user's retrieval.
-- User-controlled journal content sent to an LLM must be treated as untrusted input, not as trusted instructions to the system.
-- Do not expose internal prompts, secrets, credentials, or security configuration through AI-generated responses.
-- If retrieval/generation finds no relevant information, the system must not invent medical or journal facts.
+No AI/LLM features exist in this codebase today. If one is added, journal content sent to it needs the same isolation and no-unnecessary-retention treatment as everywhere else in this app — revisit this section then.
 
 ## Secrets and configuration
 
@@ -49,15 +43,4 @@ This codebase does not currently call any AI/LLM API or implement retrieval (RAG
 
 ## Security review priorities
 
-When reviewing changes to this codebase, pay particular attention to:
-
-1. Authentication bypasses (`authenticate` middleware, JWT verification).
-2. Authorization/ownership bypasses in `backend/src/services/*.js`.
-3. IDOR vulnerabilities — a resource ID from the client used without a matching ownership filter.
-4. Cross-user data access via any Prisma query.
-5. Exposure of journal/medical content in logs, errors, or responses.
-6. JWT verification weaknesses (`backend/src/utils.js`, `backend/src/middleware.js`).
-7. Injection vulnerabilities (should be rare given Prisma's query builder — flag any raw SQL or dynamic query construction).
-8. Secrets or credentials leaking into source code, `.http` scratch files, or logs.
-9. Any future AI/LLM/RAG feature introducing prompt injection or unauthorized retrieval.
-10. Changes that weaken an existing security boundary (rate limiting, CORS origin list, Helmet headers, the `NODE_ENV` startup guard in `backend/src/app.js`).
+Beyond the categories above, also watch for: injection vulnerabilities (should be rare given Prisma's query builder — flag any raw SQL or dynamic query construction), and changes that weaken an existing security boundary (rate limiting, CORS origin list, Helmet headers, the `NODE_ENV` startup guard in `backend/src/app.js`).

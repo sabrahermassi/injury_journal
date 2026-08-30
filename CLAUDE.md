@@ -9,11 +9,9 @@ Injury Journal is a full-stack app that lets a person track a personal injury ov
 ## 2. Architecture
 
 ```
-User -> Next.js frontend (React) -> Express REST API (/api) -> Prisma ORM -> PostgreSQL
+User -> Next.js frontend ("use client" pages, fetch + localStorage JWT) -> Express REST API
+(/api, JWT auth) -> Prisma ORM -> PostgreSQL
 ```
-
-- **backend/** — Express 5 REST API, JWT auth, Prisma ORM over PostgreSQL. Talks to the DB directly; the frontend is a plain fetch client, no server-side rendering of API data (all dashboard pages are `"use client"`).
-- **frontend/** — Next.js 16 (App Router) + React 19, Tailwind v4, shadcn/radix UI components. Stores the JWT in `localStorage` and attaches it as a Bearer token on every API call.
 
 All backend resources (Injury, TimelineEvent, Symptom, Treatment, MedicalVisit) are scoped to the authenticated user, either directly (`Injury.userId`) or transitively through the parent Injury. Every read/update/delete in the service layer re-checks ownership before touching a nested resource — this is the central invariant of the app and must be preserved in any new endpoint.
 
@@ -109,16 +107,10 @@ See the audit report delivered alongside this file, and the corresponding GitHub
 ## 9. Documentation map
 
 - `README.md` (root) — user-facing overview, setup, and API reference. Start here.
-- `docs/01-product.md`, `docs/02-requirements.md` — product intent and requirements.
-- `docs/03-system design.md` — architecture decisions.
-- `docs/04-database.md` — data model rationale (compare against `backend/prisma/schema.prisma` for current truth).
-- `docs/05-api.md` — API design rationale (compare against `backend/src/routes.js` for current truth).
-- `docs/06-backend-dev.md`, `docs/07-frontend-dev.md`, `docs/08-testing.md` — process docs.
-- `docs/09-deployment.md`, `docs/14-deployment.md` — deployment planning; both currently exist and overlap (see §8) — `14` is the more complete one.
+- `docs/*.md` — pre-implementation planning docs; verify claims against `backend/prisma/schema.prisma` / `backend/src/routes.js` before trusting.
+- `docs/07-frontend-dev.md` — stale: describes React Router/Axios/Context API, none of which this codebase uses (it's Next.js App Router + native `fetch`). Don't follow it.
 - `ROADMAP.md` (root) — MVP completion checklist, background context only. Do not start work on a roadmap item that has no corresponding GitHub issue.
 - `frontend/UI_GUIDE.md` — UI/styling conventions.
-
-All `docs/` files are pre-implementation planning docs and may lag the actual code — verify claims against source before relying on them (see §8).
 
 ## 10. Verification commands
 
