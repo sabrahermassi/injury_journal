@@ -72,6 +72,41 @@ describe('Authentication', () => {
 
     expect(response.statusCode).toBe(401);
   });
+
+  test('logout clears the auth and CSRF cookies', async () => {
+    const agent = request.agent(app);
+
+    await agent.post('/api/auth/register').send({
+      email: 'logout-test@test.com',
+      password: 'password123',
+    });
+    const login = await agent.post('/api/auth/login').send({
+      email: 'logout-test@test.com',
+      password: 'password123',
+    });
+
+    const csrfToken = login.headers['set-cookie']
+      .find((cookie) => cookie.startsWith('csrfToken='))
+      .split(';')[0]
+      .split('=')[1];
+
+    const response = await agent
+      .post('/api/auth/logout')
+      .set('X-CSRF-Token', csrfToken);
+
+    expect(response.statusCode).toBe(204);
+
+    const cookies = response.headers['set-cookie'] || [];
+    const clearedCookie = (name) =>
+      cookies.some(
+        (cookie) =>
+          cookie.startsWith(`${name}=;`) &&
+          /Expires=Thu, 01 Jan 1970/.test(cookie)
+      );
+
+    expect(clearedCookie('token')).toBe(true);
+    expect(clearedCookie('csrfToken')).toBe(true);
+  });
 });
 
 describe('CSRF protection for cookie-authenticated requests', () => {
