@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTimelineEvents } from "@/services/api";
+import { getTimelineEvents, type TimelineEvent } from "@/services/api";
 
 export function TimelineCard({ injuryId }: { injuryId: number }) {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

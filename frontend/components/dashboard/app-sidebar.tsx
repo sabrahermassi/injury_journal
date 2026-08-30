@@ -8,6 +8,7 @@ import {
   LifeBuoy,
   Pill,
   Settings,
+  Sparkles,
   Stethoscope,
   Clock,
 } from "lucide-react";
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const mainNav = [
   {
@@ -55,6 +57,8 @@ export function AppSidebar({
   activeSection: string;
   onNavigate: (section: string) => void;
 }) {
+  const pathname = usePathname();
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -93,6 +97,26 @@ export function AppSidebar({
                   ) : null}
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="AI Extractor"
+                  isActive={pathname === "/dashboard/extractor"}
+                >
+                  <Link href="/dashboard/extractor">
+                    <Sparkles />
+                    <span>AI Extractor</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSymptoms } from "@/services/api";
+import { getSymptoms, type Symptom } from "@/services/api";
 
 export function SymptomsCard({ injuryId }: { injuryId: number }) {
-  const [symptoms, setSymptoms] = useState<any[]>([]);
+  const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

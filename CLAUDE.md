@@ -81,7 +81,9 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - Integration-style: real Express app + real Postgres via Supertest, no mocking of the DB or Prisma.
 - One test file per resource (`auth`, `injury`, `symptom`, `treatment`, `medicalVisit`, `timeline`) plus `security.test.js`, which is the only file that specifically tests cross-user data isolation (currently only for the Injury resource — see audit notes).
 - `tests/setup.js` provides `cleanDatabase`, `createTestUser`, `createTestInjury` helpers; `cleanDatabase` truncates every table before each test.
-- The frontend has no test runner configured.
+- The frontend has Vitest configured (`cd frontend && npm test`), but so far only for the
+  `extractor/` feature's components/API client (`frontend/components/extractor/*.test.tsx`,
+  `frontend/services/extractor-api.test.ts`) — the rest of the frontend still has no test coverage.
 
 ## 7. Conventions
 

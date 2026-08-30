@@ -1,0 +1,38 @@
+name: Extractor Lambda CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "extractor/lambda/**"
+      - "extractor/infrastructure/**"
+      - ".github/workflows/extractor-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "extractor/lambda/**"
+      - "extractor/infrastructure/**"
+      - ".github/workflows/extractor-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lambda:
+    name: Lambda (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extractor/lambda
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements-dev.txt
+
+      - run: pytest

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-import { getInjury } from "@/services/api";
+import { getInjury, type Injury } from "@/services/api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SymptomsCard } from "@/components/dashboard/symptoms-card";
@@ -14,16 +14,16 @@ import { TimelineCard } from "@/components/dashboard/timeline-card";
 export default function InjuryDetailsPage() {
   const params = useParams();
 
-  const [injury, setInjury] = useState<any>(null);
+  const [injury, setInjury] = useState<Injury | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    setLoading(true);
-    setInjury(null);
-
     async function fetchInjury() {
+      setLoading(true);
+      setInjury(null);
+
       try {
         const data = await getInjury(String(params.id));
 
