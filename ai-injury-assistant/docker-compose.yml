@@ -26,7 +26,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?Set EMBEDDING_API_KEY in .env before running docker compose up}
+      # Interpolated by Compose at parse time from the repo-root .env, which
+      # the npm scripts pass via --env-file. Invoking `docker compose` here
+      # directly, without that flag, will fail this check: Compose otherwise
+      # looks for a .env beside this file, and there is none.
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?Set EMBEDDING_API_KEY in the repo-root .env, and run via npm run dev:up}
     volumes:
       - hf-cache:/root/.cache/huggingface
 

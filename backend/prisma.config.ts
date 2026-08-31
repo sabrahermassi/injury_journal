@@ -1,15 +1,16 @@
 import dotenv from 'dotenv';
 import { defineConfig } from 'prisma/config';
 
-// App-specific file first: dotenv does not overwrite an already-set variable,
-// so .env.test's DATABASE_URL wins over .env.shared's when NODE_ENV=test.
-dotenv.config({
-  path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
-});
+// .env.test first: dotenv does not overwrite an already-set variable, so its
+// DATABASE_URL wins over the root file's when NODE_ENV=test.
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: '.env.test' });
+}
 
-// Shared with ai-injury-assistant/ (JWT_SECRET, DATABASE_URL). Absent on
-// hosted deploys, which inject variables directly.
-dotenv.config({ path: '../.env.shared' });
+// Repo-root .env, shared with ai-injury-assistant/. This app owns the schema,
+// so its CLI is the one allowed to reach the shared database. Absent on hosted
+// deploys, which inject variables directly.
+dotenv.config({ path: '../.env' });
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',

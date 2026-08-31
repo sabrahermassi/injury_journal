@@ -97,7 +97,15 @@ AI-attribution footer to commit messages or PR descriptions.
 
 ## 10. Project Workflows
 
-Detailed branching, implementation, review, and shipping procedures are defined in `.claude/skills/`. Follow the relevant Skill when invoked.
+Branching, implementation, review, and shipping procedures live in the user-level
+`~/.claude/skills/` (`next`, `after-next`, `self-review`, `ship`, `address-review`,
+`post-fix-review`). They are project-agnostic and read this file for anything
+specific to this service — the verification commands in §11 and the commit-message
+rules in §9 in particular. Follow the relevant Skill when invoked.
+
+This folder no longer keeps its own forked copies of those skills. If a workflow
+needs to behave differently here, state the difference in this file rather than
+re-forking the skill.
 
 ## 11. Verification
 
@@ -119,9 +127,9 @@ After verification passes, run the `post-fix-review` Skill before committing.
 
 **This service no longer has a frontend.** Its UI moved into the journal app's
 frontend at the repo root — `frontend/components/assistant/ask-form.tsx`,
-served at `/dashboard/assistant`. Do any UI work there, following the root
-`frontend/UI_GUIDE.md`, not this directory's `UI_GUIDE.md` (kept only as a
-record of the standalone app's design decisions).
+served at `/dashboard/assistant`. Do any UI work there, following
+`frontend/UI_GUIDE.md` — which is this service's former `UI_GUIDE.md`, moved to
+sit beside the UI it actually governs.
 
 The browser does not call this service directly. The journal backend proxies
 `POST /api/assistant/ask` to `POST /ai-agent` here, forwarding the caller's
@@ -135,7 +143,7 @@ reads the journal app's own injury list.
 ## Database
 
 This service reads the journal app's database. `DATABASE_URL` must be the
-same value as `backend/.env`'s.
+same value the journal backend uses — both read it from the one repo-root `.env`.
 
 **It does not own that schema — `backend/prisma/` does**, including the
 `DocumentChunk` table this service writes vectors into. To change any shared

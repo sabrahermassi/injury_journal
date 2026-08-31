@@ -1,14 +1,15 @@
 // Environment loading for this app.
 //
-// Two variables must be identical here and in ai-injury-assistant/: JWT_SECRET
-// (this app issues tokens, that one verifies them) and DATABASE_URL (both read
-// the same database). They live in the repo-root .env.shared so there is one
-// copy rather than two that can silently drift apart.
+// All runtime configuration lives in the repo-root .env, shared with
+// ai-injury-assistant/. Two of those values must be identical across both:
+// JWT_SECRET (this app issues tokens, that one verifies them) and DATABASE_URL
+// (both read the same database). One file means they cannot drift apart.
 //
-// Order matters. The app-specific file is loaded FIRST and dotenv never
-// overwrites a variable that is already set, so anything in .env / .env.test
-// wins over .env.shared. That is what keeps .env.test's DATABASE_URL
-// authoritative when running the suite -- see the guard in tests/setup.js.
+// Order matters. .env.test is loaded FIRST and dotenv never overwrites a
+// variable that is already set, so it wins over the root file. That is what
+// keeps the test database authoritative when running the suite -- see the
+// guard in tests/setup.js. It is not decorative: the suite truncates every
+// table, and it once wiped the development database when this went wrong.
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,13 +20,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(here, '..');
 const repoRoot = path.resolve(appRoot, '..');
 
-const appEnvFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
-
-dotenv.config({ path: path.join(appRoot, appEnvFile) });
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: path.join(appRoot, '.env.test') });
+}
 
 // Absent on hosted deploys, which inject variables directly instead of
 // shipping a file. Not an error.
-dotenv.config({ path: path.join(repoRoot, '.env.shared') });
+dotenv.config({ path: path.join(repoRoot, '.env') });
 
 const REQUIRED = ['JWT_SECRET', 'DATABASE_URL'];
 const missing = REQUIRED.filter((key) => !process.env[key]?.trim());
@@ -34,7 +35,7 @@ if (missing.length > 0) {
   throw new Error(
     `Missing required environment variable(s): ${missing.join(', ')}.\n` +
       'These are shared with ai-injury-assistant/ and belong in the repo-root ' +
-      '.env.shared (copy .env.shared.example). On a hosted deploy, set them in ' +
-      "the platform's environment settings."
+      '.env (copy .env.example). On a hosted deploy, set them in the ' +
+      "platform's environment settings."
   );
 }
