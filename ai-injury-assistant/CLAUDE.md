@@ -131,3 +131,27 @@ cannot read. See `backend/src/services/assistantService.js`.
 This also means the stopgap `GET /injuries` in this repo (D10's "known
 temporary deviation", issue #195) has no consumer any more: the picker now
 reads the journal app's own injury list.
+
+## Database
+
+This service reads the journal app's database. `DATABASE_URL` must be the
+same value as `backend/.env`'s.
+
+**It does not own that schema — `backend/prisma/` does**, including the
+`DocumentChunk` table this service writes vectors into. To change any shared
+table, add a migration in `backend/prisma/migrations/`, not here.
+
+`prisma/migrations/` in this folder now builds a standalone database for
+integration tests and the evaluation harness only. Never run it against the
+shared database: `scripts/assert-local-db.mjs` refuses, and `npm run
+dev:migrate:local` is the guarded entry point. `npm run dev:up` starts docker
+services and generates the client; it no longer migrates.
+
+`prisma/schema.prisma` still declares the journal models because Prisma Client
+needs them. They are a compatible subset of the real tables — notably
+`TreatmentOutcome` is not modelled, so treatment check-ins are invisible to
+ingestion and retrieval (the older `Treatment.outcome` string is not).
+
+Both seed scripts refuse to touch the shared database. Do not weaken those
+guards; `seed-dev.ts` begins with a `TRUNCATE`.
+

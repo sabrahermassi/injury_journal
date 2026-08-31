@@ -50,11 +50,21 @@ The fastest way to get a working local environment — Docker runs Postgres (wit
 
 1. `npm install`
 2. Copy `.env.example` to `.env` and fill in `GROQ_API_KEY`, `JWT_SECRET`, and
-   `EMBEDDING_API_KEY`. `DATABASE_URL` can be left at its pre-filled default — it already
-   matches the Postgres container started below.
+   `EMBEDDING_API_KEY`. Set `DATABASE_URL` to **the journal app's database** — the same
+   value as `backend/.env`. This service reads the user's real journal data; it no longer
+   keeps its own copy. `JWT_SECRET` must also match `backend/.env`, since this service
+   verifies tokens that app issues.
+
+   This app does **not** own that schema. `backend/prisma/` does, including the
+   `DocumentChunk` table this service writes vectors into. Never run `prisma migrate`
+   against it — `scripts/assert-local-db.mjs` refuses.
 3. `npm run dev:up` — starts Postgres and the embedding service in Docker, waits for both
-   to report healthy, then runs `npx prisma generate` and `npx prisma migrate deploy`
-   against the new database.
+   to report healthy, then runs `npx prisma generate`.
+
+   The Postgres container (`injury-journal-ai-db`) is now only for integration tests and
+   the evaluation harness, not for normal development. To build its schema, run
+   `npm run dev:migrate:local`, or `npm run dev:up:seed` to migrate and seed it in one
+   step.
 
    The **first** run downloads the embedding model (a few hundred MB) and can take a few
    minutes; it's cached in a Docker volume afterward, so later runs are fast.
