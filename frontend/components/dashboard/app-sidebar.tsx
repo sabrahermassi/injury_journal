@@ -1,16 +1,12 @@
 "use client";
 
 import {
-  Activity,
-  CalendarDays,
   HeartPulse,
   LayoutDashboard,
   LifeBuoy,
-  Pill,
   Settings,
   Sparkles,
   Stethoscope,
-  Clock,
 } from "lucide-react";
 
 import {
@@ -22,7 +18,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -30,18 +25,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const mainNav = [
-  {
-    title: "Overview",
-    key: "overview",
-    icon: LayoutDashboard,
-    badge: "",
-  },
-  {
-    title: "Injuries",
-    key: "injuries",
-    icon: HeartPulse,
-  },
+const trackingNav = [
+  { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Injuries", href: "/dashboard/injuries", icon: HeartPulse },
+];
+
+const toolsNav = [
+  { title: "AI Extractor", href: "/dashboard/extractor", icon: Sparkles },
 ];
 
 const secondaryNav = [
@@ -50,14 +40,13 @@ const secondaryNav = [
   { title: "Help & Support", icon: LifeBuoy },
 ];
 
-export function AppSidebar({
-  activeSection,
-  onNavigate,
-}: {
-  activeSection: string;
-  onNavigate: (section: string) => void;
-}) {
+export function AppSidebar() {
   const pathname = usePathname();
+
+  // "/dashboard" prefixes every other route, so it only matches exactly. The
+  // rest stay lit while you are inside one of their nested routes.
+  const isActive = (href: string) =>
+    href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 
   return (
     <Sidebar>
@@ -82,19 +71,18 @@ export function AppSidebar({
           <SidebarGroupLabel>Tracking</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {trackingNav.map((item) => (
+                <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    onClick={() => onNavigate(item.key)}
-                    isActive={item.key === activeSection}
+                    asChild
                     tooltip={item.title}
+                    isActive={isActive(item.href)}
                   >
-                    <item.icon />
-                    <span>{item.title}</span>
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
-                  {item.badge ? (
-                    <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -105,18 +93,20 @@ export function AppSidebar({
           <SidebarGroupLabel>Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip="AI Extractor"
-                  isActive={pathname === "/dashboard/extractor"}
-                >
-                  <Link href="/dashboard/extractor">
-                    <Sparkles />
-                    <span>AI Extractor</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {toolsNav.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={isActive(item.href)}
+                  >
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
