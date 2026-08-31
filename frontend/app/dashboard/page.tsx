@@ -22,8 +22,8 @@ function greeting() {
 export default function DashboardOverviewPage() {
   const router = useRouter();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
-  const { events, loading: eventsLoading } = useAllTimelineEvents(injuries);
-  const { dueFollowUps } = useDueFollowUps(injuries);
+  const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
+  const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
   const [createOpen, setCreateOpen] = useState(false);
 
   const recent = useMemo(() => events.slice(0, 5), [events]);
@@ -85,7 +85,20 @@ export default function DashboardOverviewPage() {
         </Button>
       </div>
 
-      {dueFollowUps.length > 0 && (
+      {dueFollowUpsError && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Worth a check-in</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Couldn&apos;t check for due follow-ups — try refreshing.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!dueFollowUpsError && dueFollowUps.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Worth a check-in</CardTitle>
@@ -128,6 +141,10 @@ export default function DashboardOverviewPage() {
               <Skeleton className="h-14 w-full" />
               <Skeleton className="h-14 w-full" />
             </div>
+          ) : eventsError ? (
+            <p className="text-muted-foreground">
+              Couldn&apos;t load recent activity — try refreshing.
+            </p>
           ) : recent.length === 0 ? (
             <div className="flex flex-col items-start gap-2">
               <p className="text-muted-foreground">

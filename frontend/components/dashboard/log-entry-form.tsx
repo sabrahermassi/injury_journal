@@ -43,6 +43,17 @@ function localDateToIso(dateStr: string) {
   return new Date(year, month - 1, day).toISOString();
 }
 
+// Adds a whole number of calendar days to a "YYYY-MM-DD" value and returns the
+// resulting local midnight as an ISO instant. Uses `setDate()` rather than
+// adding `days * 24h` in milliseconds, which drifts by the DST offset for any
+// span that crosses a daylight-saving transition.
+function addLocalDays(dateStr: string, days: number) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const result = new Date(year, month - 1, day);
+  result.setDate(result.getDate() + days);
+  return result.toISOString();
+}
+
 export function LogEntryForm({
   injuries,
   defaultInjuryId,
@@ -118,10 +129,7 @@ export function LogEntryForm({
         });
       } else if (entryType === "treatment") {
         const followUpDueAt = checkBackInDays
-          ? new Date(
-              new Date(isoDate).getTime() +
-                Number(checkBackInDays) * 24 * 60 * 60 * 1000,
-            ).toISOString()
+          ? addLocalDays(date, Number(checkBackInDays))
           : undefined;
 
         await createTreatment(injuryId, {

@@ -21,7 +21,7 @@ function groupByName(treatments: TreatmentWithOutcomes[]): Group[] {
   const groups = new Map<string, TreatmentWithOutcomes[]>();
 
   for (const treatment of treatments) {
-    const key = treatment.name.trim().toLowerCase();
+    const key = `${treatment.injuryId}:${treatment.name.trim().toLowerCase()}`;
     const existing = groups.get(key) ?? [];
     existing.push(treatment);
     groups.set(key, existing);

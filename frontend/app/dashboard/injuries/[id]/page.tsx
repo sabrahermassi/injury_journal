@@ -19,6 +19,15 @@ import { TreatmentsCard } from "@/components/dashboard/treatments-card";
 import { MedicalVisitsCard } from "@/components/dashboard/medical-visits-card";
 import { TimelineCard } from "@/components/dashboard/timeline-card";
 
+// injury.startDate is a date-only value stored as UTC midnight of the intended
+// calendar day (see create-injury-dialog.tsx). Formatting it with the browser's
+// local timezone shifts the displayed day for anyone west of UTC — read the UTC
+// date components directly instead, since those are the ones that carry the
+// actual intended day.
+function formatStoredDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { timeZone: "UTC" });
+}
+
 export default function InjuryDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -26,6 +35,8 @@ export default function InjuryDetailsPage() {
   const [injury, setInjury] = useState<Injury | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +44,7 @@ export default function InjuryDetailsPage() {
     async function fetchInjury() {
       setLoading(true);
       setNotFound(false);
+      setLoadError(false);
 
       try {
         const data = await getInjury(String(params.id));
@@ -43,7 +55,12 @@ export default function InjuryDetailsPage() {
       } catch (error) {
         if (!cancelled) {
           console.error(error);
-          setNotFound(true);
+          const status = (error as { status?: number }).status;
+          if (status === 404) {
+            setNotFound(true);
+          } else {
+            setLoadError(true);
+          }
         }
       } finally {
         if (!cancelled) {
@@ -57,13 +74,26 @@ export default function InjuryDetailsPage() {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [params.id, retryKey]);
 
   if (loading) {
     return (
       <main className="flex flex-col gap-6 p-4 md:p-6">
         <Skeleton className="h-32 rounded-xl" />
         <Skeleton className="h-48 rounded-xl" />
+      </main>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <main className="flex flex-col items-start gap-3 p-4 md:p-6">
+        <p className="text-muted-foreground">
+          Couldn&apos;t load this injury — try again.
+        </p>
+        <Button variant="outline" onClick={() => setRetryKey((key) => key + 1)}>
+          Retry
+        </Button>
       </main>
     );
   }
@@ -119,7 +149,7 @@ export default function InjuryDetailsPage() {
 
             <div>
               <dt className="text-muted-foreground">Started</dt>
-              <dd>{new Date(injury.startDate).toLocaleDateString()}</dd>
+              <dd>{formatStoredDate(injury.startDate)}</dd>
             </div>
 
             {injury.cause && (

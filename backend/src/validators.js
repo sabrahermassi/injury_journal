@@ -102,7 +102,7 @@ export const treatmentOutcomeSchema = z.object({
 
   reliefDays: z.number().int().nonnegative().optional().nullable(),
 
-  painLevel: z.number().min(0).max(10).optional().nullable(),
+  painLevel: z.number().int().min(0).max(10).optional().nullable(),
 
   notes: z.string().min(1).optional().nullable(),
 });

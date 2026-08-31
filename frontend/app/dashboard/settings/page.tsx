@@ -12,15 +12,18 @@ export default function SettingsPage() {
   const router = useRouter();
   const user = useCurrentUser();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
 
   async function handleLogout() {
     setLoggingOut(true);
+    setLogoutError(false);
     try {
       await logoutUser();
+      router.push("/login");
     } catch (error) {
       console.error(error);
-    } finally {
-      router.push("/login");
+      setLogoutError(true);
+      setLoggingOut(false);
     }
   }
 
@@ -39,6 +42,12 @@ export default function SettingsPage() {
           <Button variant="outline" onClick={handleLogout} disabled={loggingOut}>
             {loggingOut ? "Signing out..." : "Sign out"}
           </Button>
+
+          {logoutError && (
+            <p className="text-sm text-destructive">
+              Couldn&apos;t sign out — try again.
+            </p>
+          )}
         </CardContent>
       </Card>
     </main>

@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -32,18 +33,35 @@ export function InjuriesProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Tracks which request is the latest one issued, across both the initial
+  // load and refresh(). If the initial load's GET resolves after a later
+  // refresh() (plausible: two independent requests racing, initial load
+  // fired first but not guaranteed to resolve first), it must not overwrite
+  // refresh()'s newer result — e.g. a just-created injury disappearing until
+  // the next reload. Whichever request's id no longer matches when it
+  // resolves is stale and skips applying its result.
+  const requestIdRef = useRef(0);
+
   // Manual re-fetch, for event handlers (creating an injury, hitting Retry).
   const refresh = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
     try {
-      setInjuries(await getInjuries());
+      const data = await getInjuries();
+      if (requestId === requestIdRef.current) {
+        setInjuries(data);
+      }
     } catch (error) {
       console.error(error);
-      setError("Failed to load injuries");
+      if (requestId === requestIdRef.current) {
+        setError("Failed to load injuries");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -52,21 +70,22 @@ export function InjuriesProvider({ children }: { children: React.ReactNode }) {
   // is nothing to set until the request resolves.
   useEffect(() => {
     let cancelled = false;
+    const requestId = ++requestIdRef.current;
 
     async function load() {
       try {
         const data = await getInjuries();
 
-        if (!cancelled) {
+        if (!cancelled && requestId === requestIdRef.current) {
           setInjuries(data);
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && requestId === requestIdRef.current) {
           console.error(error);
           setError("Failed to load injuries");
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && requestId === requestIdRef.current) {
           setLoading(false);
         }
       }

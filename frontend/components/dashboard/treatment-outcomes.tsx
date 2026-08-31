@@ -32,6 +32,7 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!expanded) return;
@@ -40,11 +41,13 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
 
     async function load() {
       setLoading(true);
+      setLoadError(false);
       try {
         const data = await getTreatmentOutcomes(treatmentId);
         if (!ignore) setOutcomes(data);
       } catch (err) {
         console.error(err);
+        if (!ignore) setLoadError(true);
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -59,7 +62,11 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
 
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
-    if (!status) return;
+    // `loading` guards against the initial GET (still pending) resolving after
+    // this submit and overwriting the outcome it's about to append with a
+    // stale, pre-create list. The trigger button below is disabled while
+    // loading for the same reason; this is a defensive second guard.
+    if (!status || loading) return;
 
     setSaving(true);
     setError("");
@@ -115,6 +122,10 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
         <div className="mt-2 space-y-3 border-l-2 border-border pl-3">
           {loading ? (
             <p className="text-xs text-muted-foreground">Loading...</p>
+          ) : loadError ? (
+            <p className="text-xs text-destructive">
+              Couldn&apos;t load check-ins — try again.
+            </p>
           ) : outcomes.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               No check-ins recorded yet.
@@ -219,7 +230,12 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
               {error && <p className="text-xs text-destructive">{error}</p>}
             </form>
           ) : (
-            <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={loading}
+              onClick={() => setShowForm(true)}
+            >
               Record a check-in
             </Button>
           )}

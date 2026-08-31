@@ -190,7 +190,9 @@ export async function getInjury(id: string): Promise<Injury> {
   const response = await authFetch(`${API_URL}/api/injuries/${id}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch injury");
+    const error = new Error("Failed to fetch injury") as Error & { status: number };
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();

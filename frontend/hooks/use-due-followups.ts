@@ -9,6 +9,7 @@ export type DueFollowUp = Treatment & { injuryId: number; injuryName: string };
 export function useDueFollowUps(injuries: Injury[]) {
   const [dueFollowUps, setDueFollowUps] = useState<DueFollowUp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +24,7 @@ export function useDueFollowUps(injuries: Injury[]) {
       }
 
       setLoading(true);
+      setError(null);
 
       try {
         const now = Date.now();
@@ -42,6 +44,10 @@ export function useDueFollowUps(injuries: Injury[]) {
         }
       } catch (err) {
         console.error(err);
+        if (!cancelled) {
+          setDueFollowUps([]);
+          setError("Failed to load follow-ups");
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -56,5 +62,5 @@ export function useDueFollowUps(injuries: Injury[]) {
     };
   }, [injuries]);
 
-  return { dueFollowUps, loading };
+  return { dueFollowUps, loading, error };
 }

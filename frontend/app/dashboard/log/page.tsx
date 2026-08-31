@@ -18,10 +18,15 @@ function LogPageContent() {
     return <Skeleton className="h-80 rounded-xl" />;
   }
 
+  const parsedInjuryId = injuryIdParam ? Number(injuryIdParam) : NaN;
+  const defaultInjuryId = injuries.some((injury) => injury.id === parsedInjuryId)
+    ? parsedInjuryId
+    : undefined;
+
   return (
     <LogEntryForm
       injuries={injuries}
-      defaultInjuryId={injuryIdParam ? Number(injuryIdParam) : undefined}
+      defaultInjuryId={defaultInjuryId}
       defaultType={
         typeParam === "treatment" || typeParam === "visit" || typeParam === "symptom"
           ? typeParam
