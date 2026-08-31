@@ -24,6 +24,9 @@ import {
   getMedicalVisitsController,
   updateMedicalVisitController,
   deleteMedicalVisitController,
+  createTreatmentOutcomeController,
+  getTreatmentOutcomesController,
+  deleteTreatmentOutcomeController,
 } from './controllers.js';
 import {
   authenticate,
@@ -45,6 +48,7 @@ import {
   updateTreatmentSchema,
   medicalVisitSchema,
   updateMedicalVisitSchema,
+  treatmentOutcomeSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -244,6 +248,31 @@ router.delete(
   authenticate,
   validateNumericParam('id'),
   deleteMedicalVisitController
+);
+
+// POST /api/treatments/:treatmentId/outcomes
+router.post(
+  '/treatments/:treatmentId/outcomes',
+  authenticate,
+  validateNumericParam('treatmentId'),
+  validate(treatmentOutcomeSchema),
+  createTreatmentOutcomeController
+);
+
+// GET /api/treatments/:treatmentId/outcomes
+router.get(
+  '/treatments/:treatmentId/outcomes',
+  authenticate,
+  validateNumericParam('treatmentId'),
+  getTreatmentOutcomesController
+);
+
+// DELETE /api/treatment-outcomes/:id
+router.delete(
+  '/treatment-outcomes/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteTreatmentOutcomeController
 );
 
 export default router;
