@@ -66,11 +66,40 @@ Neither is imported by `backend/` or `frontend/` — they're reached over HTTP.
 
 ## 5. Running locally
 
+### Environment files
+
+`JWT_SECRET` and `DATABASE_URL` must be identical in `backend/` and
+`ai-injury-assistant/` — the first issues tokens the second verifies, and both read
+the same database. They live in one repo-root file so they cannot drift:
+
+```
+.env.shared          repo root, git-ignored. JWT_SECRET + DATABASE_URL only.
+                     Copy .env.shared.example. Nothing else belongs here.
+backend/.env         PORT, NODE_ENV, FRONTEND_URL, AI_ASSISTANT_URL
+backend/.env.test    DATABASE_URL for the test database (see §6)
+ai-injury-assistant/.env   PORT, GROQ_API_KEY, EMBEDDING_API_KEY, ALLOWED_ORIGIN
+frontend/.env.local  NEXT_PUBLIC_* only
+```
+
+Each app loads its **own file first**, then `.env.shared`. `dotenv` never
+overwrites an already-set variable, so an app-specific file always wins — that is
+what keeps `.env.test` authoritative when running tests. Loading is in
+`backend/src/loadEnv.js` and `ai-injury-assistant/src/config/load-env.ts`; both
+throw at startup, naming `.env.shared`, if either shared value is missing.
+
+`PORT` deliberately stays per-app: `backend/` uses 3001 and the assistant 3002, and
+hosts such as Render inject `PORT` themselves. Never put it in `.env.shared`.
+
+`frontend/` does not read `.env.shared`: `NEXT_PUBLIC_*` values are compiled into
+the browser bundle, so they stay well away from secrets. `ai-injury-extractor/` is
+an AWS Lambda and takes its environment from Terraform.
+
 Backend:
 ```bash
 cd backend
 npm install
-# create .env with DATABASE_URL, JWT_SECRET, FRONTEND_URL
+# ../.env.shared supplies DATABASE_URL and JWT_SECRET
+# create .env with PORT, NODE_ENV, FRONTEND_URL
 # optional: AI_ASSISTANT_URL (defaults to http://localhost:3002)
 npx prisma migrate dev
 npm run dev        # node --watch src/server.js, default port 3001
@@ -96,6 +125,11 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - Integration-style: real Express app + real Postgres via Supertest, no mocking of the DB or Prisma.
 - One test file per resource (`auth`, `injury`, `symptom`, `treatment`, `medicalVisit`, `timeline`) plus `security.test.js`, which is the only file that specifically tests cross-user data isolation (currently only for the Injury resource — see audit notes).
 - `tests/setup.js` provides `cleanDatabase`, `createTestUser`, `createTestInjury` helpers; `cleanDatabase` truncates every table before each test.
+- Because that is destructive, `tests/setup.js` refuses to run unless `DATABASE_URL` names a
+  test database. This is not theoretical: nothing used to load `.env.test` for Jest —
+  `NODE_ENV=test` only changes app behaviour, and `prisma.config.ts` is read by the Prisma CLI,
+  never by Jest — so Prisma Client fell back to `.env` and the suite wiped the *development*
+  database on every run. `backend/src/loadEnv.js` now selects `.env.test`; the guard asserts it.
 - The frontend has Vitest configured (`cd frontend && npm test`), but so far only for the
   `ai-injury-extractor/` feature's components/API client (`frontend/components/extractor/*.test.tsx`,
   `frontend/services/extractor-api.test.ts`) — the rest of the frontend still has no test coverage.

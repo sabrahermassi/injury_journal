@@ -266,13 +266,24 @@ cd backend
 npm install
 ```
 
-Create a `.env` file:
+`DATABASE_URL` and `JWT_SECRET` live in a **repo-root `.env.shared`**, because the AI
+assistant service reads the same database and verifies the same tokens — the two apps must
+use identical values. Copy `.env.shared.example` at the repo root and fill it in:
 
 ```
-DATABASE_URL=
 JWT_SECRET=
+DATABASE_URL=
+```
+
+Then create `backend/.env` for this app's own settings:
+
+```
+PORT=3001
+NODE_ENV=development
 FRONTEND_URL=
 ```
+
+`backend/.env` is loaded before `.env.shared`, so anything set there wins.
 
 `NODE_ENV` must also be set to `development`, `test`, or `production` — the server refuses to start otherwise, and `FRONTEND_URL` is required when `NODE_ENV=production`.
 
