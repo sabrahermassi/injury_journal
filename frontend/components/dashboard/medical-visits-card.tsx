@@ -25,7 +25,7 @@ export function MedicalVisitsCard({ injuryId }: { injuryId: number }) {
 
   return (
     <div className="max-w-2xl rounded-xl border bg-card p-5">
-      <h2 className="text-lg-semibold">Medical Visits</h2>
+      <h2 className="text-lg font-semibold">Medical Visits</h2>
 
       {error ? (
         <p className="mt-3 text-muted-foreground">{error}</p>
