@@ -4,6 +4,7 @@ import {
   login as loginUser,
 } from './services/authService.js';
 import { authCookieOptions, csrfCookieOptions } from './utils.js';
+import { askAssistant } from './services/assistantService.js';
 import {
   createInjury,
   getInjuries,
@@ -457,6 +458,17 @@ export const deleteMedicalVisitController = async (req, res, next) => {
     }
 
     res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/assistant/ask
+export const askAssistantController = async (req, res, next) => {
+  try {
+    const { status, data } = await askAssistant(req.token, req.body);
+
+    res.status(status).json(data);
   } catch (error) {
     next(error);
   }

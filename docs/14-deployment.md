@@ -201,6 +201,10 @@ PORT=
 DATABASE_URL=
 
 JWT_SECRET=
+
+AI_ASSISTANT_URL=   # base URL of the ai-injury-assistant service
+                    # (defaults to http://localhost:3002); the backend proxies
+                    # POST /api/assistant/ask to it
 ```
 
 ---

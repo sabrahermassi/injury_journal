@@ -89,3 +89,10 @@ export const medicalVisitSchema = z.object({
 });
 
 export const updateMedicalVisitSchema = medicalVisitSchema.partial();
+
+// AI ASSISTANT
+export const assistantAskSchema = z.object({
+  question: z.string().min(1).max(10000),
+
+  injuryId: z.number().int().positive().optional(),
+});

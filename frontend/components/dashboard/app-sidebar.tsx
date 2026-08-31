@@ -6,6 +6,7 @@ import {
   HeartPulse,
   LayoutDashboard,
   LifeBuoy,
+  MessageCircleQuestion,
   Pill,
   Settings,
   Sparkles,
@@ -114,6 +115,19 @@ export function AppSidebar({
                   <Link href="/dashboard/extractor">
                     <Sparkles />
                     <span>AI Extractor</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Ask your journal"
+                  isActive={pathname === "/dashboard/assistant"}
+                >
+                  <Link href="/dashboard/assistant">
+                    <MessageCircleQuestion />
+                    <span>Ask your journal</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

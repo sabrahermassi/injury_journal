@@ -20,6 +20,10 @@ export const authenticate = (req, res, next) => {
     const decoded = verifyToken(token);
     // Attach user information to request
     req.userId = decoded.userId;
+    // The raw token, so a controller can forward it to another service that
+    // verifies the same JWT_SECRET (see assistantService). The browser can't
+    // do this itself: the token lives in an httpOnly cookie on this origin.
+    req.token = token;
     // Continue to controller
     next();
   } catch (error) {

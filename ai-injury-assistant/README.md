@@ -211,28 +211,20 @@ curl http://localhost:3000/injuries \
 
 ### Frontend
 
-The web UI lives in `frontend/` as a separate Next.js app (App Router, Tailwind v4, shadcn/ui). It
-is its own npm project with its own dependencies, so install once before first use:
+This service has no frontend of its own any more. Its UI moved into the journal app's frontend at
+the monorepo root (`frontend/components/assistant/ask-form.tsx`), served at `/dashboard/assistant`.
 
-```bash
-cd frontend
-npm install
-```
+The browser never calls this service directly. The journal backend proxies
+`POST /api/assistant/ask` -> `POST /ai-agent` here, forwarding the caller's own JWT, because that
+token lives in an httpOnly cookie that browser JS cannot read. See
+`backend/src/services/assistantService.js` in the monorepo root.
 
-Run it alongside the backend — the API stays on port 3000, the UI on 3001:
+To run the whole thing locally, from the repo root: `backend` on 3001, `frontend` on 3000, and this
+service on 3002 (`npm run dev` in this directory). The frontend talks to the backend, and the
+backend talks to this service via `AI_ASSISTANT_URL`.
 
-```bash
-npm run dev               # in the repo root: Express API on http://localhost:3000
-cd frontend && npm run dev # in a second shell: UI on http://localhost:3001
-```
-
-`frontend/next.config.ts` proxies `/ai-agent` and `/injuries` to the API so the browser stays on one
-origin and no `ALLOWED_ORIGIN`/CORS setup is needed for local development. Point it elsewhere with
-`API_ORIGIN`.
-
-Using the page: paste a bearer token, and when the field loses focus the **Injury** dropdown loads
-that user's injuries from `GET /injuries`. Leave it on *All injuries* to search across all of them,
-or pick one to scope the question to it. Then type a question and press **Ask**.
+Because the picker now reads the journal app's own injury list, the stopgap `GET /injuries` in this
+repo has no consumer left (see `#195`).
 
 > `GET /injuries` is temporary. It exists only to populate this dropdown and is superseded by the
 > main journal application's own endpoint once the two applications merge — see `#195` and

@@ -49,8 +49,9 @@ ai-injury-extractor/     Self-contained AWS Lambda service that extracts structu
 
 ai-injury-assistant/     Self-contained AI/RAG companion app, brought in from its own repository
                          (sabrahermassi/injury-journal-ai) via git subtree with full history
-                         preserved. Own package.json, Prisma schema, frontend, CI, and CLAUDE.md —
-                         see §11 below and its own docs before working in this folder.
+                         preserved. Own package.json, Prisma schema, CI, and CLAUDE.md. Its
+                         UI is NOT here — it lives in frontend/components/assistant/ and is served
+                         at /dashboard/assistant. See §11 below before working in this folder.
 ```
 
 Both `ai-injury-*` folders are independently deployable services that happen to share this repo.
@@ -70,6 +71,7 @@ Backend:
 cd backend
 npm install
 # create .env with DATABASE_URL, JWT_SECRET, FRONTEND_URL
+# optional: AI_ASSISTANT_URL (defaults to http://localhost:3002)
 npx prisma migrate dev
 npm run dev        # node --watch src/server.js, default port 3001
 ```
@@ -151,9 +153,9 @@ Do not invent additional verification commands beyond what's defined in `backend
 ## 11. AI companion app (`ai-injury-assistant/`)
 
 An AI/RAG assistant that answers questions grounded in a user's own journal data — "what
-treatments helped", or a summary across one injury or several. An early ask-form UI exists at
-`ai-injury-assistant/frontend/components/ai-agent/ask-form.tsx`; this is a young, actively-evolving
-part of the product, not a finished feature.
+treatments helped", or a summary across one injury or several. Its UI lives in the journal
+frontend at `frontend/components/assistant/ask-form.tsx`, served at `/dashboard/assistant`. This
+is a young, actively-evolving part of the product, not a finished feature.
 
 Brought into this repo via `git subtree add` from its own repository
 (`sabrahermassi/injury-journal-ai`), with full commit history preserved. Note the folder was
@@ -168,9 +170,13 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
 
 - **Stack**: TypeScript/Node 22 (ESM), Express 5, Prisma 6 + PostgreSQL with `pgvector`, Groq
   (`openai/gpt-oss-20b`) for generation, a separate self-hosted Python/FastAPI service for
-  embeddings (Qwen3-Embedding-0.6B, 1024 dimensions). Its own Next.js frontend lives at
-  `ai-injury-assistant/frontend/`, styled per `ai-injury-assistant/UI_GUIDE.md` — not merged into this
-  repo's `frontend/`.
+  embeddings (Qwen3-Embedding-0.6B, 1024 dimensions). It is backend-only — its former standalone
+  Next.js frontend was folded into this repo's `frontend/`.
+- **How the browser reaches it**: it doesn't, directly. `backend/` proxies
+  `POST /api/assistant/ask` to the assistant's `POST /ai-agent`, forwarding the caller's own JWT
+  (`backend/src/services/assistantService.js`). This exists because the token is in an httpOnly
+  cookie that browser JS cannot read — storing it somewhere readable would undo issue #8. Set
+  `AI_ASSISTANT_URL` on the backend to point at the service.
 - **Retrieval path**: journal content → chunk → embed → pgvector cosine retrieval → LLM → cited
   answer. Safety checks run before retrieval; an unsupported question gets an explicit
   no-information response rather than an LLM guess.

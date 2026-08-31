@@ -117,12 +117,17 @@ After verification passes, run the `post-fix-review` Skill before committing.
 
 ## UI Guidelines
 
-For any UI work, always read `UI_GUIDE.md` first and follow its component
-library, design tokens, and patterns exactly. Do not introduce a different
-UI library, styling approach, or component structure than what's documented
-there.
+**This service no longer has a frontend.** Its UI moved into the journal app's
+frontend at the repo root — `frontend/components/assistant/ask-form.tsx`,
+served at `/dashboard/assistant`. Do any UI work there, following the root
+`frontend/UI_GUIDE.md`, not this directory's `UI_GUIDE.md` (kept only as a
+record of the standalone app's design decisions).
 
-If a needed component isn't covered in UI_GUIDE.md, check the separate journal
-application's frontend (the app that owns CRUD + login, see
-`docs/02-architecture.md` D10) for a precedent before inventing a new pattern.
-It lives in its own repository, not this one.
+The browser does not call this service directly. The journal backend proxies
+`POST /api/assistant/ask` to `POST /ai-agent` here, forwarding the caller's
+own JWT — because that token lives in an httpOnly cookie the browser's JS
+cannot read. See `backend/src/services/assistantService.js`.
+
+This also means the stopgap `GET /injuries` in this repo (D10's "known
+temporary deviation", issue #195) has no consumer any more: the picker now
+reads the journal app's own injury list.
