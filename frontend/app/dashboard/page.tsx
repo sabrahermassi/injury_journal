@@ -1,92 +1,182 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getInjuries, type Injury } from "../../services/api";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { PlusCircle } from "lucide-react";
 
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useInjuries } from "@/components/dashboard/injuries-provider";
+import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
+import { useDueFollowUps } from "@/hooks/use-due-followups";
+import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { InjuryCard } from "@/components/dashboard/injury-card";
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
-export default function DashboardPage() {
-  const [injuries, setInjuries] = useState<Injury[]>([]);
-  const [activeSection, setActiveSection] = useState("overview");
-  const [error, setError] = useState<string | null>(null);
+export default function DashboardOverviewPage() {
+  const router = useRouter();
+  const { injuries, loading: injuriesLoading, refresh } = useInjuries();
+  const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
+  const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchInjuries() {
-      try {
-        setError(null);
+  const recent = useMemo(() => events.slice(0, 5), [events]);
 
-        const data = await getInjuries();
-        setInjuries(data);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to load injuries");
-      }
-    }
+  if (injuriesLoading) {
+    return (
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
+      </main>
+    );
+  }
 
-    fetchInjuries();
-  }, []);
+  if (injuries.length === 0) {
+    return (
+      <main className="flex flex-1 flex-col items-start gap-4 p-4 md:gap-6 md:p-6">
+        <Card className="max-w-lg">
+          <CardHeader>
+            <CardTitle>Start your record</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Set up a profile for what you&apos;re tracking, and everything
+              after — symptoms, treatments, visits — gets kept in one place
+              against it. The first week is just about building the record;
+              there&apos;s no catching up to do.
+            </p>
+            <Button onClick={() => setCreateOpen(true)}>
+              <PlusCircle />
+              Set up your first injury profile
+            </Button>
+          </CardContent>
+        </Card>
 
-  async function refreshInjuries() {
-    try {
-      setError(null);
-
-      const data = await getInjuries();
-      setInjuries(data);
-    } catch (error) {
-      console.error(error);
-      setError("Failed to load injuries");
-    }
+        <CreateInjuryDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreated={refresh}
+        />
+      </main>
+    );
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar activeSection={activeSection} onNavigate={setActiveSection} />
+    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-xl font-medium">{greeting()}</h2>
+          <p className="text-sm text-muted-foreground">
+            {injuries.length === 1
+              ? "1 injury profile being tracked."
+              : `${injuries.length} injury profiles being tracked.`}
+          </p>
+        </div>
 
-      <SidebarInset>
-        <DashboardHeader onInjuryCreated={refreshInjuries} />
+        <Button onClick={() => router.push("/dashboard/log")}>
+          <PlusCircle />
+          Log something
+        </Button>
+      </div>
 
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-          <h1 className="text-2xl font-semibold">
-            {activeSection === "overview" && "Recovery Overview"}
-            {activeSection === "injuries" && "Your Injuries"}
-          </h1>
+      {dueFollowUpsError && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Worth a check-in</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Couldn&apos;t check for due follow-ups — try refreshing.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-          {activeSection === "overview" && (
-            <div className="rounded-xl border bg-card p-6">
-              <p className="text-muted-foreground">Recovery overview content</p>
+      {!dueFollowUpsError && dueFollowUps.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Worth a check-in</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {dueFollowUps.map((treatment) => (
+              <div
+                key={treatment.id}
+                className="flex items-center justify-between gap-4 border-t pt-3 first:border-t-0 first:pt-0"
+              >
+                <p className="text-sm">
+                  How did <span className="font-medium">{treatment.name}</span>{" "}
+                  work out?{" "}
+                  <span className="text-muted-foreground">
+                    ({treatment.injuryName})
+                  </span>
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    router.push(`/dashboard/injuries/${treatment.injuryId}`)
+                  }
+                >
+                  Check in
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {eventsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+            </div>
+          ) : eventsError ? (
+            <p className="text-muted-foreground">
+              Couldn&apos;t load recent activity — try refreshing.
+            </p>
+          ) : recent.length === 0 ? (
+            <div className="flex flex-col items-start gap-2">
+              <p className="text-muted-foreground">
+                Nothing logged yet — a note today is worth more than a
+                perfect one later.
+              </p>
+              <Button size="sm" onClick={() => router.push("/dashboard/log")}>
+                Log your first entry
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recent.map((event) => (
+                <div
+                  key={`${event.injuryId}-${event.id}`}
+                  className="flex items-start justify-between gap-4 border-t pt-4 first:border-t-0 first:pt-0"
+                >
+                  <div className="space-y-0.5">
+                    <p className="font-medium">{event.type}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {event.injuryName}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm text-muted-foreground">
+                    {new Date(event.date).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
-
-          {activeSection === "injuries" && (
-            <>
-              {error ? (
-                <div className="rounded-xl border bg-card p-6">
-                  <p className="text-muted-foreground">
-                    Failed to load injuries.
-                  </p>
-                  <button onClick={refreshInjuries} className="mt-4 underline">
-                    Retry
-                  </button>
-                </div>
-              ) : injuries.length === 0 ? (
-                <div className="rounded-xl border bg-card p-6">
-                  <p className="text-muted-foreground">No injuries yet.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {injuries.map((injury) => (
-                    <InjuryCard key={injury.id} injury={injury} />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

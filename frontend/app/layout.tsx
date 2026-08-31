@@ -19,7 +19,7 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "Injury Journal",
   description:
-    "Track your injury journey, symptoms, treatments, and recovery progress.",
+    "Keep a clear record of an injury over time — symptoms, treatments, and visits, all in one place.",
 };
 
 export default function RootLayout({

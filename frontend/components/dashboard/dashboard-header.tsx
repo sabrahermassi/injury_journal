@@ -2,18 +2,44 @@
 
 import { Bell, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { CreateInjuryDialog } from "./create-injury-dialog";
+import { useInjuries } from "./injuries-provider";
 
-export function DashboardHeader({
-  onInjuryCreated,
-}: {
-  onInjuryCreated: () => void;
-}) {
+const TITLES: Record<string, string> = {
+  "/dashboard": "Today",
+  "/dashboard/injuries": "Your Injuries",
+  "/dashboard/timeline": "Timeline",
+  "/dashboard/insights": "Insights",
+  "/dashboard/log": "New Entry",
+  "/dashboard/settings": "Settings",
+  "/dashboard/extractor": "AI Extractor",
+};
+
+export function DashboardHeader() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const { injuries, refresh } = useInjuries();
+
+  // The header sits above every dashboard page now, so the title comes from the
+  // route. On an injury detail page we can name the injury, because the shell
+  // already holds the list.
+  function title() {
+    if (TITLES[pathname]) return TITLES[pathname];
+
+    const match = pathname.match(/^\/dashboard\/injuries\/(\d+)$/);
+    if (match) {
+      const injury = injuries.find((i) => i.id === Number(match[1]));
+      return injury?.name ?? "Injury";
+    }
+
+    return "Injury Journal";
+  }
+
   return (
     <header className="sticky top-0 z-10 flex flex-col gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur md:px-6">
       <div className="flex items-center gap-3">
@@ -21,7 +47,7 @@ export function DashboardHeader({
         <Separator orientation="vertical" className="h-6" />
         <div className="flex flex-1 flex-col">
           <h1 className="text-base font-semibold leading-tight md:text-lg">
-            Recovery Overview
+            {title()}
           </h1>
           <p className="hidden text-sm text-muted-foreground sm:block">
             {new Date().toLocaleDateString("en-US", {
@@ -53,7 +79,7 @@ export function DashboardHeader({
         <CreateInjuryDialog
           open={open}
           onOpenChange={setOpen}
-          onCreated={onInjuryCreated}
+          onCreated={refresh}
         />
       </div>
     </header>

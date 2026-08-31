@@ -73,6 +73,10 @@ export const treatmentSchema = z.object({
   cost: z.number().nonnegative().optional().nullable(),
 
   outcome: z.string().min(1).optional().nullable(),
+
+  followUpDueAt: z.string().datetime().optional().nullable(),
+
+  courseId: z.string().min(1).optional().nullable(),
 });
 
 export const updateTreatmentSchema = treatmentSchema.partial();
@@ -89,3 +93,16 @@ export const medicalVisitSchema = z.object({
 });
 
 export const updateMedicalVisitSchema = medicalVisitSchema.partial();
+
+// TREATMENT OUTCOME
+export const treatmentOutcomeSchema = z.object({
+  status: z.string().min(1),
+
+  recordedAt: z.string().datetime().optional(),
+
+  reliefDays: z.number().int().nonnegative().optional().nullable(),
+
+  painLevel: z.number().int().min(0).max(10).optional().nullable(),
+
+  notes: z.string().min(1).optional().nullable(),
+});
