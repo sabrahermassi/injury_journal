@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
 export const prisma = new PrismaClient();
 
@@ -10,7 +10,7 @@ export const createToken = (userId) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: "1h"
+      expiresIn: '1h'
     }
   );
 };
