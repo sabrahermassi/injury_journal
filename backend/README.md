@@ -8,7 +8,9 @@ Quick start:
 
 ```bash
 npm install
-# create .env with DATABASE_URL, JWT_SECRET, FRONTEND_URL
+# DATABASE_URL and JWT_SECRET come from the repo-root .env.shared
+# (shared with ai-injury-assistant/ -- see the root README)
+# create .env with PORT, NODE_ENV, FRONTEND_URL
 npx prisma migrate dev
 npm run dev
 ```

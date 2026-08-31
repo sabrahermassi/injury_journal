@@ -49,11 +49,13 @@ The fastest way to get a working local environment — Docker runs Postgres (wit
 **Prerequisites:** Docker Desktop (or Docker Engine + the Compose plugin), Node.js 22.
 
 1. `npm install`
-2. Copy `.env.example` to `.env` and fill in `GROQ_API_KEY`, `JWT_SECRET`, and
-   `EMBEDDING_API_KEY`. Set `DATABASE_URL` to **the journal app's database** — the same
-   value as `backend/.env`. This service reads the user's real journal data; it no longer
-   keeps its own copy. `JWT_SECRET` must also match `backend/.env`, since this service
-   verifies tokens that app issues.
+2. `DATABASE_URL` and `JWT_SECRET` come from the **repo-root `.env.shared`**, which the
+   journal app reads too — they must be identical in both, so they have one home. Copy
+   `.env.shared.example` to `.env.shared` at the repo root and fill it in.
+
+   Then copy this folder's `.env.example` to `.env` for the rest: `GROQ_API_KEY`,
+   `EMBEDDING_API_KEY`, and optionally `PORT` and `ALLOWED_ORIGIN`. This service's own
+   `.env` is loaded first, so anything set there wins over `.env.shared`.
 
    This app does **not** own that schema. `backend/prisma/` does, including the
    `DocumentChunk` table this service writes vectors into. Never run `prisma migrate`
