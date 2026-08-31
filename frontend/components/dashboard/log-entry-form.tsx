@@ -56,6 +56,7 @@ export function LogEntryForm({
   const [treatmentName, setTreatmentName] = useState("");
   const [provider, setProvider] = useState("");
   const [cost, setCost] = useState("");
+  const [checkBackInDays, setCheckBackInDays] = useState("");
 
   // Visit fields
   const [doctor, setDoctor] = useState("");
@@ -72,6 +73,7 @@ export function LogEntryForm({
     setTreatmentName("");
     setProvider("");
     setCost("");
+    setCheckBackInDays("");
     setDoctor("");
     setClinic("");
     setVisitNotes("");
@@ -99,11 +101,19 @@ export function LogEntryForm({
           notes: notes || undefined,
         });
       } else if (entryType === "treatment") {
+        const followUpDueAt = checkBackInDays
+          ? new Date(
+              new Date(isoDate).getTime() +
+                Number(checkBackInDays) * 24 * 60 * 60 * 1000,
+            ).toISOString()
+          : undefined;
+
         await createTreatment(injuryId, {
           name: treatmentName,
           date: isoDate,
           provider: provider || undefined,
           cost: cost ? Number(cost) : undefined,
+          followUpDueAt,
         });
       } else {
         await createMedicalVisit(injuryId, {
@@ -268,6 +278,24 @@ export function LogEntryForm({
                   value={cost}
                   onChange={(e) => setCost(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="checkBackInDays">
+                  Check back in (days) — optional
+                </Label>
+                <Input
+                  id="checkBackInDays"
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 14"
+                  value={checkBackInDays}
+                  onChange={(e) => setCheckBackInDays(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  We&apos;ll surface a reminder on your home screen to ask how
+                  it went.
+                </p>
               </div>
             </>
           )}

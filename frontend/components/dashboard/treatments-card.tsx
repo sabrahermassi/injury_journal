@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TreatmentOutcomes } from "@/components/dashboard/treatment-outcomes";
 
 export function TreatmentsCard({ injuryId }: { injuryId: number }) {
   const router = useRouter();
@@ -105,6 +106,8 @@ export function TreatmentsCard({ injuryId }: { injuryId: number }) {
                 {treatment.outcome && (
                   <p className="text-sm">Outcome: {treatment.outcome}</p>
                 )}
+
+                <TreatmentOutcomes treatmentId={treatment.id} />
               </div>
             ))}
           </div>

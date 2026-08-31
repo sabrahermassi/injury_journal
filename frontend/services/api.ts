@@ -33,6 +33,17 @@ export interface Treatment {
   date: string;
   cost: number | null;
   outcome: string | null;
+  followUpDueAt: string | null;
+}
+
+export interface TreatmentOutcome {
+  id: number;
+  recordedAt: string;
+  status: string;
+  reliefDays: number | null;
+  painLevel: number | null;
+  notes: string | null;
+  treatmentId: number;
 }
 
 export interface MedicalVisit {
@@ -316,6 +327,7 @@ export async function createTreatment(
     provider?: string;
     cost?: number;
     outcome?: string;
+    followUpDueAt?: string;
   },
 ) {
   const response = await authFetch(
@@ -358,6 +370,56 @@ export async function deleteTreatment(id: number) {
 
   if (!response.ok) {
     throw new Error("Failed to delete treatment");
+  }
+}
+
+export async function getTreatmentOutcomes(
+  treatmentId: number,
+): Promise<TreatmentOutcome[]> {
+  const response = await authFetch(
+    `${API_URL}/api/treatments/${treatmentId}/outcomes`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch treatment outcomes");
+  }
+
+  return response.json();
+}
+
+export async function createTreatmentOutcome(
+  treatmentId: number,
+  outcome: {
+    status: string;
+    reliefDays?: number;
+    painLevel?: number;
+    notes?: string;
+  },
+) {
+  const response = await authFetch(
+    `${API_URL}/api/treatments/${treatmentId}/outcomes`,
+    {
+      method: "POST",
+      body: JSON.stringify(outcome),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(error);
+    throw new Error("Failed to record treatment outcome");
+  }
+
+  return response.json();
+}
+
+export async function deleteTreatmentOutcome(id: number) {
+  const response = await authFetch(`${API_URL}/api/treatment-outcomes/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete treatment outcome");
   }
 }
 

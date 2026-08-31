@@ -14,6 +14,7 @@ const TITLES: Record<string, string> = {
   "/dashboard": "Today",
   "/dashboard/injuries": "Your Injuries",
   "/dashboard/timeline": "Timeline",
+  "/dashboard/insights": "Insights",
   "/dashboard/log": "New Entry",
   "/dashboard/settings": "Settings",
   "/dashboard/extractor": "AI Extractor",

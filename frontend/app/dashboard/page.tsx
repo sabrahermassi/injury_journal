@@ -6,6 +6,7 @@ import { PlusCircle } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
+import { useDueFollowUps } from "@/hooks/use-due-followups";
 import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export default function DashboardOverviewPage() {
   const router = useRouter();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
   const { events, loading: eventsLoading } = useAllTimelineEvents(injuries);
+  const { dueFollowUps } = useDueFollowUps(injuries);
   const [createOpen, setCreateOpen] = useState(false);
 
   const recent = useMemo(() => events.slice(0, 5), [events]);
@@ -82,6 +84,39 @@ export default function DashboardOverviewPage() {
           Log something
         </Button>
       </div>
+
+      {dueFollowUps.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Worth a check-in</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {dueFollowUps.map((treatment) => (
+              <div
+                key={treatment.id}
+                className="flex items-center justify-between gap-4 border-t pt-3 first:border-t-0 first:pt-0"
+              >
+                <p className="text-sm">
+                  How did <span className="font-medium">{treatment.name}</span>{" "}
+                  work out?{" "}
+                  <span className="text-muted-foreground">
+                    ({treatment.injuryName})
+                  </span>
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    router.push(`/dashboard/injuries/${treatment.injuryId}`)
+                  }
+                >
+                  Check in
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

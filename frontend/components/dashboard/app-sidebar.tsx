@@ -4,6 +4,7 @@ import {
   Clock,
   HeartPulse,
   LayoutDashboard,
+  LineChart,
   PenLine,
   Settings,
   Sparkles,
@@ -30,6 +31,7 @@ const trackingNav = [
   { title: "Today", href: "/dashboard", icon: LayoutDashboard },
   { title: "Injuries", href: "/dashboard/injuries", icon: HeartPulse },
   { title: "Timeline", href: "/dashboard/timeline", icon: Clock },
+  { title: "Insights", href: "/dashboard/insights", icon: LineChart },
   { title: "Log entry", href: "/dashboard/log", icon: PenLine },
 ];
 
