@@ -135,8 +135,8 @@ swapped without a code change if the model is deprecated.
 ## Testing
 
 - Backend: `cd lambda && pytest` (pytest + moto, mocks AWS/Groq). CI runs
-  this on every push/PR touching `extractor/lambda/**` or
-  `extractor/infrastructure/**` (see `.github/workflows/extractor-ci.yml`).
+  this on every push/PR touching `ai-injury-extractor/lambda/**` or
+  `ai-injury-extractor/infrastructure/**` (see `.github/workflows/extractor-ci.yml`).
 - Frontend: the extractor's component tests moved along with the
   components into `frontend/components/extractor/*.test.tsx` and
   `frontend/services/extractor-api.test.ts`. The main `frontend/` app now

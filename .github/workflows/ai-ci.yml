@@ -1,4 +1,4 @@
-name: AI Injury Journal CI
+name: AI Injury Assistant CI
 
 permissions:
   contents: read
@@ -7,12 +7,12 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "ai-injury-journal/**"
+      - "ai-injury-assistant/**"
       - ".github/workflows/ai-ci.yml"
   push:
     branches: [main]
     paths:
-      - "ai-injury-journal/**"
+      - "ai-injury-assistant/**"
       - ".github/workflows/ai-ci.yml"
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
     # written when it was its own repo and assumes repo root == app root.
     defaults:
       run:
-        working-directory: ai-injury-journal
+        working-directory: ai-injury-assistant
 
     services:
       postgres:
@@ -58,7 +58,7 @@ jobs:
           cache: npm
           # `defaults.run.working-directory` does not apply to `uses:` steps,
           # so the lockfile path has to be spelled out from the repo root.
-          cache-dependency-path: ai-injury-journal/package-lock.json
+          cache-dependency-path: ai-injury-assistant/package-lock.json
 
       - name: Install dependencies
         run: npm ci

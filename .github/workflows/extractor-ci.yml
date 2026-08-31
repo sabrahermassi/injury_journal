@@ -4,14 +4,14 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "extractor/lambda/**"
-      - "extractor/infrastructure/**"
+      - "ai-injury-extractor/lambda/**"
+      - "ai-injury-extractor/infrastructure/**"
       - ".github/workflows/extractor-ci.yml"
   push:
     branches: [main]
     paths:
-      - "extractor/lambda/**"
-      - "extractor/infrastructure/**"
+      - "ai-injury-extractor/lambda/**"
+      - "ai-injury-extractor/infrastructure/**"
       - ".github/workflows/extractor-ci.yml"
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: extractor/lambda
+        working-directory: ai-injury-extractor/lambda
     steps:
       - uses: actions/checkout@v4
         with:

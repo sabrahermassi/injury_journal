@@ -28,7 +28,7 @@ Briefly report:
 ## 2. Understand the scope
 
 Use the issue title/body and a quick read of directly relevant files
-(`extractor/lambda/handler.py`, `frontend/`, `extractor/infrastructure/*.tf`) to determine scope.
+(`ai-injury-extractor/lambda/handler.py`, `frontend/`, `ai-injury-extractor/infrastructure/*.tf`) to determine scope.
 
 Do not spawn a subagent if the scope is clear. Use `.claude/agents/explorer.md` only when the task
 is genuinely large or ambiguous (e.g. touches multiple unfamiliar areas, or the issue explicitly
@@ -67,9 +67,9 @@ Make only changes required for the issue.
 
 Run the verification steps from `CLAUDE.md` §9:
 
-- Backend changes: `cd extractor/lambda && pytest` (also run in CI via
+- Backend changes: `cd ai-injury-extractor/lambda && pytest` (also run in CI via
   `.github/workflows/extractor-ci.yml`); for anything not covered, read the changed logic carefully
-  and exercise it with the `curl` examples in `extractor/README.md` against a deployed stack.
+  and exercise it with the `curl` examples in `ai-injury-extractor/README.md` against a deployed stack.
 - Frontend changes: `cd frontend && npm run lint && npm run build` (also run in CI via
   `.github/workflows/frontend-ci.yml`), then `npm run dev` and exercise the flow.
 
@@ -77,7 +77,7 @@ Do not invent commands or scripts that don't exist.
 
 ## 6. Check test coverage
 
-`extractor/lambda` has a pytest suite; add cases there for backend logic changes where it makes
+`ai-injury-extractor/lambda` has a pytest suite; add cases there for backend logic changes where it makes
 sense. Before handing off, explicitly note:
 
 - whether this change would be a good candidate for a new test case

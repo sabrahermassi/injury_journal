@@ -38,9 +38,9 @@ Before committing:
 
 Read only the documentation relevant to the changed area:
 
-- Lambda/API changes → `extractor/docs/lambda-design.md`
-- DynamoDB changes → `extractor/docs/dynamodb-design.md`
-- Anything else → `extractor/README.md`
+- Lambda/API changes → `ai-injury-extractor/docs/lambda-design.md`
+- DynamoDB changes → `ai-injury-extractor/docs/dynamodb-design.md`
+- Anything else → `ai-injury-extractor/README.md`
 
 Do NOT reread `CLAUDE.md` — it's already in context. Read any document at most once per session.
 

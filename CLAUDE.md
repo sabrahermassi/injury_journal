@@ -42,11 +42,19 @@ frontend/
 
 docs/                    Planning docs written before/during implementation (product, requirements, system design, DB, API, dev process, testing, deployment). Written pre-implementation — verify against actual code before trusting for current behavior; see Known constraints below for known drift.
 
-ai-injury-journal/       Self-contained AI/RAG companion app, brought in from its own repository
+ai-injury-extractor/     Self-contained AWS Lambda service that extracts structured injury data
+                         from free text (lambda/ handler + tests, infrastructure/ Terraform). Its
+                         UI is NOT here — it lives in frontend/components/extractor/ and is served
+                         at /dashboard/extractor. Own CLAUDE.md and README.md.
+
+ai-injury-assistant/     Self-contained AI/RAG companion app, brought in from its own repository
                          (sabrahermassi/injury-journal-ai) via git subtree with full history
                          preserved. Own package.json, Prisma schema, frontend, CI, and CLAUDE.md —
                          see §11 below and its own docs before working in this folder.
 ```
+
+Both `ai-injury-*` folders are independently deployable services that happen to share this repo.
+Neither is imported by `backend/` or `frontend/` — they're reached over HTTP.
 
 ## 4. Tech stack
 
@@ -87,7 +95,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - One test file per resource (`auth`, `injury`, `symptom`, `treatment`, `medicalVisit`, `timeline`) plus `security.test.js`, which is the only file that specifically tests cross-user data isolation (currently only for the Injury resource — see audit notes).
 - `tests/setup.js` provides `cleanDatabase`, `createTestUser`, `createTestInjury` helpers; `cleanDatabase` truncates every table before each test.
 - The frontend has Vitest configured (`cd frontend && npm test`), but so far only for the
-  `extractor/` feature's components/API client (`frontend/components/extractor/*.test.tsx`,
+  `ai-injury-extractor/` feature's components/API client (`frontend/components/extractor/*.test.tsx`,
   `frontend/services/extractor-api.test.ts`) — the rest of the frontend still has no test coverage.
 
 ## 7. Conventions
@@ -117,7 +125,7 @@ See the audit report delivered alongside this file, and the corresponding GitHub
 - `docs/07-frontend-dev.md` — stale: describes React Router/Axios/Context API, none of which this codebase uses (it's Next.js App Router + native `fetch`). Don't follow it.
 - `ROADMAP.md` (root) — MVP completion checklist, background context only. Do not start work on a roadmap item that has no corresponding GitHub issue.
 - `frontend/UI_GUIDE.md` — UI/styling conventions.
-- `ai-injury-journal/CLAUDE.md`, `ai-injury-journal/README.md` — the AI companion app's own docs.
+- `ai-injury-assistant/CLAUDE.md`, `ai-injury-assistant/README.md` — the AI companion app's own docs.
   Read those (not this file) for its conventions, architecture, and verification commands; see §11.
 
 ## 10. Verification commands
@@ -140,24 +148,28 @@ npm run build          # catches type errors ESLint won't
 
 Do not invent additional verification commands beyond what's defined in `backend/package.json` / `frontend/package.json`.
 
-## 11. AI companion app (`ai-injury-journal/`)
+## 11. AI companion app (`ai-injury-assistant/`)
 
 An AI/RAG assistant that answers questions grounded in a user's own journal data — "what
 treatments helped", or a summary across one injury or several. An early ask-form UI exists at
-`ai-injury-journal/frontend/components/ai-agent/ask-form.tsx`; this is a young, actively-evolving
+`ai-injury-assistant/frontend/components/ai-agent/ask-form.tsx`; this is a young, actively-evolving
 part of the product, not a finished feature.
 
-Brought into this repo via `git subtree add --prefix=ai-injury-journal` from its own repository
-(`sabrahermassi/injury-journal-ai`), with full commit history preserved — `git log -- ai-injury-journal/`
-shows its real history interleaved with this repo's own. **Kept fully self-contained for now**: its
+Brought into this repo via `git subtree add` from its own repository
+(`sabrahermassi/injury-journal-ai`), with full commit history preserved. Note the folder was
+originally added as `ai-injury-journal/` and later renamed, so any future `git subtree pull` must
+use `--prefix=ai-injury-assistant`. Also note `git log -- ai-injury-assistant/` shows only the
+merge commit: the imported commits recorded their original unprefixed paths, so path-filtered log
+does not follow them. The history is in the graph — browse it with `git log 436cc5d`.
+**Kept fully self-contained for now**: its
 own `package.json`, `.gitignore`, `eslint.config.js`, `tsconfig.json`, CI workflows, and `CLAUDE.md`.
 Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, and do not run its
-`npm` scripts from the repo root — `cd ai-injury-journal` first.
+`npm` scripts from the repo root — `cd ai-injury-assistant` first.
 
 - **Stack**: TypeScript/Node 22 (ESM), Express 5, Prisma 6 + PostgreSQL with `pgvector`, Groq
   (`openai/gpt-oss-20b`) for generation, a separate self-hosted Python/FastAPI service for
   embeddings (Qwen3-Embedding-0.6B, 1024 dimensions). Its own Next.js frontend lives at
-  `ai-injury-journal/frontend/`, styled per `ai-injury-journal/UI_GUIDE.md` — not merged into this
+  `ai-injury-assistant/frontend/`, styled per `ai-injury-assistant/UI_GUIDE.md` — not merged into this
   repo's `frontend/`.
 - **Retrieval path**: journal content → chunk → embed → pgvector cosine retrieval → LLM → cited
   answer. Safety checks run before retrieval; an unsupported question gets an explicit
@@ -170,10 +182,10 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
   mark that endpoint for deletion once the two apps genuinely merge (its issue #195).
 - **Ports**: `backend/` 3001, `frontend/` 3000, AI service 3002, AI frontend 3003. All four can run
   at once.
-- **CI**: `.github/workflows/ai-ci.yml` (path-filtered to `ai-injury-journal/**`). It needs a
+- **CI**: `.github/workflows/ai-ci.yml` (path-filtered to `ai-injury-assistant/**`). It needs a
   repo-level `GROQ_API_KEY` secret for its evaluation step; that step is `continue-on-error`, so a
   missing secret degrades rather than blocks.
-- **Known open item — the two apps do not share a database.** `ai-injury-journal/` has its own
+- **Known open item — the two apps do not share a database.** `ai-injury-assistant/` has its own
   Prisma schema containing a full copy of the journal models (`User`, `Injury`, `Symptom`,
   `Treatment`, `MedicalVisit`, `TimelineEvent`) plus `DocumentChunk` for vectors, and it ingests
   from *its own* database (`src/ingestion/reader/postgres-reader.ts`), which today is populated only
@@ -181,7 +193,7 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
   two schemas have already drifted (`backend/` has `TreatmentOutcome`; the AI copy does not). Until
   that is resolved, the AI assistant answers from a different dataset than the one the user is
   writing to. See `docs/post-merge-analysis.md` §7a for the options.
-- **Before working in this folder**, read `ai-injury-journal/CLAUDE.md` and
-  `ai-injury-journal/README.md`. Its conventions differ from the rest of this repo — commit message
+- **Before working in this folder**, read `ai-injury-assistant/CLAUDE.md` and
+  `ai-injury-assistant/README.md`. Its conventions differ from the rest of this repo — commit message
   style, verification commands (`npx tsc --noEmit`, its own lint/test scripts), and file placement
   are enforced there, not here.

@@ -22,7 +22,7 @@ injury_journal/
 ├── .github/workflows/     Only test.yml (backend tests) lives here
 ├── .claude/               Root Claude Code skills/commands
 └── apps/
-    └── extractor/         Newly merged Lambda AI-extraction service
+    └── ai-injury-extractor/         Newly merged Lambda AI-extraction service
         ├── frontend/       Separate Next.js app (its own package.json, own port 3000)
         ├── lambda/          Python 3.12 handler + pytest tests
         ├── infrastructure/  Terraform (API Gateway, Lambda, DynamoDB, IAM)
@@ -56,9 +56,9 @@ injury_journal/
 ├── apps/
 │   ├── web/           ← rename: backend/ + frontend/ moved here, OR
 │   │                     leave backend/+frontend/ at root and rename
-│   │                     apps/extractor → extractor/ instead — pick ONE
+│   │                     apps/extractor → ai-injury-extractor/ instead — pick ONE
 │   │                     convention repo-wide (see action list)
-│   └── extractor/      (unchanged internal layout — already coherent)
+│   └── ai-injury-extractor/      (unchanged internal layout — already coherent)
 ├── docs/                repo-root planning docs (unchanged)
 └── .github/workflows/   consolidated — see §4
 ```
@@ -396,12 +396,12 @@ internals around.
 
 ---
 
-# Post-Merge Analysis: `ai-injury-journal` subtree merge
+# Post-Merge Analysis: `ai-injury-assistant` subtree merge
 
 Generated 2026-08-31. Analyzes the state of the repo immediately after
-`git subtree add --prefix=ai-injury-journal` (no `--squash`) merged the
+`git subtree add --prefix=ai-injury-assistant` (no `--squash`) merged the
 standalone `injury-journal-ai` repo (GitHub: `sabrahermassi/injury-journal-ai`)
-into this monorepo at `ai-injury-journal/` (merge commit `92095cd`, subtree
+into this monorepo at `ai-injury-assistant/` (merge commit `92095cd`, subtree
 tip `436cc5d`).
 
 Claim tags: **[confirmed]** = read the actual file/config. **[inferred]** =
@@ -409,7 +409,7 @@ reasoned from naming/structure without direct confirmation.
 
 ## 1. Structure analysis
 
-- `ai-injury-journal/` landed self-contained: `src/` (ai-agent, ai-assistant,
+- `ai-injury-assistant/` landed self-contained: `src/` (ai-agent, ai-assistant,
   auth, config, embeddings, ingestion, injuries, lib, llm, rag, retrieval,
   routes, safety), `prisma/`, `frontend/`, `evaluation/`, `tests/`, `docs/`,
   `.claude/`, `.github/`, plus its own package.json/tsconfig/eslint/prettier/
@@ -428,8 +428,8 @@ reasoned from naming/structure without direct confirmation.
   databases anywhere in the tree. **[confirmed]**
 - The two schemas have **already drifted**: `backend/` now has
   `TreatmentOutcome` + `Treatment.followUpDueAt`/`courseId` (PR #45);
-  `ai-injury-journal/` does not. **[confirmed]**
-- `ai-injury-journal/frontend/` is a separate Next.js 16 app (own
+  `ai-injury-assistant/` does not. **[confirmed]**
+- `ai-injury-assistant/frontend/` is a separate Next.js 16 app (own
   package.json, own `UI_GUIDE.md`). Contents are minimal: `app/page.tsx`
   (12 lines), `components/ai-agent/ask-form.tsx`, `components/PageContainer.tsx`,
   and 6 shadcn `ui/` primitives. **[confirmed]**
@@ -437,12 +437,12 @@ reasoned from naming/structure without direct confirmation.
   reasoning as the extractor merge (which moved its frontend into root
   `frontend/` in PR #33). Evidence: the ask-form is one screen consuming one
   API; the root frontend already owns auth/session and the injury list the
-  picker needs; and `ai-injury-journal/CLAUDE.md` §"UI Guidelines" already
+  picker needs; and `ai-injury-assistant/CLAUDE.md` §"UI Guidelines" already
   tells its own agents to look at "the separate journal application's
   frontend... for a precedent." Not moving it yet — flagged only.
   **[confirmed]**
 - **Pre-existing structural problem, unrelated to this merge:**
-  `apps/extractor/` (75 files) still exists alongside `extractor/` (41 files),
+  `apps/extractor/` (75 files) still exists alongside `ai-injury-extractor/` (41 files),
   and the two **differ** — `apps/extractor/` additionally contains `.github/`
   and `frontend/`, and their `CLAUDE.md`, `README.md`, `handler.py`,
   `test_handler.py`, and all 7 `.claude/` skill files differ. The PR #33
@@ -454,23 +454,23 @@ reasoned from naming/structure without direct confirmation.
 ```
 backend/                 Express CRUD + auth API. Owns User/Injury/... and issues JWTs.
 frontend/                The single user-facing Next.js app (dashboard + extractor UI + AI ask UI).
-extractor/               Lambda extraction service (infra + lambda only, no frontend).
-ai-injury-journal/       AI/RAG service: src/, prisma/, evaluation/, embeddings service. No frontend.
+ai-injury-extractor/               Lambda extraction service (infra + lambda only, no frontend).
+ai-injury-assistant/       AI/RAG service: src/, prisma/, evaluation/, embeddings service. No frontend.
 docs/                    Root planning docs + these merge reports.
 .claude/                 Single shared skill/command set for the whole monorepo.
 .github/workflows/       All CI, one path-filtered workflow per app.
 ```
 
-- `apps/` — delete entirely; `apps/extractor/` is a stale duplicate of `extractor/`.
-- `ai-injury-journal/frontend/` → fold into root `frontend/` (one app, one login, one shell).
-- `ai-injury-journal/.claude/`, `extractor/.claude/` → consolidate into root `.claude/`.
-- `ai-injury-journal/.github/workflows/ci.yml` → root `.github/workflows/ai-ci.yml` with path filters.
+- `apps/` — delete entirely; `apps/extractor/` is a stale duplicate of `ai-injury-extractor/`.
+- `ai-injury-assistant/frontend/` → fold into root `frontend/` (one app, one login, one shell).
+- `ai-injury-assistant/.claude/`, `ai-injury-extractor/.claude/` → consolidate into root `.claude/`.
+- `ai-injury-assistant/.github/workflows/ci.yml` → root `.github/workflows/ai-ci.yml` with path filters.
 
 ## 2. Duplication check
 
 - **Backend dependency overlap is near-total and versions agree**, which is
   good news for a future consolidation. Identical in `backend/` and
-  `ai-injury-journal/`: `@prisma/client` ^6.19.3, `prisma` ^6.19.3, `bcrypt`
+  `ai-injury-assistant/`: `@prisma/client` ^6.19.3, `prisma` ^6.19.3, `bcrypt`
   ^6.0.0, `cors` ^2.8.6, `dotenv` ^17.4.2, `express` ^5.2.1, `helmet` ^8.3.0,
   `jsonwebtoken` ^9.0.3, `zod` ^4.4.3. Only drift: `express-rate-limit`
   ^8.6.1 vs ^8.6.2. **[confirmed]**
@@ -479,7 +479,7 @@ docs/                    Root planning docs + these merge reports.
   ^0.7.1, `clsx` ^2.1.1. Drift: `react`/`react-dom` 19.2.4 vs 19.2.8,
   `lucide-react` ^1.28.0 vs ^1.34.0, `shadcn` ^4.16.0 vs ^4.19.0. **[confirmed]**
 - **`shadcn` is a runtime `dependency` in root `frontend/` but a
-  `devDependency` in `ai-injury-journal/frontend/`.** The AI repo already
+  `devDependency` in `ai-injury-assistant/frontend/`.** The AI repo already
   fixed this for itself (its branch `fix/198-shadcn-devdep-2`); root
   `frontend/` still has the bug. **[confirmed]**
 - **JWT verification is reimplemented, not shared** — and the two
@@ -491,30 +491,30 @@ docs/                    Root planning docs + these merge reports.
   (pointing at *different* databases — plain Postgres vs pgvector) and
   `JWT_SECRET` (which must hold the *same* value). A single root `.env` would
   break the first while being required for the second. **[confirmed]**
-- TypeScript configs differ and cannot trivially merge: `ai-injury-journal/`
+- TypeScript configs differ and cannot trivially merge: `ai-injury-assistant/`
   is `target ES2022 / module NodeNext / rootDir src / outDir dist`; root
   `frontend/` is `target ES2017 / module esnext / moduleResolution bundler /
   noEmit` with the Next plugin. Both `strict: true`. **[confirmed]**
 - Prettier configs conflict: `backend/.prettierrc` has `"trailingComma": "es5"`
-  + `tabWidth: 2`; `ai-injury-journal/.prettierrc` has `"trailingComma": "all"`
+  + `tabWidth: 2`; `ai-injury-assistant/.prettierrc` has `"trailingComma": "all"`
   and no tabWidth. Root `frontend/` has no prettier config at all. **[confirmed]**
 - ESLint is split across major versions: `backend/` ^10.8.0,
-  `ai-injury-journal/` ^10.9.1, both frontends ^9 (+ `eslint-config-next`).
+  `ai-injury-assistant/` ^10.9.1, both frontends ^9 (+ `eslint-config-next`).
   Note `backend/`'s lint is currently broken anyway (legacy `.eslintrc` vs
   ESLint 10 flat config — tracked as issue #30). **[confirmed]**
 
 ## 3. Markdown/docs consolidation
 
-- `.claude/` now exists in **four** places: root, `ai-injury-journal/`,
-  `extractor/`, `apps/extractor/`. **[confirmed]**
-- Six skills are duplicated across root and `ai-injury-journal/` and **all six
+- `.claude/` now exists in **four** places: root, `ai-injury-assistant/`,
+  `ai-injury-extractor/`, `apps/extractor/`. **[confirmed]**
+- Six skills are duplicated across root and `ai-injury-assistant/` and **all six
   differ**: `address-review` (549 vs 558 lines), `after-next` (43 vs 42),
   `next` (130 vs 132), `security-checkup` (80 vs 76), `self-review` (146 vs
   148), `ship` (184 vs 211). `agents/explorer.md` and
   `claude-security-guidance.md` also differ. **[confirmed]**
 - Skills unique to one app: root has `audit-docs`, `commands/optimize-md.md`,
   `commands/post-merge-analysis.md`, `commands/ui-rework.md`;
-  `ai-injury-journal/` has `post-fix-review`; `extractor/` has `docs-audit`
+  `ai-injury-assistant/` has `post-fix-review`; `ai-injury-extractor/` has `docs-audit`
   and `commands/audit.md`. **[confirmed]**
 - These are all *workflow* docs (branching, review, shipping) — exactly the
   category the extractor report said should be unified at root. Recommend one
@@ -523,9 +523,9 @@ docs/                    Root planning docs + these merge reports.
   Reconciling six drifted pairs is real work and needs its own pass — the
   `ship` skills differ by 27 lines, which is not a rename-level difference.
   **[confirmed]**
-- Keep separate and app-specific: `ai-injury-journal/CLAUDE.md`,
-  `ai-injury-journal/README.md` (16.3K, has setup/DB/embedding-service
-  commands), `ai-injury-journal/UI_GUIDE.md`, and its `docs/01..07-*.md`
+- Keep separate and app-specific: `ai-injury-assistant/CLAUDE.md`,
+  `ai-injury-assistant/README.md` (16.3K, has setup/DB/embedding-service
+  commands), `ai-injury-assistant/UI_GUIDE.md`, and its `docs/01..07-*.md`
   architecture set. Root `CLAUDE.md` §11 already points at them (added
   this session, uncommitted). **[confirmed]**
 - Two `claude-security-guidance.md` files (root and AI) differ — worth
@@ -534,7 +534,7 @@ docs/                    Root planning docs + these merge reports.
 
 ## 4. CI/CD pipeline check
 
-- **`ai-injury-journal/.github/workflows/ci.yml` is currently inert.** GitHub
+- **`ai-injury-assistant/.github/workflows/ci.yml` is currently inert.** GitHub
   Actions only reads workflows from the repo-root `.github/workflows/`, so
   after the subtree merge the AI app has *no CI running at all*. Same is true
   of `apps/extractor/.github/workflows/ci.yml`. **[confirmed]**
@@ -542,14 +542,14 @@ docs/                    Root planning docs + these merge reports.
   `extractor-ci.yml`; the incoming file is `ci.yml`. It would need renaming
   (e.g. `ai-ci.yml`) on principle, not necessity. **[confirmed]**
 - All three existing root workflows correctly use `paths:` filters
-  (`backend/**`, `frontend/**`, `extractor/lambda|infrastructure/**`), so
-  they will **not** be triggered by `ai-injury-journal/**` changes. The merge
+  (`backend/**`, `frontend/**`, `ai-injury-extractor/lambda|infrastructure/**`), so
+  they will **not** be triggered by `ai-injury-assistant/**` changes. The merge
   did not break existing trigger isolation. **[confirmed]**
 - The incoming AI workflow has **no `paths:` filter** (`on: pull_request` +
   `push: branches: [main]`). If moved to root as-is it would run its full
   Postgres+pgvector+Python+LLM-eval pipeline on *every* PR, including
   frontend-only ones. It also has no `working-directory` default, so it would
-  need `defaults.run.working-directory: ai-injury-journal`. **[confirmed]**
+  need `defaults.run.working-directory: ai-injury-assistant`. **[confirmed]**
 - Hardcoded/standalone-repo assumptions in that workflow: `npm ci`,
   `npx prisma db push/seed`, `pip install -r src/embeddings/requirements.txt`,
   and `uvicorn src.embeddings.embedding_api:app` all assume repo-root =
@@ -567,10 +567,10 @@ docs/                    Root planning docs + these merge reports.
 
 - Node: AI CI pins `node-version: 22`; no `engines` field or `.nvmrc` in any
   of the four apps, so nothing else is pinned. **[confirmed]**
-- Python: AI CI pins `3.12` for the embedding service; `extractor/lambda`
+- Python: AI CI pins `3.12` for the embedding service; `ai-injury-extractor/lambda`
   pins its own runtime in Terraform (not re-verified this pass). **[inferred]**
 - **The embedding service source *is* in this repo**, contrary to the
-  "separate self-hosted service" framing: `ai-injury-journal/src/embeddings/`
+  "separate self-hosted service" framing: `ai-injury-assistant/src/embeddings/`
   contains `embedding_api.py`, `embedding_service.py`, `requirements.txt`,
   `Dockerfile`, `docker-healthcheck.py`, and two Python unit-test files. It is
   a co-located service, not an external dependency. **[confirmed]**
@@ -580,19 +580,19 @@ docs/                    Root planning docs + these merge reports.
   root `backend/` (3001, per root CLAUDE.md §5). Running all four locally
   fails today without overrides. **[confirmed]**
 - Env handling is consistent in mechanism (`.env` + dotenv everywhere), but
-  `ai-injury-journal/.env.example` documents four vars the root app has never
+  `ai-injury-assistant/.env.example` documents four vars the root app has never
   needed: `GROQ_API_KEY`, `EMBEDDING_API_KEY`, `ALLOWED_ORIGIN`, plus its own
   `DATABASE_URL`. **[confirmed]**
-- **`JWT_SECRET` must be identical across `backend/` and `ai-injury-journal/`,
+- **`JWT_SECRET` must be identical across `backend/` and `ai-injury-assistant/`,
   and that requirement is documented in neither app's deploy docs.** The AI
   `.env.example` says "shared secret used to verify Bearer JWTs" but never
   names the issuing app; root `CLAUDE.md` §5 lists `JWT_SECRET` with no
   mention of a second consumer (§11 added this session now says it —
   uncommitted). **[confirmed]**
 - Test runners diverge three ways: `backend/` Jest+Supertest (JS, ESM via
-  `--experimental-vm-modules`); `ai-injury-journal/` Jest+ts-jest+Supertest
+  `--experimental-vm-modules`); `ai-injury-assistant/` Jest+ts-jest+Supertest
   plus a bespoke `evaluation/ai-system` LLM-judge harness; root `frontend/`
-  Vitest+Testing Library; `ai-injury-journal/frontend/` has **no test script
+  Vitest+Testing Library; `ai-injury-assistant/frontend/` has **no test script
   at all** (only `typecheck`). **[confirmed]**
 - Configs left self-contained per instruction — reported, not proposed for
   unification this pass.
@@ -603,22 +603,22 @@ docs/                    Root planning docs + these merge reports.
   an ancestor of `HEAD`; 307 commits are reachable from it; the repo went
   from ~41 to 348 total commits. Original authorship is preserved.
   **[confirmed]**
-- **Caveat worth knowing:** `git log -- ai-injury-journal/` returns only **1**
+- **Caveat worth knowing:** `git log -- ai-injury-assistant/` returns only **1**
   commit (the merge). The imported commits recorded their original unprefixed
   paths (`src/…`, `evaluation/…`), so path-filtered log does not follow them.
   The history is in the graph, not in the path filter — use
   `git log 436cc5d` or `--follow` to browse it. This will surprise anyone
-  running blame/log on a file under `ai-injury-journal/`. **[confirmed]**
+  running blame/log on a file under `ai-injury-assistant/`. **[confirmed]**
 - Tags/releases: this repo has **0 tags**; `gh release list` on
   `sabrahermassi/injury-journal-ai` returned **no releases**. Nothing was
   lost. **[confirmed]**
-- **27 remote-tracking branches** were fetched under `ai-injury-journal/*`
+- **27 remote-tracking branches** were fetched under `ai-injury-assistant/*`
   (e.g. `124-citation-verification`, `fix/136-chunker-tokenizer-mismatch`,
   `chunk-size-tuning-137`, `next-task`). `gh pr list` on that repo shows **no
   open PRs**, so none of them is awaiting review — but whether any holds
   unmerged work is a question for you, not something I can determine from
   branch names. **[confirmed / open question]**
-- The `ai-injury-journal` git remote is no longer needed for the merge itself.
+- The `ai-injury-assistant` git remote is no longer needed for the merge itself.
   Keep it only if that repo will keep receiving independent commits you intend
   to `git subtree pull`; otherwise remove it and archive the source repo so
   there is one source of truth. **[confirmed]**
@@ -628,12 +628,12 @@ docs/                    Root planning docs + these merge reports.
 - **Critical: the two apps' JWTs are incompatible. The D10 integration cannot
   currently work.**
   - `backend/src/utils.js` `createToken` signs `{ userId }`. **[confirmed]**
-  - `ai-injury-journal/src/auth/authenticate.ts` reads `payload.sub`, coerces
+  - `ai-injury-assistant/src/auth/authenticate.ts` reads `payload.sub`, coerces
     it with `Number()`, and 401s unless it is a positive safe integer.
     **[confirmed]**
   - A real token from `backend/` has no `sub` claim → `Number(undefined)` is
     `NaN` → **every request from a logged-in user gets 401 `invalid_token`**.
-  - This is not a docs gap: `ai-injury-journal/docs/05-api-contract.md` §3
+  - This is not a docs gap: `ai-injury-assistant/docs/05-api-contract.md` §3
     specifies "a numeric `sub` claim", its `.env.example` shows signing
     `{ sub: 1 }`, and `tests/helpers/auth.ts` mints `{ sub: String(userId) }`.
     The AI side was built and tested against a *spec* of the journal app's
@@ -666,9 +666,9 @@ docs/                    Root planning docs + these merge reports.
   workspaces, no shared build graph, and no cross-app imports. The four remain
   independently deployable. The only shared runtime dependency is the
   `JWT_SECRET` *value*. **[confirmed]**
-- No circular references: nothing under `ai-injury-journal/` imports from
+- No circular references: nothing under `ai-injury-assistant/` imports from
   `backend/` or `frontend/`, and vice versa. **[confirmed]**
-- Documentation of how `backend/` and `ai-injury-journal/` call each other is
+- Documentation of how `backend/` and `ai-injury-assistant/` call each other is
   missing from the root and only partly present in the AI app's own docs
   (D10 describes intent, not wiring). Root `CLAUDE.md` §11 (added this
   session, uncommitted) is currently the only place that states the shared-
@@ -676,7 +676,7 @@ docs/                    Root planning docs + these merge reports.
 
 ## 7b. Security review post-merge
 
-- **No secrets committed.** `ai-injury-journal/.env.example` holds only empty
+- **No secrets committed.** `ai-injury-assistant/.env.example` holds only empty
   placeholders; the AI CI workflow uses literal *test-only* values
   (`ci-test-only-jwt-secret`, `ci-test-only-embedding-key`) for ephemeral
   services and pulls `GROQ_API_KEY` from repo secrets. **[confirmed]**
@@ -715,9 +715,9 @@ Executed immediately after this report, in the same branch:
   `userId` claim that `backend/` actually issues, falling back to a numeric
   `sub` for hand-minted legacy tokens. Test helpers, unit tests,
   `docs/05-api-contract.md` §3, and `.env.example` updated to match.
-- **AI CI is live again** (§4). `ai-injury-journal/.github/workflows/ci.yml` →
+- **AI CI is live again** (§4). `ai-injury-assistant/.github/workflows/ci.yml` →
   `.github/workflows/ai-ci.yml`, renamed to "AI Injury Journal CI", with
-  `paths:` filters, `defaults.run.working-directory: ai-injury-journal`, and
+  `paths:` filters, `defaults.run.working-directory: ai-injury-assistant`, and
   an explicit `cache-dependency-path` (setup-node is a `uses:` step, so the
   working-directory default does not apply to it). All four workflows
   re-validated as parseable with non-overlapping path filters.
@@ -735,15 +735,15 @@ Executed immediately after this report, in the same branch:
   churn). `npm ci --dry-run` validates; `npm run build` passes.
 - **`apps/` deleted** (§1). Verified redundant first: all 7 extractor frontend
   components plus `services/extractor-api.ts` already exist in root
-  `frontend/`, and `extractor/lambda/handler.py` is 8 lines *newer* than the
+  `frontend/`, and `ai-injury-extractor/lambda/handler.py` is 8 lines *newer* than the
   `apps/` copy (adds an `isinstance` guard and Decimal conversion). Recoverable
   from git history if that judgment was wrong.
 
 ### Verification
 
-- `ai-injury-journal`: `npx tsc --noEmit` clean; `npm run lint` clean;
+- `ai-injury-assistant`: `npx tsc --noEmit` clean; `npm run lint` clean;
   `tests/authenticate.test.ts` 14/14; `tests/port.test.ts` passes.
-- `ai-injury-journal` DB-backed and rate-limit tests still fail locally — no
+- `ai-injury-assistant` DB-backed and rate-limit tests still fail locally — no
   Postgres/pgvector instance here. Confirmed pre-existing by stashing all
   changes and re-running (baseline failed 5, and the failing set varies per
   run from shared rate-limiter state). The CORS suite passes 4/4 in isolation.
@@ -756,10 +756,10 @@ Executed immediately after this report, in the same branch:
   standing between this and a working product.
 - **`GROQ_API_KEY` repo secret** (§4). Requires the secret value and a GitHub
   settings change — cannot be done from here.
-- **The 27 fetched branches / the `ai-injury-journal` remote** (§6). Only you
+- **The 27 fetched branches / the `ai-injury-assistant` remote** (§6). Only you
   know whether any hold work worth keeping.
 - **`.claude/` consolidation** (§3). Six drifted skill pairs; merging them
   means choosing a winner per skill, which is a judgment call per file, not a
   mechanical merge.
-- **Folding `ai-injury-journal/frontend/` into root `frontend/`** (§1).
+- **Folding `ai-injury-assistant/frontend/` into root `frontend/`** (§1).
   Depends on the database decision above landing first.

@@ -14,8 +14,8 @@ First inspect:
 
 - the complete diff against `main`
 - the files in the diff, plus one hop of direct callers/consumers — do not survey the whole repo
-- documentation relevant to the changed area (`extractor/docs/lambda-design.md` for Lambda/API
-  changes, `extractor/docs/dynamodb-design.md` for storage changes) — skip unrelated docs
+- documentation relevant to the changed area (`ai-injury-extractor/docs/lambda-design.md` for Lambda/API
+  changes, `ai-injury-extractor/docs/dynamodb-design.md` for storage changes) — skip unrelated docs
 - existing GitHub issues when a pre-existing problem is relevant:
   `gh issue list --repo sabrahermassi/injury_journal --state all --search "<keywords>"`
 
@@ -27,7 +27,7 @@ Review for:
 - failure/retry behavior (especially around the Groq API call and DynamoDB writes)
 - security and data isolation — this repo currently has no auth; flag anything that makes that
   worse without at least noting it, per `CLAUDE.md` §7
-- API contract consistency between `extractor/lambda/handler.py` and
+- API contract consistency between `ai-injury-extractor/lambda/handler.py` and
   `frontend/services/extractor-api.ts` / `frontend/lib/injury-schema.ts`
 - production and performance risks
 - regressions and unintended side effects

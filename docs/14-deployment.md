@@ -215,10 +215,10 @@ VITE_API_URL=
 
 ---
 
-## AI Injury Journal Variables (`ai-injury-journal/`)
+## AI Injury Journal Variables (`ai-injury-assistant/`)
 
 The AI/RAG service is deployed separately from the backend above and has its
-own database. See `ai-injury-journal/README.md` for setup detail.
+own database. See `ai-injury-assistant/README.md` for setup detail.
 
 ```env
 PORT=                 # defaults to 3002 (3000/3001 belong to frontend/backend)
@@ -230,7 +230,7 @@ ALLOWED_ORIGIN=       # required in production; comma-separated origin list
 ```
 
 > **`JWT_SECRET` is shared between two services.** The backend issues the JWTs;
-> the AI service only verifies them (see `ai-injury-journal/docs/02-architecture.md`
+> the AI service only verifies them (see `ai-injury-assistant/docs/02-architecture.md`
 > decision D10). If the two values ever diverge, every authenticated request to
 > the AI service returns `401` while the backend keeps working — a failure that
 > looks like an AI-service bug but is a configuration mismatch. Rotating the

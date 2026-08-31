@@ -135,9 +135,9 @@ If a fix would require any of the following, STOP and ask first:
 
 ## Step 5 — Verify
 
-- Backend changes: `cd extractor/lambda && pytest` (also run in CI via
+- Backend changes: `cd ai-injury-extractor/lambda && pytest` (also run in CI via
   `.github/workflows/extractor-ci.yml`). For anything not covered by a test, exercise the relevant
-  `curl` example from `extractor/README.md` against a deployed stack.
+  `curl` example from `ai-injury-extractor/README.md` against a deployed stack.
 - Frontend changes: run `npm run lint` and `npm run build` in `frontend/` (also run in CI via
   `.github/workflows/frontend-ci.yml`); for UI changes, also run `npm run dev` and exercise the
   affected flow in the browser.
