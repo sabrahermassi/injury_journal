@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [vector]
+}
+  
+model Injury {
+  id            Int             @id @default(autoincrement())
+  name          String
+  bodyArea      String
+  side          String?
+  startDate     DateTime
+  cause         String?
+  description   String?
+  status        String?
+  createdAt     DateTime        @default(now())
+  userId        Int
+  
+  User          User            @relation(fields: [userId], references: [id])
+  MedicalVisit  MedicalVisit[]
+  Symptom       Symptom[]
+  TimelineEvent TimelineEvent[]
+  Treatment     Treatment[]
+  DocumentChunk DocumentChunk[]
+
+  @@index([userId])
+}
+
+model MedicalVisit {
+  id       Int      @id @default(autoincrement())
+  doctor   String?
+  clinic   String?
+  date     DateTime
+  notes    String?
+  injuryId Int
+  Injury   Injury   @relation(fields: [injuryId], references: [id])
+
+   @@index([injuryId])
+}
+
+model Symptom {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  painLevel Int
+  location  String?
+  trigger   String?
+  duration  String?
+  notes     String?
+  injuryId  Int
+  Injury    Injury   @relation(fields: [injuryId], references: [id])
+
+   @@index([injuryId])
+}
+
+model TimelineEvent {
+  id          Int      @id @default(autoincrement())
+  type        String
+  date        DateTime
+  description String
+  result      String?
+  injuryId    Int
+  Injury      Injury   @relation(fields: [injuryId], references: [id])
+
+   @@index([injuryId])
+}
+
+model Treatment {
+  id       Int      @id @default(autoincrement())
+  name     String
+  provider String?
+  date     DateTime
+  cost     Float?
+  outcome  String?
+  injuryId Int
+  Injury   Injury   @relation(fields: [injuryId], references: [id])
+
+   @@index([injuryId])
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Injury    Injury[]
+}
+
+model DocumentChunk {
+  id                    Int      @id @default(autoincrement())
+  injuryId              Int
+  userId                Int
+  sourceType            String
+  sourceId              Int
+  chunkIndex            Int
+  content               String
+  embedding             Unsupported("vector(1024)")?
+  embeddingModel        String
+  embeddingModelVersion String
+  metadata              Json?
+  createdAt             DateTime @default(now())
+
+  Injury Injury @relation(fields: [injuryId], references: [id])
+
+  @@index([injuryId])
+  @@index([userId])
+  @@index([sourceType, sourceId])
+  @@index([embeddingModel, embeddingModelVersion])
+  @@unique([sourceType, sourceId, chunkIndex])
+}

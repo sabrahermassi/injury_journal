@@ -1,0 +1,127 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing_injury_ai
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testing_injury_ai"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testing_injury_ai?schema=public
+      JWT_SECRET: ci-test-only-jwt-secret
+      EMBEDDING_API_KEY: ci-test-only-embedding-key
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Prepare test environment
+        run: |
+          echo "DATABASE_URL=$DATABASE_URL" > .env.test
+          echo "JWT_SECRET=$JWT_SECRET" >> .env.test
+          echo "EMBEDDING_API_KEY=$EMBEDDING_API_KEY" >> .env.test
+          npx prisma db push
+          npx prisma db seed
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+
+      - name: Install embedding service dependencies
+        run: pip install -r src/embeddings/requirements.txt
+
+      - name: Run evaluation harness
+        # Non-blocking: this exercises retrieval/citation/safety/faithfulness against a real LLM
+        # (Groq), so a failure here can mean a genuine regression, an LLM-judge false negative, or
+        # a Groq rate limit -- none of which should block a PR the way tsc/lint/test/build do.
+        # Results are always written to the job summary so they're visible either way.
+        continue-on-error: true
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/injury-journal-ai-db?schema=public
+          DATABASE_ENV: development
+          SEED_DEV_CONFIRM: 'true'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres \
+            -c 'CREATE DATABASE "injury-journal-ai-db";'
+          npx prisma db push
+
+          EMBEDDING_API_KEY="$EMBEDDING_API_KEY" \
+            uvicorn src.embeddings.embedding_api:app --port 8000 \
+            >embedding-service.log 2>&1 &
+
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 \
+              -X POST http://127.0.0.1:8000/embed-query \
+              -H "Authorization: Bearer $EMBEDDING_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"text":"health check"}') || code="000"
+            if [ "$code" = "200" ]; then break; fi
+            sleep 2
+          done
+
+          if [ "$code" != "200" ]; then
+            echo "embedding service did not become healthy -- log:"
+            cat embedding-service.log
+            exit 1
+          fi
+
+          npm run seed:dev
+          npm run ingest
+          npm run eval:full | tee eval-output.log
+
+          {
+            echo "### Evaluation harness results"
+            echo '```'
+            cat eval-output.log
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
