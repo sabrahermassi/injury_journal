@@ -23,8 +23,24 @@ const ENTRY_LABELS: Record<EntryType, string> = {
 const selectClassName =
   "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
+// `<input type="date">` and `Date.toISOString()` both operate in UTC — naive
+// use of either shifts the date by a day for anyone west of UTC. These two
+// helpers keep every date on this form anchored to the browser's local
+// calendar day instead.
 function todayLocalDate() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Turns a "YYYY-MM-DD" value from a date input into an ISO instant at *local*
+// midnight for that day, rather than `new Date(dateStr).toISOString()`, which
+// the JS spec parses as UTC midnight — off by a day for negative UTC offsets.
+function localDateToIso(dateStr: string) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day).toISOString();
 }
 
 export function LogEntryForm({
@@ -89,7 +105,7 @@ export function LogEntryForm({
     setError("");
     setSaved(false);
 
-    const isoDate = new Date(date).toISOString();
+    const isoDate = localDateToIso(date);
 
     try {
       if (entryType === "symptom") {
