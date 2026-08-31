@@ -9,7 +9,7 @@ export default function AuthHeader() {
 
       <h1 className="mt-4 text-xl font-semibold">Injury Journal</h1>
 
-      <p className="text-sm text-muted-foreground">Recovery tracker</p>
+      <p className="text-sm text-muted-foreground">Your injury record</p>
     </div>
   );
 }

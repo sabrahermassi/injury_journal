@@ -11,8 +11,11 @@ import { CreateInjuryDialog } from "./create-injury-dialog";
 import { useInjuries } from "./injuries-provider";
 
 const TITLES: Record<string, string> = {
-  "/dashboard": "Recovery Overview",
+  "/dashboard": "Today",
   "/dashboard/injuries": "Your Injuries",
+  "/dashboard/timeline": "Timeline",
+  "/dashboard/log": "New Entry",
+  "/dashboard/settings": "Settings",
   "/dashboard/extractor": "AI Extractor",
 };
 
