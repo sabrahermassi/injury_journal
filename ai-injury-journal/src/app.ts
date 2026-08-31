@@ -13,15 +13,25 @@ app.set('trust proxy', 1);
 
 app.use(helmet());
 
-// No real deployed frontend origin exists yet (see #97), so unset --
-// including present-but-blank, e.g. an unfilled ALLOWED_ORIGIN= copied from
-// .env.example -- reflects the request's own origin, identical to today's
-// behavior. Setting it to a non-empty value restricts CORS to the given
-// comma-separated origins.
+// Setting ALLOWED_ORIGIN to a non-empty value restricts CORS to the given
+// comma-separated origins. Unset -- including present-but-blank, e.g. an
+// unfilled ALLOWED_ORIGIN= copied from .env.example -- reflects the request's
+// own origin, which is fine for local dev but must never ship.
+//
+// In production an explicit origin list is required, matching the journal
+// app's own rule (backend/src/app.js requires FRONTEND_URL in production).
+// Failing at startup is deliberate: a permissive-CORS default that silently
+// survives into a deploy is exactly the failure this guard exists to prevent.
 const rawAllowedOrigin = process.env.ALLOWED_ORIGIN?.trim();
 const allowedOrigins = rawAllowedOrigin
   ? rawAllowedOrigin.split(',').map((origin) => origin.trim())
   : undefined;
+
+if (process.env.NODE_ENV === 'production' && !allowedOrigins) {
+  throw new Error(
+    'ALLOWED_ORIGIN must be set in production (comma-separated list of allowed origins)',
+  );
+}
 
 app.use(cors({ origin: allowedOrigins ?? true }));
 

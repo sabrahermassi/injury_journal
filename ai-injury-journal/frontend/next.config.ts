@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
-// The Express API (this repo's backend) runs separately -- default port 3000,
-// see src/config/port.ts. Proxying /ai-agent keeps the browser on a single
-// origin, so no ALLOWED_ORIGIN/CORS configuration is needed for local dev.
-const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:3000";
+// The AI/RAG Express API runs separately -- default port 3002, see
+// ../src/config/port.ts. (3000 and 3001 belong to the journal app's frontend
+// and backend in this monorepo.) Proxying /ai-agent keeps the browser on a
+// single origin, so no ALLOWED_ORIGIN/CORS configuration is needed for local dev.
+const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:3002";
 
 const nextConfig: NextConfig = {
   // The repo root has its own package-lock.json for the Express backend, so

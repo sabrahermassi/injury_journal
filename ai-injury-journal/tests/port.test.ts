@@ -14,7 +14,9 @@ describe('PORT env parsing', () => {
   });
 
   test.each([
-    [undefined, 3000],
+    // Default is 3002: in the monorepo, 3000 and 3001 belong to the journal
+    // app's frontend and backend respectively.
+    [undefined, 3002],
     ['3000', 3000],
     ['0', 0],
     ['65535', 65535],
