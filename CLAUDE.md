@@ -191,14 +191,23 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
 - **CI**: `.github/workflows/ai-ci.yml` (path-filtered to `ai-injury-assistant/**`). It needs a
   repo-level `GROQ_API_KEY` secret for its evaluation step; that step is `continue-on-error`, so a
   missing secret degrades rather than blocks.
-- **Known open item — the two apps do not share a database.** `ai-injury-assistant/` has its own
-  Prisma schema containing a full copy of the journal models (`User`, `Injury`, `Symptom`,
-  `Treatment`, `MedicalVisit`, `TimelineEvent`) plus `DocumentChunk` for vectors, and it ingests
-  from *its own* database (`src/ingestion/reader/postgres-reader.ts`), which today is populated only
-  by its own seed scripts. Nothing syncs real user data from `backend/`'s database into it, and the
-  two schemas have already drifted (`backend/` has `TreatmentOutcome`; the AI copy does not). Until
-  that is resolved, the AI assistant answers from a different dataset than the one the user is
-  writing to. See `docs/post-merge-analysis.md` §7a for the options.
+- **Both apps share one database, and `backend/` owns its schema.** The AI service's
+  `DATABASE_URL` must be the same value as `backend/`'s: it reads the user's real journal data
+  rather than keeping a copy. It previously ran against its own database populated only by its
+  seed scripts, so it answered from data nobody had written.
+  - `backend/prisma/` owns every table, including `DocumentChunk` (the AI service's vector store,
+    added in `20260831190000_add_document_chunks`). Schema changes to any shared table go there.
+  - The AI service must never run `prisma migrate` against it — its own `prisma/migrations/` build
+    a standalone database for integration tests and the evaluation harness only.
+    `ai-injury-assistant/scripts/assert-local-db.mjs` enforces this and is wired into its
+    `dev:migrate:local` script.
+  - Its `prisma/schema.prisma` still declares the journal models because its Prisma Client needs
+    them. They are a compatible *subset* of the real tables — it does not yet model
+    `TreatmentOutcome`, so treatment check-ins are invisible to retrieval (`Treatment.outcome` is
+    not). Worth adding when outcome data matters to answers.
+  - Both seed scripts refuse to run against the shared database (`prisma/seed-dev.ts` checks the
+    database name, `prisma/seed.ts` requires `test` in the URL). Verified, but do not weaken those
+    guards: `seed-dev.ts` opens with a `TRUNCATE`.
 - **Before working in this folder**, read `ai-injury-assistant/CLAUDE.md` and
   `ai-injury-assistant/README.md`. Its conventions differ from the rest of this repo — commit message
   style, verification commands (`npx tsc --noEmit`, its own lint/test scripts), and file placement
