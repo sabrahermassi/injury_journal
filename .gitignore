@@ -2,8 +2,9 @@
 # the root itself, which previously had none -- a root secrets file sat
 # untracked but unignored, one `git add -A` away from being committed.
 
-# Environment files. .env.shared holds the values backend/ and
-# ai-injury-assistant/ must agree on (JWT_SECRET, DATABASE_URL).
+# Environment files. .env is the single home for backend/'s and
+# ai-injury-assistant/'s configuration, including the JWT_SECRET and
+# DATABASE_URL they must agree on. .env.example is the tracked template.
 .env
 .env.*
 !.env.example

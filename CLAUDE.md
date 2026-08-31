@@ -68,39 +68,49 @@ Neither is imported by `backend/` or `frontend/` — they're reached over HTTP.
 
 ### Environment files
 
-`JWT_SECRET` and `DATABASE_URL` must be identical in `backend/` and
-`ai-injury-assistant/` — the first issues tokens the second verifies, and both read
-the same database. They live in one repo-root file so they cannot drift:
+All runtime configuration for `backend/` and `ai-injury-assistant/` lives in **one
+repo-root `.env`**. `JWT_SECRET` and `DATABASE_URL` must be identical across the two
+— the first issues tokens the second verifies, and both read the same database — so
+a single file is what stops them drifting.
 
 ```
-.env.shared          repo root, git-ignored. JWT_SECRET + DATABASE_URL only.
-                     Copy .env.shared.example. Nothing else belongs here.
-backend/.env         PORT, NODE_ENV, FRONTEND_URL, AI_ASSISTANT_URL
-backend/.env.test    DATABASE_URL for the test database (see §6)
-ai-injury-assistant/.env   PORT, GROQ_API_KEY, EMBEDDING_API_KEY, ALLOWED_ORIGIN
+.env                 repo root, git-ignored. Everything both apps need.
+                     Copy .env.example.
+.env.example         repo root, tracked. Every variable, documented.
+backend/.env.test    test-database overrides (see §6)
+ai-injury-assistant/.env.test   its own test-database overrides
 frontend/.env.local  NEXT_PUBLIC_* only
 ```
 
-Each app loads its **own file first**, then `.env.shared`. `dotenv` never
-overwrites an already-set variable, so an app-specific file always wins — that is
-what keeps `.env.test` authoritative when running tests. Loading is in
-`backend/src/loadEnv.js` and `ai-injury-assistant/src/config/load-env.ts`; both
-throw at startup, naming `.env.shared`, if either shared value is missing.
+Each app loads its **own `.env.test` first** (only when `NODE_ENV=test`), then the
+root `.env`. `dotenv` never overwrites an already-set variable, so the test file
+always wins — that is what keeps `.env.test` authoritative when running tests, and
+it is not decorative: the suites truncate every table, and one once wiped the
+development database when this went wrong. Loading is in `backend/src/loadEnv.js`
+and `ai-injury-assistant/src/config/load-env.ts`; both throw at startup, naming
+`.env`, if either shared value is missing.
 
-`PORT` deliberately stays per-app: `backend/` uses 3001 and the assistant 3002, and
-hosts such as Render inject `PORT` themselves. Never put it in `.env.shared`.
+Ports are namespaced as `BACKEND_PORT` (3001) and `ASSISTANT_PORT` (3002) because
+both apps read a bare `PORT` and would otherwise collide in one file. Each prefers
+`PORT` when set, so hosts such as Render that inject it keep working.
 
-`frontend/` does not read `.env.shared`: `NEXT_PUBLIC_*` values are compiled into
-the browser bundle, so they stay well away from secrets. `ai-injury-extractor/` is
-an AWS Lambda and takes its environment from Terraform.
+Two things deliberately stay out of the root file. `DATABASE_ENV` and
+`SEED_DEV_CONFIRM` gate `ai-injury-assistant/prisma/seed-dev.ts`, which opens with a
+`TRUNCATE`, and must be passed per-invocation rather than sitting armed in a file.
+And `frontend/` does not read `.env` at all: `NEXT_PUBLIC_*` values are compiled
+into the browser bundle, so they stay well away from secrets.
+`ai-injury-extractor/` is an AWS Lambda and takes its environment from Terraform.
+
+`ai-injury-assistant/prisma.config.ts` also deliberately reads only its own
+`.env.test`, never the root `.env`, so its Prisma CLI cannot reach the shared
+database. That omission is half of the guard in `scripts/assert-local-db.mjs` —
+do not "fix" it by adding the root file.
 
 Backend:
 ```bash
 cd backend
 npm install
-# ../.env.shared supplies DATABASE_URL and JWT_SECRET
-# create .env with PORT, NODE_ENV, FRONTEND_URL
-# optional: AI_ASSISTANT_URL (defaults to http://localhost:3002)
+# ../.env supplies everything; copy ../.env.example if you have not yet
 npx prisma migrate dev
 npm run dev        # node --watch src/server.js, default port 3001
 ```
@@ -150,7 +160,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - The JWT lives in an httpOnly cookie (`authenticate` in `backend/src/middleware.js` also falls back to an `Authorization: Bearer` header for `.http` files and tests). Mutating requests are additionally checked by `verifyCsrf` (double-submit cookie) — see `backend/src/middleware.js`. The CSRF cookie set by the backend is not readable via `document.cookie` on the frontend's origin in production (frontend on Vercel, backend on Render, different domains), so the login response also returns `csrfToken` in its JSON body; the frontend stores that value in `sessionStorage` (see `frontend/services/api.ts`) instead of reading it off the cookie (issue #25).
 - `backend/.gitignore` excludes `requests.http` but not `requests_USER_*.http` — those files (used for manual multi-user testing) contain real JWTs and are currently untracked; don't `git add -A` them.
 - `docs/` reflects planning-stage decisions and may lag the actual implementation (e.g. deployment target, frontend stack) — check current code/config rather than trusting docs at face value.
-- Two overlapping deployment docs exist (`docs/09-deployment.md` and `docs/14-deployment.md`); `14` is the more complete/current one.
+- `docs/14-deployment.md` is the deployment doc. An earlier `docs/09-deployment.md` overlapped it and is gone, which is why `docs/` jumps from 08 to 14.
 
 See the audit report delivered alongside this file, and the corresponding GitHub issues, for the full list of findings and severities.
 
@@ -158,11 +168,32 @@ See the audit report delivered alongside this file, and the corresponding GitHub
 
 - `README.md` (root) — user-facing overview, setup, and API reference. Start here.
 - `docs/*.md` — pre-implementation planning docs; verify claims against `backend/prisma/schema.prisma` / `backend/src/routes.js` before trusting.
-- `docs/07-frontend-dev.md` — stale: describes React Router/Axios/Context API, none of which this codebase uses (it's Next.js App Router + native `fetch`). Don't follow it.
+- `docs/03-system-design.md` — current architecture summary across all four services. Note the filename previously contained a space, which broke shell tooling.
+- `docs/07-frontend-dev.md` — rewritten for the actual stack (Next.js App Router, native `fetch`, httpOnly-cookie auth). The earlier version described React Router/Axios/Context API and a `localStorage` JWT, none of which are used.
 - `ROADMAP.md` (root) — MVP completion checklist, background context only. Do not start work on a roadmap item that has no corresponding GitHub issue.
 - `frontend/UI_GUIDE.md` — UI/styling conventions.
 - `ai-injury-assistant/CLAUDE.md`, `ai-injury-assistant/README.md` — the AI companion app's own docs.
   Read those (not this file) for its conventions, architecture, and verification commands; see §11.
+- `.claude/claude-security-guidance.md` — the security invariants review workflows weigh against.
+
+### Automation layer
+
+Workflow skills (`next`, `after-next`, `self-review`, `ship`, `address-review`,
+`security-checkup`, `audit-docs`, `post-fix-review`, `optimize-md`) live in the
+user-level `~/.claude/skills/`, not in this repo. They are project-agnostic: they
+resolve the repo slug from `git remote`/`gh`, and read verification commands,
+conventions, and the doc map from the *nearest* `CLAUDE.md`. That is why the
+subprojects no longer carry forked copies — `ai-injury-assistant/CLAUDE.md` §9/§11
+and `ai-injury-extractor/CLAUDE.md` §8/§9 supply their differences instead.
+
+What stays in this repo's `.claude/`: `settings.json`, `launch.json`,
+`claude-security-guidance.md`, and `commands/ui-rework.md` (a product brief specific
+to this app). `ai-injury-extractor/.claude/commands/audit.md` also stays, being
+specific to that subtree. `backend/.claude/` is vendored Prisma skill symlinks —
+not ours, leave it alone.
+
+If a workflow needs to behave differently in one folder, state the difference in
+that folder's `CLAUDE.md` rather than forking the skill.
 
 ## 10. Verification commands
 

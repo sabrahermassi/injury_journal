@@ -31,9 +31,28 @@
 - All queries go through Prisma's query builder; do not introduce raw/dynamically-constructed SQL from client-controlled input (`$queryRawUnsafe` or string-concatenated SQL).
 - Do not introduce a database operation that bypasses the service-layer authorization boundary (e.g. a controller calling `prisma` directly instead of going through a service function).
 
-## AI / LLM features
+## AI / RAG features
 
-No AI/LLM features exist in this codebase today. If one is added, journal content sent to it needs the same isolation and no-unnecessary-retention treatment as everywhere else in this app — revisit this section then.
+Two AI services live in this repo: `ai-injury-assistant/` (RAG over the user's own
+journal) and `ai-injury-extractor/` (structured extraction from free text). Journal
+content reaching either needs the same isolation treatment as everywhere else.
+
+- Retrieval must only return documents belonging to the authenticated user. A user's
+  retrieved journal chunks must never be exposed to another user.
+- User-controlled journal content is untrusted input. Retrieved content must never be
+  treated as instructions to the AI system, and must not be able to override
+  system-level safety or authorization instructions.
+- Do not expose internal prompts, secrets, credentials, or security configuration
+  through AI responses.
+- If retrieval finds no relevant authorized information, the system must say so
+  rather than inventing medical or journal facts. An explicit no-information response
+  always beats a plausible guess here.
+- The assistant verifies JWTs it did not issue (`backend/` issues them). Only `HS256`
+  is accepted; do not add algorithm negotiation or accept an algorithm supplied by
+  the token itself.
+- The browser never calls the assistant directly — `backend/` proxies to it,
+  forwarding the caller's JWT, because that token lives in an httpOnly cookie. Do not
+  introduce a path that requires exposing the token to browser JavaScript.
 
 ## Secrets and configuration
 

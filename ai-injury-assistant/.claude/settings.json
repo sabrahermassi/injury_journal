@@ -1,9 +1,0 @@
-{
-  "env": {
-    "SECURITY_REVIEW_MODEL": "sonnet",
-    "SG_AGENTIC_MODEL": "sonnet"
-  },
-  "enabledPlugins": {
-    "security-guidance@claude-plugins-official": true
-  }
-}

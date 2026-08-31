@@ -1,5 +1,20 @@
 # Post-Merge Analysis: `apps/extractor` subtree merge
 
+> **ARCHIVED — historical record, not current guidance.** Retired 2026-08-31.
+>
+> This is point-in-time output from two completed merges, kept for the reasoning
+> behind decisions already taken. Do not act on it.
+>
+> Most of it no longer describes the repo. `apps/extractor/` does not exist — it
+> was renamed to top-level `ai-injury-extractor/`, and this document's own second
+> report recommended that deletion, which has since happened. The
+> `.claude/skills/` triplication it identified has also been resolved: those
+> workflows now live once in the user-level `~/.claude/skills/`.
+>
+> For current architecture see `docs/03-system-design.md` and the root
+> `CLAUDE.md`. The procedure that produced this report is archived alongside it
+> as `post-merge-analysis-procedure.md`.
+
 Generated 2026-08-30. Analyzes the state of the repo immediately after
 `git subtree --squash` merged the standalone `injury-journal-extractor`
 (GitHub: `sabrahermassi/ai-injury-extractor`) repo into this monorepo at

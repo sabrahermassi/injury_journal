@@ -191,46 +191,51 @@ Cloud PostgreSQL
 
 Sensitive information must not be committed to Git.
 
-## Backend Variables
+Locally, `backend/` and `ai-injury-assistant/` share **one repo-root `.env`**
+(template: `.env.example`). On a hosted deploy there is no file — set the values
+in each platform's own environment settings. Both apps throw at startup if
+`JWT_SECRET` or `DATABASE_URL` is missing.
 
-Example:
+## Backend + AI service (one file locally, two deploy targets)
 
 ```env
-PORT=
+# shared — MUST be identical in both deploy targets
+JWT_SECRET=           # backend issues tokens; the AI service verifies them
+DATABASE_URL=         # ONE database, shared. backend/prisma/ owns the schema,
+                      # including the DocumentChunk table the AI service writes
+                      # vectors into. Requires the pgvector extension.
+NODE_ENV=
 
-DATABASE_URL=
+# backend/
+BACKEND_PORT=         # defaults to 3001; a host-injected PORT wins
+FRONTEND_URL=         # required when NODE_ENV=production; sole CORS origin
+AI_ASSISTANT_URL=     # base URL of the ai-injury-assistant service (defaults to
+                      # http://localhost:3002); the backend proxies
+                      # POST /api/assistant/ask to it
 
-JWT_SECRET=
-
-AI_ASSISTANT_URL=   # base URL of the ai-injury-assistant service
-                    # (defaults to http://localhost:3002); the backend proxies
-                    # POST /api/assistant/ask to it
+# ai-injury-assistant/
+ASSISTANT_PORT=       # defaults to 3002; a host-injected PORT wins
+GROQ_API_KEY=         # LLM generation
+EMBEDDING_API_KEY=    # shared secret for the embedding service; must also be
+                      # set in that Python service's own process environment
+EMBEDDING_API_URL=    # defaults to http://127.0.0.1:8000
+ALLOWED_ORIGIN=       # required in production; comma-separated origin list
 ```
+
+The two services deploy separately but **must be given the same `DATABASE_URL`**.
+Pointing the AI service at a different database is what once made it answer from
+seeded records nobody had written.
 
 ---
 
 ## Frontend Variables
 
-Example:
+Set in `frontend/.env.local`, never in the shared `.env` — `NEXT_PUBLIC_*` values
+are compiled into the browser bundle and must stay away from secrets.
 
 ```env
-VITE_API_URL=
-```
-
----
-
-## AI Injury Journal Variables (`ai-injury-assistant/`)
-
-The AI/RAG service is deployed separately from the backend above and has its
-own database. See `ai-injury-assistant/README.md` for setup detail.
-
-```env
-PORT=                 # defaults to 3002 (3000/3001 belong to frontend/backend)
-DATABASE_URL=         # its OWN database, requires the pgvector extension
-JWT_SECRET=           # MUST be byte-identical to the backend's JWT_SECRET
-GROQ_API_KEY=         # LLM generation
-EMBEDDING_API_KEY=    # shared secret for the embedding service
-ALLOWED_ORIGIN=       # required in production; comma-separated origin list
+NEXT_PUBLIC_API_URL=            # backend base URL; the app throws if unset
+NEXT_PUBLIC_EXTRACTOR_API_URL=  # ai-injury-extractor Lambda endpoint
 ```
 
 > **`JWT_SECRET` is shared between two services.** The backend issues the JWTs;

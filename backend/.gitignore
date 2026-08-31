@@ -1,9 +1,12 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Environment variables. Runtime config now lives in the repo-root .env;
+# .env.test stays here because the test-database guard in tests/setup.js
+# depends on it overriding the root file.
 .env
-.env.test
+.env.*
+!.env.example
 
 # Prisma generated files
 src/generated/prisma/

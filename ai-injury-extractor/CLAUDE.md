@@ -100,8 +100,24 @@ rationale; `docs/ROADMAP.md` for known gaps and planned work.
 
 ## 8. Project Workflows
 
-Branching, review, and shipping procedures live in `.claude/skills/` — the harness surfaces
-available skills automatically; follow the relevant one when invoked.
+Branching, review, and shipping procedures live in the user-level `~/.claude/skills/`
+(`next`, `after-next`, `self-review`, `ship`, `address-review`). They are
+project-agnostic and read this file for anything specific to this service — the
+verification commands in §9 in particular. The harness surfaces available skills
+automatically; follow the relevant one when invoked.
+
+`.claude/commands/audit.md` here is the one workflow that stays local, because it is
+specific to this subtree: it regenerates this file, audits the service, and files an
+issue per finding.
+
+This folder no longer keeps forked copies of the shared skills. If a workflow needs
+to behave differently here, state the difference in this file rather than re-forking
+the skill.
+
+Note this service tracks issue status by open/closed only — it has no GitHub Project
+board and no `status:*` labels, so `/next` and `/ship` skip their status steps.
+Priority comes from labels: prefer `security`, then `bug`, then `tests`/`tech-debt`,
+with severity noted in each issue body.
 
 ## 9. Verification
 
