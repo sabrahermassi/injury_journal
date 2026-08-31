@@ -36,8 +36,17 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   try {
     const payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
 
-    const subject = typeof payload === 'object' ? payload.sub : undefined;
-    const userId = Number(subject);
+    // The journal app (backend/) signs `{ userId }`, not the standard `sub`
+    // claim — see backend/src/utils.js createToken. This service verifies
+    // tokens it issues (decision D10), so it must read the claim that
+    // actually exists. `sub` is still accepted so tokens minted by hand
+    // against the older documented contract keep working.
+    const claim =
+      typeof payload === 'object'
+        ? (payload as jwt.JwtPayload).userId ?? payload.sub
+        : undefined;
+
+    const userId = Number(claim);
 
     if (!Number.isSafeInteger(userId) || userId <= 0) {
       return sendError(res, 401, 'invalid_token', 'Invalid or expired token');

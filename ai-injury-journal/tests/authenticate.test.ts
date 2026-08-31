@@ -103,8 +103,8 @@ describe('authenticate middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns 401 when the sub claim is not a valid positive integer', () => {
-    const token = jwt.sign({ sub: 'not-a-number' }, SECRET, {
+  it('returns 401 when the user id claim is not a valid positive integer', () => {
+    const token = jwt.sign({ userId: 'not-a-number' }, SECRET, {
       algorithm: 'HS256',
     });
     const req: MockRequest = { headers: { authorization: `Bearer ${token}` } };
@@ -122,7 +122,7 @@ describe('authenticate middleware', () => {
   });
 
   it('accepts a lowercase "bearer" scheme (RFC 7235 is case-insensitive)', () => {
-    const token = jwt.sign({ sub: '42' }, SECRET, { algorithm: 'HS256' });
+    const token = jwt.sign({ userId: 42 }, SECRET, { algorithm: 'HS256' });
     const req: MockRequest = { headers: { authorization: `bearer ${token}` } };
     const res = mockResponse();
     const next = jest.fn();
@@ -134,7 +134,7 @@ describe('authenticate middleware', () => {
   });
 
   it('accepts extra whitespace between the scheme and the token', () => {
-    const token = jwt.sign({ sub: '42' }, SECRET, { algorithm: 'HS256' });
+    const token = jwt.sign({ userId: 42 }, SECRET, { algorithm: 'HS256' });
     const req: MockRequest = { headers: { authorization: `Bearer   ${token}` } };
     const res = mockResponse();
     const next = jest.fn();
@@ -146,7 +146,7 @@ describe('authenticate middleware', () => {
   });
 
   it('rejects a header with trailing content after the token', () => {
-    const token = jwt.sign({ sub: '42' }, SECRET, { algorithm: 'HS256' });
+    const token = jwt.sign({ userId: 42 }, SECRET, { algorithm: 'HS256' });
     const req: MockRequest = {
       headers: { authorization: `Bearer ${token} extra` },
     };
@@ -164,7 +164,8 @@ describe('authenticate middleware', () => {
   });
 
   it('calls next() and sets req.userId for a valid token', () => {
-    const token = jwt.sign({ sub: '42' }, SECRET, { algorithm: 'HS256' });
+    // This is the shape the journal app (backend/) actually issues.
+    const token = jwt.sign({ userId: 42 }, SECRET, { algorithm: 'HS256' });
     const req: MockRequest = { headers: { authorization: `Bearer ${token}` } };
     const res = mockResponse();
     const next = jest.fn();
@@ -173,6 +174,18 @@ describe('authenticate middleware', () => {
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
+    expect(req.userId).toBe(42);
+  });
+
+  it('still accepts a legacy token carrying a numeric sub claim', () => {
+    const token = jwt.sign({ sub: '42' }, SECRET, { algorithm: 'HS256' });
+    const req: MockRequest = { headers: { authorization: `Bearer ${token}` } };
+    const res = mockResponse();
+    const next = jest.fn();
+
+    authenticate(req as never, res as never, next as never);
+
+    expect(next).toHaveBeenCalledTimes(1);
     expect(req.userId).toBe(42);
   });
 

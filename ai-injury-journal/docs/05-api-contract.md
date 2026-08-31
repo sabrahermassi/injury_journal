@@ -28,9 +28,15 @@ on it.
 
 **Required and enforced.** `POST /ai-agent` is protected by `authenticate` middleware
 (`src/auth/authenticate.ts`): callers must send `Authorization: Bearer <JWT>`, signed with the
-shared `JWT_SECRET` (HS256) and carrying a numeric `sub` claim. A missing/malformed header, or an
+shared `JWT_SECRET` (HS256) and carrying a numeric `userId` claim. A missing/malformed header, or an
 invalid/expired/wrong-signature token, returns `401`. On success the middleware sets `req.userId`
-from the token's `sub`.
+from the token's `userId` claim.
+
+> **Corrected 2026-08-31 (monorepo merge).** This section previously specified a `sub` claim, but
+> the journal app that actually issues these tokens signs `{ userId }` (`backend/src/utils.js`,
+> `createToken`) — so no real token ever satisfied the documented contract and every authenticated
+> request would have returned `401`. `authenticate` now reads `userId` first and still falls back
+> to a numeric `sub` for hand-minted tokens written against the old contract.
 
 `req.userId` is used downstream to scope every tool and vector query (issue #95, done):
 

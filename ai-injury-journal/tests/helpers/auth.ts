@@ -1,3 +1,5 @@
+// Tokens here mirror what the journal app (backend/) actually issues:
+// a `userId` claim, not the standard `sub`. See src/auth/authenticate.ts.
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 
@@ -8,7 +10,7 @@ export function signTestToken(userId: number): string {
     throw new Error('JWT_SECRET must be set to sign a test token');
   }
 
-  return jwt.sign({ sub: String(userId) }, secret, {
+  return jwt.sign({ userId }, secret, {
     algorithm: 'HS256',
     expiresIn: '1h',
   });
@@ -21,11 +23,11 @@ export function signTestTokenNoExpiry(userId: number): string {
     throw new Error('JWT_SECRET must be set to sign a test token');
   }
 
-  return jwt.sign({ sub: String(userId) }, secret, { algorithm: 'HS256' });
+  return jwt.sign({ userId }, secret, { algorithm: 'HS256' });
 }
 
 export function signNoneAlgToken(userId: number): string {
-  return jwt.sign({ sub: String(userId) }, '', { algorithm: 'none' });
+  return jwt.sign({ userId }, '', { algorithm: 'none' });
 }
 
 export function signRS256Token(userId: number): string {
@@ -33,7 +35,7 @@ export function signRS256Token(userId: number): string {
     modulusLength: 2048,
   });
 
-  return jwt.sign({ sub: String(userId) }, privateKey, {
+  return jwt.sign({ userId }, privateKey, {
     algorithm: 'RS256',
   });
 }
