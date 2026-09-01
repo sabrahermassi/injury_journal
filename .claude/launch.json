@@ -14,6 +14,23 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "frontend",
       "port": 3000
+    },
+    {
+      "name": "ai-injury-assistant",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "ai-injury-assistant",
+      "port": 3002
+    },
+    {
+      "name": "embedding-service",
+      "runtimeExecutable": "uvicorn",
+      "runtimeArgs": ["embedding_api:app", "--app-dir", "src/embeddings", "--port", "8000"],
+      "cwd": "ai-injury-assistant",
+      "port": 8000,
+      "env": {
+        "EMBEDDING_API_KEY": "${EMBEDDING_API_KEY}"
+      }
     }
   ]
 }

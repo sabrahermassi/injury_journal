@@ -40,6 +40,11 @@ model Injury {
   symptoms       Symptom[]
   treatments     Treatment[]
   medicalVisits  MedicalVisit[]
+  documentChunks DocumentChunk[]
+
+  // Lets DocumentChunk's FK bind (injuryId, userId) together, so its
+  // denormalized userId can never disagree with the injury's real owner.
+  @@unique([id, userId])
 }
 
 model TimelineEvent {
@@ -121,4 +126,32 @@ model MedicalVisit {
 
   injuryId Int
   injury   Injury @relation(fields: [injuryId], references: [id])
+}
+// Vector store for the AI assistant (ai-injury-assistant/). That service reads
+// this database but never migrates it -- this app owns the schema -- so the
+// table is declared here even though nothing in backend/ queries it.
+//
+// `embedding` is Unsupported because Prisma has no vector type. Prisma Client
+// cannot select it; the assistant reads it with raw SQL.
+model DocumentChunk {
+  id                    Int                          @id @default(autoincrement())
+  injuryId              Int
+  userId                Int
+  sourceType            String
+  sourceId              Int
+  chunkIndex            Int
+  content               String
+  embedding             Unsupported("vector(1024)")?
+  embeddingModel        String
+  embeddingModelVersion String
+  metadata              Json?
+  createdAt             DateTime                     @default(now())
+
+  injury Injury @relation(fields: [injuryId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId, chunkIndex])
+  @@index([injuryId])
+  @@index([userId])
+  @@index([sourceType, sourceId])
+  @@index([embeddingModel, embeddingModelVersion])
 }

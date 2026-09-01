@@ -5,6 +5,14 @@ part of the handoff-file cleanup). It is a committed, permanent reference — ke
 the code, not the other way around. Where this document and the code disagree, the code is
 correct.
 
+> **STATUS UPDATE (2026-08-31): this service is no longer standalone.** It now lives
+> in the journal app's repository, and the browser never calls it directly —
+> `backend/` proxies `POST /api/assistant/ask` to `POST /ai-agent` here, forwarding
+> the caller's JWT (the token is in an httpOnly cookie the browser cannot read).
+> The contract below is still accurate for callers; what changed is that the only
+> caller is now the journal backend. `GET /injuries` has lost its last consumer and
+> is deletable (#195) — see the status note on D10 in `docs/02-architecture.md`.
+
 ## 1. Scope
 
 Two HTTP endpoints exist today, under a single Express app (`src/app.ts`), both requiring a bearer

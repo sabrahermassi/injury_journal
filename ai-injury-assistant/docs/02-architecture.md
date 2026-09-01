@@ -806,6 +806,18 @@ quoted), what else was considered, whether it still holds, and whether it should
 
 ### D10 — This backend does not own journal CRUD or authentication; a separate app does
 
+> **STATUS UPDATE (2026-08-31): the merge this decision anticipated has happened.**
+> The "separate journal application" is no longer separate — it is `backend/` in
+> this same repository, reached over HTTP. The decision itself still holds: this
+> service still does not own CRUD or auth, and still verifies JWTs that `backend/`
+> issues. Both now read the same database, and `backend/prisma/` owns the schema.
+>
+> The consequence for the deviation below: it is now actionable. The journal app's
+> own injury list feeds the picker, so the stopgap `GET /injuries` here has no
+> consumer left and can be deleted (#195). Everything below describing the two apps
+> as separate deployments is still true; anything implying they are separate
+> *products* is not.
+
 - **DECISION:** This backend does not own `Injury` CRUD or authentication/session issuance; a
   separate existing Injury Journal application owns both. This repo remains AI/RAG/agent-only,
   consuming journal data as its source of truth and verifying identity via tokens issued by that

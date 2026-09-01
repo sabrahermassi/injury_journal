@@ -1,0 +1,18 @@
+# Repo-root ignores. Each app also has its own .gitignore; this file covers
+# the root itself, which previously had none -- a root secrets file sat
+# untracked but unignored, one `git add -A` away from being committed.
+
+# Environment files. .env is the single home for backend/'s and
+# ai-injury-assistant/'s configuration, including the JWT_SECRET and
+# DATABASE_URL they must agree on. .env.example is the tracked template.
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# Dependencies / build output that can appear at the root
+node_modules/
+
+# OS noise
+.DS_Store
+Thumbs.db

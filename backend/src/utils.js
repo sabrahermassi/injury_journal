@@ -1,3 +1,7 @@
+// Must come first: it resolves DATABASE_URL (and, under NODE_ENV=test,
+// points it at the test database) before PrismaClient is constructed below.
+import './loadEnv.js';
+
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 

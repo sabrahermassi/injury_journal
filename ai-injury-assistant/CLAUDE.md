@@ -97,7 +97,15 @@ AI-attribution footer to commit messages or PR descriptions.
 
 ## 10. Project Workflows
 
-Detailed branching, implementation, review, and shipping procedures are defined in `.claude/skills/`. Follow the relevant Skill when invoked.
+Branching, implementation, review, and shipping procedures live in the user-level
+`~/.claude/skills/` (`next`, `after-next`, `self-review`, `ship`, `address-review`,
+`post-fix-review`). They are project-agnostic and read this file for anything
+specific to this service — the verification commands in §11 and the commit-message
+rules in §9 in particular. Follow the relevant Skill when invoked.
+
+This folder no longer keeps its own forked copies of those skills. If a workflow
+needs to behave differently here, state the difference in this file rather than
+re-forking the skill.
 
 ## 11. Verification
 
@@ -119,9 +127,9 @@ After verification passes, run the `post-fix-review` Skill before committing.
 
 **This service no longer has a frontend.** Its UI moved into the journal app's
 frontend at the repo root — `frontend/components/assistant/ask-form.tsx`,
-served at `/dashboard/assistant`. Do any UI work there, following the root
-`frontend/UI_GUIDE.md`, not this directory's `UI_GUIDE.md` (kept only as a
-record of the standalone app's design decisions).
+served at `/dashboard/assistant`. Do any UI work there, following
+`frontend/UI_GUIDE.md` — the design-token and component reference for the whole
+journal frontend, including this service's UI.
 
 The browser does not call this service directly. The journal backend proxies
 `POST /api/assistant/ask` to `POST /ai-agent` here, forwarding the caller's
@@ -131,3 +139,27 @@ cannot read. See `backend/src/services/assistantService.js`.
 This also means the stopgap `GET /injuries` in this repo (D10's "known
 temporary deviation", issue #195) has no consumer any more: the picker now
 reads the journal app's own injury list.
+
+## Database
+
+This service reads the journal app's database. `DATABASE_URL` must be the
+same value the journal backend uses — both read it from the one repo-root `.env`.
+
+**It does not own that schema — `backend/prisma/` does**, including the
+`DocumentChunk` table this service writes vectors into. To change any shared
+table, add a migration in `backend/prisma/migrations/`, not here.
+
+`prisma/migrations/` in this folder now builds a standalone database for
+integration tests and the evaluation harness only. Never run it against the
+shared database: `scripts/assert-local-db.mjs` refuses, and `npm run
+dev:migrate:local` is the guarded entry point. `npm run dev:up` starts docker
+services and generates the client; it no longer migrates.
+
+`prisma/schema.prisma` still declares the journal models because Prisma Client
+needs them. They are a compatible subset of the real tables — notably
+`TreatmentOutcome` is not modelled, so treatment check-ins are invisible to
+ingestion and retrieval (the older `Treatment.outcome` string is not).
+
+Both seed scripts refuse to touch the shared database. Do not weaken those
+guards; `seed-dev.ts` begins with a `TRUNCATE`.
+

@@ -49,12 +49,26 @@ The fastest way to get a working local environment — Docker runs Postgres (wit
 **Prerequisites:** Docker Desktop (or Docker Engine + the Compose plugin), Node.js 22.
 
 1. `npm install`
-2. Copy `.env.example` to `.env` and fill in `GROQ_API_KEY`, `JWT_SECRET`, and
-   `EMBEDDING_API_KEY`. `DATABASE_URL` can be left at its pre-filled default — it already
-   matches the Postgres container started below.
+2. All configuration comes from the **repo-root `.env`**, which the journal app reads
+   too — `DATABASE_URL` and `JWT_SECRET` must be identical in both, so they have one
+   home. Copy `.env.example` at the repo root and fill it in. This service needs
+   `GROQ_API_KEY` and `EMBEDDING_API_KEY` set there, and optionally `ASSISTANT_PORT`
+   and `ALLOWED_ORIGIN`.
+
+   `.env.test` in this folder is loaded first when `NODE_ENV=test`, so its test
+   database wins over the root file.
+
+   This app does **not** own that schema. `backend/prisma/` does, including the
+   `DocumentChunk` table this service writes vectors into. Never run `prisma migrate`
+   against it — `scripts/assert-local-db.mjs` refuses, and `prisma.config.ts` here
+   deliberately never reads the root `.env`, so its CLI cannot see that database.
 3. `npm run dev:up` — starts Postgres and the embedding service in Docker, waits for both
-   to report healthy, then runs `npx prisma generate` and `npx prisma migrate deploy`
-   against the new database.
+   to report healthy, then runs `npx prisma generate`.
+
+   The Postgres container (`injury-journal-ai-db`) is now only for integration tests and
+   the evaluation harness, not for normal development. To build its schema, run
+   `npm run dev:migrate:local`, or `npm run dev:up:seed` to migrate and seed it in one
+   step.
 
    The **first** run downloads the embedding model (a few hundred MB) and can take a few
    minutes; it's cached in a Docker volume afterward, so later runs are fast.
@@ -96,7 +110,7 @@ npm install
 
 ### Configure environment
 
-Set the following environment variables (see `.env.example` for a starting point — note it does not currently list `EMBEDDING_API_URL`, `EMBEDDING_API_TIMEOUT_MS`, `PORT`, or `CHUNK_MAX_TOKENS`, since all four are optional with defaults):
+All of these live in the **repo-root `.env`**, shared with the journal app's `backend/`. Copy the repo-root `.env.example`, which documents every variable below.
 
 | Variable | Required | Notes |
 |---|---|---|
@@ -106,7 +120,7 @@ Set the following environment variables (see `.env.example` for a starting point
 | `EMBEDDING_API_KEY` | Yes | Shared secret sent as a `Bearer` token to the embedding service (`src/embeddings/embedding-client.ts`); the same value must be set in the embedding service's own process environment (see below) |
 | `EMBEDDING_API_URL` | No | Defaults to `http://127.0.0.1:8000` |
 | `EMBEDDING_API_TIMEOUT_MS` | No | Defaults to 30000 |
-| `PORT` | No | Defaults to 3000 |
+| `ASSISTANT_PORT` | No | Defaults to 3002. Namespaced because the root `.env` is shared with `backend/`, which reads `BACKEND_PORT`. A bare `PORT` still wins when a host injects one (`src/config/port.ts`). |
 | `CHUNK_MAX_TOKENS` | No | Overrides max tokens per document chunk for every `sourceType` during ingestion, bypassing `SOURCE_TYPE_CHUNK_CONFIG`'s per-`sourceType` defaults (`src/ingestion/chunking/document-chunker.ts`). Leave unset to let each `sourceType` use its own configured default (currently 300 for all of them — see `docs/02-architecture.md` D4). |
 | `ALLOWED_ORIGIN` | No | Comma-separated list of allowed CORS origins. Unset reflects the request's own origin (no restriction) — low value until a real frontend is deployed at a known origin, at which point set this to lock CORS down. |
 | `INJURY_MATCH_AMBIGUITY_MARGIN` | No | Defaults to 0.03. Cosine-distance margin used by `src/retrieval/injury-router.ts` to decide which injuries an unscoped question (no `injuryId`) routes to — see `docs/02-architecture.md` D11. |
@@ -115,13 +129,16 @@ Set the following environment variables (see `.env.example` for a starting point
 
 ### Database
 
+This service does not own the shared schema — `backend/prisma/` does. Shared-schema
+migrations run from `backend/`, not here.
+
 ```bash
-npx prisma generate
-npx prisma migrate deploy
+npm run dev:migrate:local
 ```
 
-`npm run dev:up` runs these same two commands automatically against the Docker Postgres
-container (see Quick start above).
+Guarded by `scripts/assert-local-db.mjs`: it refuses to run against anything but the
+standalone local/test database. `npm run dev:up` starts the Docker Postgres container
+and generates the Prisma client; it does not migrate.
 
 ### Database roles and connection hygiene
 
@@ -253,7 +270,7 @@ positive integer, so `sub: '1'` means "act as user 1". Two things to watch for l
   dropdown loads but is empty, the token is valid for a user id that has no data.
 
 UI conventions (component library, design tokens, spacing, component patterns) are documented in
-`UI_GUIDE.md` — read it before changing anything under `frontend/`.
+the repo root's `frontend/UI_GUIDE.md` — read it before changing anything under `frontend/`.
 
 ## Tests
 

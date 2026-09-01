@@ -1,5 +1,11 @@
+import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+
+// This runs as its own subprocess (`npm run seed:dev`), so it needs its own
+// load -- the guard in scripts/assert-local-db.mjs loading .env.test does not
+// carry over. Same pattern as prisma.config.ts and that guard.
+dotenv.config({ path: '.env.test' });
 
 const prisma = new PrismaClient();
 

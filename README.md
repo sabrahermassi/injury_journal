@@ -266,13 +266,24 @@ cd backend
 npm install
 ```
 
-Create a `.env` file:
+All configuration lives in **one repo-root `.env`**, shared with the AI assistant service:
+it reads the same database and verifies the same tokens, so the two apps must use
+identical values. Copy `.env.example` at the repo root and fill it in:
 
-```
-DATABASE_URL=
+```env
 JWT_SECRET=
-FRONTEND_URL=
+DATABASE_URL=
+NODE_ENV=development
+BACKEND_PORT=3001
+FRONTEND_URL=http://localhost:3000
+AI_ASSISTANT_URL=http://localhost:3002
 ```
+
+Ports are namespaced (`BACKEND_PORT`, `ASSISTANT_PORT`) because both apps read a bare
+`PORT` and share one file. Each still prefers `PORT` when a host injects it.
+
+`backend/.env.test` is loaded before the root file when `NODE_ENV=test`, so its test
+database wins over the real one.
 
 `NODE_ENV` must also be set to `development`, `test`, or `production` — the server refuses to start otherwise, and `FRONTEND_URL` is required when `NODE_ENV=production`.
 

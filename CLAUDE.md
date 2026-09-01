@@ -66,12 +66,51 @@ Neither is imported by `backend/` or `frontend/` — they're reached over HTTP.
 
 ## 5. Running locally
 
+### Environment files
+
+All runtime configuration for `backend/` and `ai-injury-assistant/` lives in **one
+repo-root `.env`**. `JWT_SECRET` and `DATABASE_URL` must be identical across the two
+— the first issues tokens the second verifies, and both read the same database — so
+a single file is what stops them drifting.
+
+```env
+.env                 repo root, git-ignored. Everything both apps need.
+                     Copy .env.example.
+.env.example         repo root, tracked. Every variable, documented.
+backend/.env.test    test-database overrides (see §6)
+ai-injury-assistant/.env.test   its own test-database overrides
+frontend/.env.local  NEXT_PUBLIC_* only
+```
+
+Each app loads its **own `.env.test` first** (only when `NODE_ENV=test`), then the
+root `.env`. `dotenv` never overwrites an already-set variable, so the test file
+always wins — that is what keeps `.env.test` authoritative when running tests, and
+it is not decorative: the suites truncate every table, and one once wiped the
+development database when this went wrong. Loading is in `backend/src/loadEnv.js`
+and `ai-injury-assistant/src/config/load-env.ts`; both throw at startup, naming
+`.env`, if either shared value is missing.
+
+Ports are namespaced as `BACKEND_PORT` (3001) and `ASSISTANT_PORT` (3002) because
+both apps read a bare `PORT` and would otherwise collide in one file. Each prefers
+`PORT` when set, so hosts such as Render that inject it keep working.
+
+Two things deliberately stay out of the root file. `DATABASE_ENV` and
+`SEED_DEV_CONFIRM` gate `ai-injury-assistant/prisma/seed-dev.ts`, which opens with a
+`TRUNCATE`, and must be passed per-invocation rather than sitting armed in a file.
+And `frontend/` does not read `.env` at all: `NEXT_PUBLIC_*` values are compiled
+into the browser bundle, so they stay well away from secrets.
+`ai-injury-extractor/` is an AWS Lambda and takes its environment from Terraform.
+
+`ai-injury-assistant/prisma.config.ts` also deliberately reads only its own
+`.env.test`, never the root `.env`, so its Prisma CLI cannot reach the shared
+database. That omission is half of the guard in `scripts/assert-local-db.mjs` —
+do not "fix" it by adding the root file.
+
 Backend:
 ```bash
 cd backend
 npm install
-# create .env with DATABASE_URL, JWT_SECRET, FRONTEND_URL
-# optional: AI_ASSISTANT_URL (defaults to http://localhost:3002)
+# ../.env supplies everything; copy ../.env.example if you have not yet
 npx prisma migrate dev
 npm run dev        # node --watch src/server.js, default port 3001
 ```
@@ -96,6 +135,11 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - Integration-style: real Express app + real Postgres via Supertest, no mocking of the DB or Prisma.
 - One test file per resource (`auth`, `injury`, `symptom`, `treatment`, `medicalVisit`, `timeline`) plus `security.test.js`, which is the only file that specifically tests cross-user data isolation (currently only for the Injury resource — see audit notes).
 - `tests/setup.js` provides `cleanDatabase`, `createTestUser`, `createTestInjury` helpers; `cleanDatabase` truncates every table before each test.
+- Because that is destructive, `tests/setup.js` refuses to run unless `DATABASE_URL` names a
+  test database. This is not theoretical: nothing used to load `.env.test` for Jest —
+  `NODE_ENV=test` only changes app behaviour, and `prisma.config.ts` is read by the Prisma CLI,
+  never by Jest — so Prisma Client fell back to `.env` and the suite wiped the *development*
+  database on every run. `backend/src/loadEnv.js` now selects `.env.test`; the guard asserts it.
 - The frontend has Vitest configured (`cd frontend && npm test`), but so far only for the
   `ai-injury-extractor/` feature's components/API client (`frontend/components/extractor/*.test.tsx`,
   `frontend/services/extractor-api.test.ts`) — the rest of the frontend still has no test coverage.
@@ -116,7 +160,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - The JWT lives in an httpOnly cookie (`authenticate` in `backend/src/middleware.js` also falls back to an `Authorization: Bearer` header for `.http` files and tests). Mutating requests are additionally checked by `verifyCsrf` (double-submit cookie) — see `backend/src/middleware.js`. The CSRF cookie set by the backend is not readable via `document.cookie` on the frontend's origin in production (frontend on Vercel, backend on Render, different domains), so the login response also returns `csrfToken` in its JSON body; the frontend stores that value in `sessionStorage` (see `frontend/services/api.ts`) instead of reading it off the cookie (issue #25).
 - `backend/.gitignore` excludes `requests.http` but not `requests_USER_*.http` — those files (used for manual multi-user testing) contain real JWTs and are currently untracked; don't `git add -A` them.
 - `docs/` reflects planning-stage decisions and may lag the actual implementation (e.g. deployment target, frontend stack) — check current code/config rather than trusting docs at face value.
-- Two overlapping deployment docs exist (`docs/09-deployment.md` and `docs/14-deployment.md`); `14` is the more complete/current one.
+- `docs/14-deployment.md` is the deployment doc. An earlier `docs/09-deployment.md` overlapped it and is gone, which is why `docs/` jumps from 08 to 14.
 
 See the audit report delivered alongside this file, and the corresponding GitHub issues, for the full list of findings and severities.
 
@@ -124,11 +168,32 @@ See the audit report delivered alongside this file, and the corresponding GitHub
 
 - `README.md` (root) — user-facing overview, setup, and API reference. Start here.
 - `docs/*.md` — pre-implementation planning docs; verify claims against `backend/prisma/schema.prisma` / `backend/src/routes.js` before trusting.
-- `docs/07-frontend-dev.md` — stale: describes React Router/Axios/Context API, none of which this codebase uses (it's Next.js App Router + native `fetch`). Don't follow it.
+- `docs/03-system-design.md` — current architecture summary across all four services. Note the filename previously contained a space, which broke shell tooling.
+- `docs/07-frontend-dev.md` — rewritten for the actual stack (Next.js App Router, native `fetch`, httpOnly-cookie auth). The earlier version described React Router/Axios/Context API and a `localStorage` JWT, none of which are used.
 - `ROADMAP.md` (root) — MVP completion checklist, background context only. Do not start work on a roadmap item that has no corresponding GitHub issue.
 - `frontend/UI_GUIDE.md` — UI/styling conventions.
 - `ai-injury-assistant/CLAUDE.md`, `ai-injury-assistant/README.md` — the AI companion app's own docs.
   Read those (not this file) for its conventions, architecture, and verification commands; see §11.
+- `.claude/claude-security-guidance.md` — the security invariants review workflows weigh against.
+
+### Automation layer
+
+Workflow skills (`next`, `after-next`, `self-review`, `ship`, `address-review`,
+`security-checkup`, `audit-docs`, `post-fix-review`, `optimize-md`) live in the
+user-level `~/.claude/skills/`, not in this repo. They are project-agnostic: they
+resolve the repo slug from `git remote`/`gh`, and read verification commands,
+conventions, and the doc map from the *nearest* `CLAUDE.md`. That is why the
+subprojects no longer carry forked copies — `ai-injury-assistant/CLAUDE.md` §9/§11
+and `ai-injury-extractor/CLAUDE.md` §8/§9 supply their differences instead.
+
+What stays in this repo's `.claude/`: `settings.json`, `launch.json`,
+`claude-security-guidance.md`, and `commands/ui-rework.md` (a product brief specific
+to this app). `ai-injury-extractor/.claude/commands/audit.md` also stays, being
+specific to that subtree. `backend/.claude/` is vendored Prisma skill symlinks —
+not ours, leave it alone.
+
+If a workflow needs to behave differently in one folder, state the difference in
+that folder's `CLAUDE.md` rather than forking the skill.
 
 ## 10. Verification commands
 
@@ -191,14 +256,23 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
 - **CI**: `.github/workflows/ai-ci.yml` (path-filtered to `ai-injury-assistant/**`). It needs a
   repo-level `GROQ_API_KEY` secret for its evaluation step; that step is `continue-on-error`, so a
   missing secret degrades rather than blocks.
-- **Known open item — the two apps do not share a database.** `ai-injury-assistant/` has its own
-  Prisma schema containing a full copy of the journal models (`User`, `Injury`, `Symptom`,
-  `Treatment`, `MedicalVisit`, `TimelineEvent`) plus `DocumentChunk` for vectors, and it ingests
-  from *its own* database (`src/ingestion/reader/postgres-reader.ts`), which today is populated only
-  by its own seed scripts. Nothing syncs real user data from `backend/`'s database into it, and the
-  two schemas have already drifted (`backend/` has `TreatmentOutcome`; the AI copy does not). Until
-  that is resolved, the AI assistant answers from a different dataset than the one the user is
-  writing to. See `docs/post-merge-analysis.md` §7a for the options.
+- **Both apps share one database, and `backend/` owns its schema.** The AI service's
+  `DATABASE_URL` must be the same value as `backend/`'s: it reads the user's real journal data
+  rather than keeping a copy. It previously ran against its own database populated only by its
+  seed scripts, so it answered from data nobody had written.
+  - `backend/prisma/` owns every table, including `DocumentChunk` (the AI service's vector store,
+    added in `20260831190000_add_document_chunks`). Schema changes to any shared table go there.
+  - The AI service must never run `prisma migrate` against it — its own `prisma/migrations/` build
+    a standalone database for integration tests and the evaluation harness only.
+    `ai-injury-assistant/scripts/assert-local-db.mjs` enforces this and is wired into its
+    `dev:migrate:local` script.
+  - Its `prisma/schema.prisma` still declares the journal models because its Prisma Client needs
+    them. They are a compatible *subset* of the real tables — it does not yet model
+    `TreatmentOutcome`, so treatment check-ins are invisible to retrieval (`Treatment.outcome` is
+    not). Worth adding when outcome data matters to answers.
+  - Both seed scripts refuse to run against the shared database (`prisma/seed-dev.ts` checks the
+    database name, `prisma/seed.ts` requires `test` in the URL). Verified, but do not weaken those
+    guards: `seed-dev.ts` opens with a `TRUNCATE`.
 - **Before working in this folder**, read `ai-injury-assistant/CLAUDE.md` and
   `ai-injury-assistant/README.md`. Its conventions differ from the rest of this repo — commit message
   style, verification commands (`npx tsc --noEmit`, its own lint/test scripts), and file placement

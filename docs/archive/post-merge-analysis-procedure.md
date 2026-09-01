@@ -1,3 +1,19 @@
+# Post-Merge Analysis Procedure (archived)
+
+> **ARCHIVED — no longer an invocable command.** Retired 2026-08-31.
+>
+> This was `.claude/commands/post-merge-analysis.md`. It has been run for both
+> subtree merges this repo needed (`ai-injury-extractor`, then
+> `ai-injury-assistant`) and there is no third pending, so it no longer earns a
+> slot in the active command surface. It is kept here because the seven-step
+> procedure is genuinely reusable.
+>
+> **If another subtree merge happens:** copy this back to
+> `.claude/commands/`, and update every path first — it still refers to
+> `apps/extractor`, a layout that no longer exists.
+
+---
+
 Reused command: originally written and run for the `apps/extractor` subtree merge
 (see `docs/post-merge-analysis.md`, the report it produced, and the restructuring
 PR that followed it — that merge used `git subtree --squash` and the repo has
