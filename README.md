@@ -270,7 +270,7 @@ All configuration lives in **one repo-root `.env`**, shared with the AI assistan
 it reads the same database and verifies the same tokens, so the two apps must use
 identical values. Copy `.env.example` at the repo root and fill it in:
 
-```
+```env
 JWT_SECRET=
 DATABASE_URL=
 NODE_ENV=development

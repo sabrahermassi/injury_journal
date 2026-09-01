@@ -8,6 +8,13 @@
 //
 // Allowed: a database named injury-journal-ai-db (docker compose), or any
 // URL naming a test database.
+import dotenv from 'dotenv';
+
+// Same pattern as prisma.config.ts: load only this service's own .env.test,
+// never the repo-root .env, so DATABASE_URL is visible here even when it
+// isn't already in the shell environment.
+dotenv.config({ path: '.env.test' });
+
 const url = process.env.DATABASE_URL;
 
 if (!url) {

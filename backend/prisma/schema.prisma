@@ -41,6 +41,10 @@ model Injury {
   treatments     Treatment[]
   medicalVisits  MedicalVisit[]
   documentChunks DocumentChunk[]
+
+  // Lets DocumentChunk's FK bind (injuryId, userId) together, so its
+  // denormalized userId can never disagree with the injury's real owner.
+  @@unique([id, userId])
 }
 
 model TimelineEvent {
@@ -143,7 +147,7 @@ model DocumentChunk {
   metadata              Json?
   createdAt             DateTime                     @default(now())
 
-  injury Injury @relation(fields: [injuryId], references: [id], onDelete: Cascade)
+  injury Injury @relation(fields: [injuryId, userId], references: [id, userId], onDelete: Cascade)
 
   @@unique([sourceType, sourceId, chunkIndex])
   @@index([injuryId])

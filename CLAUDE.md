@@ -73,7 +73,7 @@ repo-root `.env`**. `JWT_SECRET` and `DATABASE_URL` must be identical across the
 — the first issues tokens the second verifies, and both read the same database — so
 a single file is what stops them drifting.
 
-```
+```env
 .env                 repo root, git-ignored. Everything both apps need.
                      Copy .env.example.
 .env.example         repo root, tracked. Every variable, documented.

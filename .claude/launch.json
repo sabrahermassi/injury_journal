@@ -27,7 +27,10 @@
       "runtimeExecutable": "uvicorn",
       "runtimeArgs": ["embedding_api:app", "--app-dir", "src/embeddings", "--port", "8000"],
       "cwd": "ai-injury-assistant",
-      "port": 8000
+      "port": 8000,
+      "env": {
+        "EMBEDDING_API_KEY": "${EMBEDDING_API_KEY}"
+      }
     }
   ]
 }

@@ -129,13 +129,16 @@ All of these live in the **repo-root `.env`**, shared with the journal app's `ba
 
 ### Database
 
+This service does not own the shared schema — `backend/prisma/` does. Shared-schema
+migrations run from `backend/`, not here.
+
 ```bash
-npx prisma generate
-npx prisma migrate deploy
+npm run dev:migrate:local
 ```
 
-`npm run dev:up` runs these same two commands automatically against the Docker Postgres
-container (see Quick start above).
+Guarded by `scripts/assert-local-db.mjs`: it refuses to run against anything but the
+standalone local/test database. `npm run dev:up` starts the Docker Postgres container
+and generates the Prisma client; it does not migrate.
 
 ### Database roles and connection hygiene
 

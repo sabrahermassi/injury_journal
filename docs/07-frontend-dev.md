@@ -44,8 +44,9 @@ Pages are `"use client"` components. There is no `src/`, no `pages/`, and no
 httpOnly cookie at login; the frontend never reads, stores, or attaches it. Every
 request simply sends `credentials: "include"` and the browser attaches the cookie.
 
-This is deliberate — see issue #8. Do not introduce token storage in
-`localStorage`, `sessionStorage`, or a JS-readable cookie.
+This is deliberate — see issue #8. Do not store the auth JWT in `localStorage` or a
+JS-readable cookie. The CSRF token is intentionally stored in `sessionStorage` (see
+below) — that exception does not extend to the JWT.
 
 ### CSRF
 
