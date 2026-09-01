@@ -9,9 +9,21 @@ Injury Journal is a full-stack app that lets a person track a personal injury ov
 ## 2. Architecture
 
 ```
-User -> Next.js frontend ("use client" pages, fetch with credentials) -> Express REST API
-(/api, JWT in httpOnly cookie + CSRF double-submit) -> Prisma ORM -> PostgreSQL
+Browser -> Next.js frontend ("use client" pages, fetch with credentials) ─┐
+                    JWT in httpOnly cookie + CSRF double-submit           │
+                                                                          ├─> Express REST API
+Phone   -> Expo / React Native app (mobile/) ─────────────────────────────┘    (/api)
+                    JWT in Authorization: Bearer, from SecureStore              |
+                    + rotating refresh token                                    v
+                                                                          Prisma ORM -> PostgreSQL
 ```
+
+Two clients, one API, two deliberately different auth strategies. The web app keeps
+its token in an httpOnly cookie because the threat there is XSS reading it (issue #8).
+A native bundle has no DOM and stores the token in the Keychain/Keystore, so it uses
+a Bearer header instead — and `verifyCsrf` already short-circuits when no auth cookie
+is present, which is what makes that path work without a second code path in the API.
+See §12.
 
 All backend resources (Injury, TimelineEvent, Symptom, Treatment, MedicalVisit) are scoped to the authenticated user, either directly (`Injury.userId`) or transitively through the parent Injury. Every read/update/delete in the service layer re-checks ownership before touching a nested resource — this is the central invariant of the app and must be preserved in any new endpoint.
 
@@ -40,6 +52,15 @@ frontend/
   services/api.ts        All backend API calls (fetch wrappers, credentials: "include", reads CSRF token cookie)
   hooks/, lib/            Small shared utilities
 
+mobile/                  Expo / React Native client for the same API. Self-contained like
+  src/app/               every other app here: own package.json, tsconfig, CI, CLAUDE.md.
+                         Expo Router file routes -- login, register, (tabs)/, injury/[id]
+  src/api/client.ts      The native twin of frontend/services/api.ts. See §12: an API
+                         change has to be made in BOTH, and nothing checks that for you
+  src/api/session.ts     SecureStore-backed token storage
+  src/constants/         UI_GUIDE tokens as hex -- React Native cannot parse oklch(), so
+    injury-theme.ts      the hex column of UI_GUIDE.md is load-bearing here, not a comment
+
 docs/                    Planning docs written before/during implementation (product, requirements, system design, DB, API, dev process, testing, deployment). Written pre-implementation — verify against actual code before trusting for current behavior; see Known constraints below for known drift.
 
 ai-injury-extractor/     Self-contained AWS Lambda service that extracts structured injury data
@@ -56,6 +77,12 @@ ai-injury-assistant/     Self-contained AI/RAG companion app, brought in from it
 
 Both `ai-injury-*` folders are independently deployable services that happen to share this repo.
 Neither is imported by `backend/` or `frontend/` — they're reached over HTTP.
+
+There is deliberately **no root `package.json`** and no npm workspaces. Every app installs
+its own dependencies, and all five CI workflows use `working-directory: <app>` with
+`cache-dependency-path: <app>/package-lock.json` — hoisting `node_modules` to the root
+would break all of them at once, and Metro plus hoisted modules is the most common way
+a React Native monorepo falls over. Don't fold subproject tooling into the root.
 
 ## 4. Tech stack
 
@@ -277,3 +304,47 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
   `ai-injury-assistant/README.md`. Its conventions differ from the rest of this repo — commit message
   style, verification commands (`npx tsc --noEmit`, its own lint/test scripts), and file placement
   are enforced there, not here.
+
+## 12. Two clients, one API (`mobile/`)
+
+`frontend/services/api.ts` and `mobile/src/api/client.ts` describe the same endpoints
+in two languages of the same language. **A change to `backend/src/routes.js` or
+`backend/src/validators.js` must be reflected in both.** Nothing enforces this — there
+is no shared package, for the reasons in §3 — so it is a rule, not a mechanism. Both
+files carry a header comment pointing at the other.
+
+Where they legitimately differ, and why:
+
+- **Auth.** Web sends the JWT in an httpOnly cookie plus a CSRF double-submit token.
+  Mobile sends `Authorization: Bearer` from `expo-secure-store`. `authenticate` in
+  `backend/src/middleware.js` already accepted both; `verifyCsrf` returns early when
+  there is no auth cookie, so Bearer clients are exempt by construction.
+- **Refresh tokens.** Only mobile gets one, and only if it sends `X-Client: native`.
+  That gate is the point: without it the browser's login response would grow a
+  long-lived credential in its JSON body, which is precisely what issue #8 moved the
+  access token into a cookie to avoid. `RefreshToken` rows store SHA-256 only, rotate
+  on every use, and a replayed token revokes its whole `familyId`.
+- **Registration** now signs the user in and returns a token (it used to return
+  `{ id, email }` and force a second login). `id` and `email` stay at the top level of
+  that response so existing callers still work.
+
+`frontend/services/api.ts` must not regress to `localStorage`/`sessionStorage` token
+storage. Mobile's SecureStore path is a separate, deliberate decision — not a precedent
+for the web client.
+
+Verification for `mobile/`:
+
+```bash
+cd mobile
+npx tsc --noEmit
+npx expo lint
+```
+
+A green typecheck does not prove the app runs — it does not exercise Metro's resolver.
+`npx expo start` and load it in Expo Go, or request the dev bundle directly:
+`curl "http://<LAN-IP>:8081/.expo/.virtual-metro-entry.bundle?platform=android&dev=true"`
+(200 means every module resolved; `/index.bundle` is the wrong entry and always 404s).
+
+`mobile/.env.local` holds `EXPO_PUBLIC_API_URL` and must point at a LAN IP, never
+`localhost` — on a phone, `localhost` is the phone. That same address also has to appear
+in the root `.env`'s comma-separated `FRONTEND_URL`, or CORS rejects the origin.

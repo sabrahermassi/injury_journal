@@ -13,7 +13,7 @@ export default function AssistantPage() {
 
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Ask your journal
+            AI-Powered Journal Assistant
           </h1>
 
           <p className="text-muted-foreground leading-relaxed">

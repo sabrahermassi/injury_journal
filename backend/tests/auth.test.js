@@ -110,6 +110,142 @@ describe('Authentication', () => {
   });
 });
 
+describe('Native session handling', () => {
+  const credentials = {
+    email: 'native@test.com',
+    password: 'password123',
+  };
+
+  const registerNative = () =>
+    request(app)
+      .post('/api/auth/register')
+      .set('X-Client', 'native')
+      .send(credentials);
+
+  test('register signs the user in, so no follow-up login is needed', async () => {
+    const response = await registerNative();
+
+    expect(response.statusCode).toBe(201);
+    expect(response.body.token).toBeDefined();
+
+    const injuries = await request(app)
+      .get('/api/injuries')
+      .set('Authorization', `Bearer ${response.body.token}`);
+
+    expect(injuries.statusCode).toBe(200);
+  });
+
+  test('a refresh token is issued only when the client asks for one', async () => {
+    const native = await registerNative();
+
+    expect(native.body.refreshToken).toBeDefined();
+
+    // The web login response must not grow this field -- see isNativeClient
+    // in controllers.js.
+    const web = await request(app).post('/api/auth/login').send(credentials);
+
+    expect(web.statusCode).toBe(200);
+    expect(web.body.refreshToken).toBeUndefined();
+  });
+
+  test('GET /auth/me identifies the bearer of a valid token', async () => {
+    const { body } = await registerNative();
+
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${body.token}`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.email).toBe(credentials.email);
+    expect(response.body.password).toBeUndefined();
+  });
+
+  test('GET /auth/me rejects a junk token', async () => {
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', 'Bearer not-a-real-token');
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('refresh returns a working access token and rotates the refresh token', async () => {
+    const { body } = await registerNative();
+
+    const refreshed = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: body.refreshToken });
+
+    expect(refreshed.statusCode).toBe(200);
+    expect(refreshed.body.refreshToken).not.toBe(body.refreshToken);
+
+    const me = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${refreshed.body.token}`);
+
+    expect(me.statusCode).toBe(200);
+    expect(me.body.email).toBe(credentials.email);
+  });
+
+  test('a rotated refresh token cannot be used again', async () => {
+    const { body } = await registerNative();
+
+    await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: body.refreshToken });
+
+    const replay = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: body.refreshToken });
+
+    expect(replay.statusCode).toBe(401);
+  });
+
+  test('replaying a rotated token revokes the whole family', async () => {
+    const { body } = await registerNative();
+
+    const refreshed = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: body.refreshToken });
+
+    // The stolen (already-rotated) copy is presented. That invalidates the
+    // legitimate client's current token too -- we can't tell which caller is
+    // which, so the session ends for both.
+    await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: body.refreshToken });
+
+    const response = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: refreshed.body.refreshToken });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('logout revokes the refresh token it is given', async () => {
+    const { body } = await registerNative();
+
+    const loggedOut = await request(app)
+      .post('/api/auth/logout')
+      .send({ refreshToken: body.refreshToken });
+
+    expect(loggedOut.statusCode).toBe(204);
+
+    const response = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: body.refreshToken });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('an unknown refresh token is rejected', async () => {
+    const response = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: 'a'.repeat(64) });
+
+    expect(response.statusCode).toBe(401);
+  });
+});
+
 describe('CSRF protection for cookie-authenticated requests', () => {
   const extractCookieValue = (cookies, name) => {
     const cookie = cookies.find((entry) => entry.startsWith(`${name}=`));
