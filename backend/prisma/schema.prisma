@@ -30,11 +30,11 @@ model Injury {
   startDate   DateTime
   cause       String?
   description String?
-  status      String? 
+  status      String?
   createdAt   DateTime @default(now())
 
   userId Int
-  user User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
 
   timelineEvents TimelineEvent[]
   symptoms       Symptom[]
@@ -67,23 +67,57 @@ model Symptom {
 }
 
 model Treatment {
-  id        Int      @id @default(autoincrement())
-  name      String
-  provider  String?
-  date      DateTime
-  cost      Float?
-  outcome   String?
+  id       Int      @id @default(autoincrement())
+  name     String
+  provider String?
+  date     DateTime
+  cost     Float?
+
+  // Legacy free-text outcome, kept for existing rows and backfilled into
+  // TreatmentOutcome. New outcome observations go to TreatmentOutcome instead —
+  // writing here overwrites history, which is what this model exists to stop.
+  outcome String?
+
+  // When to ask the user how this treatment worked out. Null means never ask.
+  followUpDueAt DateTime?
+
+  // Groups repeated attempts at the same treatment (e.g. a course of
+  // injections) so they can be compared as a series rather than by name match.
+  courseId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   injuryId Int
   injury   Injury @relation(fields: [injuryId], references: [id])
+
+  outcomes TreatmentOutcome[]
+}
+
+// One observation of how a treatment is working, recorded *after* the fact.
+// A treatment accrues several of these over time ("still helping" at 2 weeks,
+// "wearing off" at 8) and none of them overwrite each other.
+model TreatmentOutcome {
+  id         Int      @id @default(autoincrement())
+  recordedAt DateTime @default(now())
+  status     String
+  reliefDays Int?
+  painLevel  Int?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  treatmentId Int
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  @@index([treatmentId])
 }
 
 model MedicalVisit {
-  id      Int      @id @default(autoincrement())
-  doctor  String?
-  clinic  String?
-  date    DateTime
-  notes   String?
+  id     Int      @id @default(autoincrement())
+  doctor String?
+  clinic String?
+  date   DateTime
+  notes  String?
 
   injuryId Int
   injury   Injury @relation(fields: [injuryId], references: [id])

@@ -36,6 +36,11 @@ import {
   updateMedicalVisit,
   deleteMedicalVisit,
 } from './services/medicalVisitService.js';
+import {
+  createTreatmentOutcome,
+  getTreatmentOutcomes,
+  deleteTreatmentOutcome,
+} from './services/treatmentOutcomeService.js';
 
 // POST /api/auth/register
 export const register = async (req, res, next) => {
@@ -454,6 +459,64 @@ export const deleteMedicalVisitController = async (req, res, next) => {
     if (!visit) {
       return res.status(404).json({
         error: 'Visit not found',
+      });
+    }
+
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/treatments/:treatmentId/outcomes
+export const createTreatmentOutcomeController = async (req, res, next) => {
+  try {
+    const outcome = await createTreatmentOutcome(
+      Number(req.params.treatmentId),
+      req.userId,
+      req.body
+    );
+
+    if (!outcome) {
+      return res.status(404).json({
+        error: 'Treatment not found',
+      });
+    }
+
+    res.status(201).json(outcome);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/treatments/:treatmentId/outcomes
+export const getTreatmentOutcomesController = async (req, res, next) => {
+  try {
+    const outcomes = await getTreatmentOutcomes(
+      Number(req.params.treatmentId),
+      req.userId
+    );
+
+    if (!outcomes) {
+      return res.status(404).json({
+        error: 'Treatment not found',
+      });
+    }
+
+    res.json(outcomes);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/treatment-outcomes/:id
+export const deleteTreatmentOutcomeController = async (req, res, next) => {
+  try {
+    const outcome = await deleteTreatmentOutcome(Number(req.params.id), req.userId);
+
+    if (!outcome) {
+      return res.status(404).json({
+        error: 'Treatment outcome not found',
       });
     }
 

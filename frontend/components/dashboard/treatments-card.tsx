@@ -1,61 +1,118 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { getTreatments, type Treatment } from "@/services/api";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardAction,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TreatmentOutcomes } from "@/components/dashboard/treatment-outcomes";
 
 export function TreatmentsCard({ injuryId }: { injuryId: number }) {
+  const router = useRouter();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadTreatments() {
       try {
+        setLoading(true);
         setError(null);
 
         const data = await getTreatments(injuryId);
-        setTreatments(data);
+
+        if (!ignore) {
+          setTreatments(data);
+        }
       } catch (error) {
         console.error(error);
-        setError("Failed to load treatments");
+
+        if (!ignore) {
+          setError("Failed to load treatments");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     }
 
     loadTreatments();
+
+    return () => {
+      ignore = true;
+    };
   }, [injuryId]);
 
+  const logHref = `/dashboard/log?injuryId=${injuryId}&type=treatment`;
+
   return (
-    <div className="max-w-2xl rounded-xl border bg-card p-5">
-      <h2 className="text-lg font-semibold">Treatments</h2>
+    <Card>
+      <CardHeader>
+        <CardTitle>Treatments</CardTitle>
+        <CardAction>
+          <Button size="sm" variant="outline" onClick={() => router.push(logHref)}>
+            Log treatment
+          </Button>
+        </CardAction>
+      </CardHeader>
 
-      {error ? (
-        <p className="mt-3 text-muted-foreground">{error}</p>
-      ) : treatments.length === 0 ? (
-        <p className="mt-3 text-muted-foreground">No treatments recorded.</p>
-      ) : (
-        <div className="mt-4 space-y-4">
-          {treatments.map((treatment) => (
-            <div key={treatment.id}>
-              <p className="font-medium">{treatment.name}</p>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
+          </div>
+        ) : error ? (
+          <p className="text-muted-foreground">{error}</p>
+        ) : treatments.length === 0 ? (
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-muted-foreground">
+              Nothing logged yet — treatments you try are what this app is
+              for.
+            </p>
+            <Button size="sm" onClick={() => router.push(logHref)}>
+              Log your first treatment
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {treatments.map((treatment) => (
+              <div key={treatment.id} className="border-t pt-4 first:border-t-0 first:pt-0">
+                <p className="font-medium">{treatment.name}</p>
 
-              <p className="text-sm text-muted-foreground">
-                Date: {new Date(treatment.date).toLocaleDateString()}
-              </p>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(treatment.date).toLocaleDateString()}
+                </p>
 
-              {treatment.provider && (
-                <p className="text-sm">Provider: {treatment.provider}</p>
-              )}
+                {treatment.provider && (
+                  <p className="text-sm">Provider: {treatment.provider}</p>
+                )}
 
-              {treatment.cost !== undefined && (
-                <p className="text-sm">Cost: {treatment.cost}</p>
-              )}
+                {treatment.cost !== null && treatment.cost !== undefined && (
+                  <p className="text-sm">Cost: {treatment.cost}</p>
+                )}
 
-              {treatment.outcome && (
-                <p className="text-sm">Outcome: {treatment.outcome}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+                {treatment.outcome && (
+                  <p className="text-sm">Outcome: {treatment.outcome}</p>
+                )}
+
+                <TreatmentOutcomes treatmentId={treatment.id} />
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

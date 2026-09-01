@@ -1,12 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { getSymptoms, type Symptom } from "@/services/api";
+import { painToneClass } from "@/lib/pain";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardAction,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function SymptomsCard({ injuryId }: { injuryId: number }) {
+  const router = useRouter();
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let ignore = false;
@@ -15,7 +28,6 @@ export function SymptomsCard({ injuryId }: { injuryId: number }) {
       try {
         setLoading(true);
         setError(null);
-        setSymptoms([]);
 
         const data = await getSymptoms(injuryId);
 
@@ -42,28 +54,64 @@ export function SymptomsCard({ injuryId }: { injuryId: number }) {
     };
   }, [injuryId]);
 
+  const logHref = `/dashboard/log?injuryId=${injuryId}&type=symptom`;
+
   return (
-    <div className="max-w-2xl rounded-xl border bg-card p-5">
-      <h2 className="text-lg font-semibold">Symptoms</h2>
+    <Card>
+      <CardHeader>
+        <CardTitle>Symptoms</CardTitle>
+        <CardAction>
+          <Button size="sm" variant="outline" onClick={() => router.push(logHref)}>
+            Log symptom
+          </Button>
+        </CardAction>
+      </CardHeader>
 
-      {loading ? (
-        <p className="mt-3 text-muted-foreground">Loading symptoms...</p>
-      ) : error ? (
-        <p className="mt-3 text-muted-foreground">{error}</p>
-      ) : symptoms.length === 0 ? (
-        <p className="mt-3 text-muted-foreground">No symptoms recorded.</p>
-      ) : (
-        symptoms.map((symptom) => (
-          <div key={symptom.id} className="mt-4">
-            <p>Pain level: {symptom.painLevel}/10</p>
-            <p>Location: {symptom.location}</p>
-
-            {symptom.trigger && <p>Trigger: {symptom.trigger}</p>}
-
-            {symptom.notes && <p>Notes: {symptom.notes}</p>}
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
           </div>
-        ))
-      )}
-    </div>
+        ) : error ? (
+          <p className="text-muted-foreground">{error}</p>
+        ) : symptoms.length === 0 ? (
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-muted-foreground">
+              No symptoms recorded yet for this injury.
+            </p>
+            <Button size="sm" onClick={() => router.push(logHref)}>
+              Log your first symptom
+            </Button>
+          </div>
+        ) : (
+          symptoms.map((symptom) => (
+            <div key={symptom.id} className="flex gap-4 border-t pt-4 first:border-t-0 first:pt-0">
+              <div className="flex flex-col items-center">
+                <span
+                  className={`font-serif tabular text-2xl leading-none ${painToneClass(symptom.painLevel)}`}
+                >
+                  {symptom.painLevel}
+                </span>
+                <span className="text-xs text-muted-foreground">/10</span>
+              </div>
+
+              <div className="flex-1 space-y-0.5">
+                <p className="text-sm text-muted-foreground">
+                  {new Date(symptom.date).toLocaleDateString()}
+                </p>
+                {symptom.location && <p>{symptom.location}</p>}
+                {symptom.trigger && (
+                  <p className="text-sm text-muted-foreground">
+                    Trigger: {symptom.trigger}
+                  </p>
+                )}
+                {symptom.notes && <p className="text-sm">{symptom.notes}</p>}
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }

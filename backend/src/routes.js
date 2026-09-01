@@ -24,6 +24,9 @@ import {
   getMedicalVisitsController,
   updateMedicalVisitController,
   deleteMedicalVisitController,
+  createTreatmentOutcomeController,
+  getTreatmentOutcomesController,
+  deleteTreatmentOutcomeController,
   askAssistantController,
 } from './controllers.js';
 import {
@@ -46,6 +49,7 @@ import {
   updateTreatmentSchema,
   medicalVisitSchema,
   updateMedicalVisitSchema,
+  treatmentOutcomeSchema,
   assistantAskSchema,
 } from './validators.js';
 
@@ -246,6 +250,31 @@ router.delete(
   authenticate,
   validateNumericParam('id'),
   deleteMedicalVisitController
+);
+
+// POST /api/treatments/:treatmentId/outcomes
+router.post(
+  '/treatments/:treatmentId/outcomes',
+  authenticate,
+  validateNumericParam('treatmentId'),
+  validate(treatmentOutcomeSchema),
+  createTreatmentOutcomeController
+);
+
+// GET /api/treatments/:treatmentId/outcomes
+router.get(
+  '/treatments/:treatmentId/outcomes',
+  authenticate,
+  validateNumericParam('treatmentId'),
+  getTreatmentOutcomesController
+);
+
+// DELETE /api/treatment-outcomes/:id
+router.delete(
+  '/treatment-outcomes/:id',
+  authenticate,
+  validateNumericParam('id'),
+  deleteTreatmentOutcomeController
 );
 
 // POST /api/assistant/ask
