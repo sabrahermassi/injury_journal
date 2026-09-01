@@ -50,8 +50,11 @@ from the token's `userId` claim.
 
 - `searchSimilarChunks` (`vector-storage.ts`) filters by `userId` (a real, indexed column on
   `DocumentChunk`, issue #41), in addition to the optional `injuryId`/`sourceType` filters.
-- `journalTool` (`journal-tool.ts`) scopes its `prisma.injury.findUnique` lookup to the
+- `journalTool` (`journal-tool.ts`) scopes its `prisma.injury.findFirst` lookup to the
   authenticated `userId`, not just the record `id`.
+- `journalToolAll` (`journal-tool.ts`), which loads every injury when the request carries no
+  `injuryId`, filters on `userId` alone — there is no unscoped read. Both functions share one
+  `injuryInclude` constant so the scoped and unscoped queries cannot drift apart.
 
 An authenticated caller can no longer read another user's chunks or journal record by
 guessing/knowing an `injuryId`. See CLAUDE.md §9 on user-level data isolation.
@@ -71,27 +74,46 @@ guessing/knowing an `injuryId`. See CLAUDE.md §9 on user-level data isolation.
 (`"safety" | "journal" | "rag"`) is included on every response so the frontend can discriminate
 the branch without inferring it from shape (resolved as part of issue #45):**
 
+Every row below now carries a `metadata` key. The `journal` rows previously omitted it entirely —
+see the shape-change note after the table.
+
 | Path | Body |
 |------|------|
 | Safety-blocked | `{ "answer": "<refusal>", "citations": [], "intent": "safety", "metadata": { "retrievedChunks": [] } }` |
-| `journal` intent, no `injuryId` given | `{ "answer": "An injury must be selected for journal questions.", "citations": [], "intent": "journal" }` — **no `metadata` key at all** |
-| `journal` intent, `injuryId` not found | `{ "answer": "No injury record was found.", "citations": [], "intent": "journal" }` — **no `metadata` key** |
-| `journal` intent, found | `{ "answer": "<LLM-generated prose summary of the injury record>", "citations": [], "intent": "journal" }` — generated via `formatInjuryRecord()` → `checkContentSafety()` → `buildUserPrompt()` → `generateAnswer()`; there's still no `metadata` key |
-| `journal` intent, generation failed | `{ "answer": "Unable to generate a summary from your injury record right now.", "citations": [], "intent": "journal" }` — `generateAnswer()` returned an empty string (e.g. LLM service returned no content); **no `metadata` key** |
-| `journal` intent, content-safety blocked | `{ "answer": "<refusal>", "citations": [], "intent": "journal" }` — `checkContentSafety()` flagged the formatted injury record itself (not the question) before any LLM call; **no `metadata` key**, same shape as the other journal early-return rows (issue #66) |
+| `safety` intent from `isDiagnosisRequest()` | `{ "answer": "<refusal>", "citations": [], "intent": "safety", "metadata": { "retrievedChunks": [] } }` — same message/shape as the row above, produced by a second, narrower keyword check (see note below) rather than the main `checkSafety` gate |
+| `journal` intent, `injuryId` given but not found | `{ "answer": "No injury record was found.", "citations": [], "intent": "journal", "metadata": { "retrievedChunks": [] } }` |
+| `journal` intent, no `injuryId` and the user has no injuries | `{ "answer": "There are no injuries in the journal yet. ...", "citations": [], "intent": "journal", "metadata": { "retrievedChunks": [] } }` |
+| `journal` intent, found | `{ "answer": "<LLM-generated prose>", "citations": [...], "intent": "journal", "metadata": { "retrievedChunks": [{ "sourceType": "string", "sourceId": 1, "injuryId": 1 }] } }` — generated via `journalTool`/`journalToolAll` → `buildAllInjuryStats()` + `formatInjuryRecord(s)()` → `checkContentSafety()` → `buildUserPrompt()` → `generateAnswer()`. `citations` and `retrievedChunks` both list **every record placed in the prompt**, one entry per symptom/treatment/visit/timeline event plus the injury itself |
+| `journal` intent, generation failed | `{ "answer": "Unable to generate a summary from your injury record right now.", "citations": [], "intent": "journal", "metadata": { "retrievedChunks": [] } }` — `generateAnswer()` returned an empty string |
+| `journal` intent, content-safety blocked | `{ "answer": "<refusal>", "citations": [], "intent": "journal", "metadata": { "retrievedChunks": [] } }` — `checkContentSafety()` flagged the assembled record text itself (not the question) before any LLM call (issue #66). Note this now covers **all** the user's injuries on an unscoped request, so one flagged record blocks the whole answer |
 | `rag` intent | `{ "answer": "string", "citations": [...], "intent": "rag", "metadata": { "retrievedChunks": [{ "sourceType": "string", "sourceId": 1 }] } }` |
-| `safety` intent from `routeIntent()` | `{ "answer": "<refusal>", "citations": [], "intent": "safety", "metadata": { "retrievedChunks": [] } }` — same message/shape as the "Safety-blocked" row above, produced by a second, narrower keyword check (see note below) rather than the main `checkSafety` gate |
 
-**Note — two distinct safety-routing paths, not a documentation gap:** `routeIntent()` can return
-`'safety'` as an `AgentIntent` (it's a defined member of the type and is returned when the
-question matches a small keyword list — `diagnose`, `do i have`, `cancer`, `condition`).
-`runAgent`'s `switch` has a `case 'safety':` that returns the same refusal shape as the main
-safety gate. This is separate from — and less thorough than — the actual safety gate that already
-runs earlier in the same function (`checkSafety`/`safetyTool`, a much larger regex set in
+**Note — how `journal` and `rag` are now chosen.** Until the whole-record change, `routeIntent()`
+picked between them by keyword on the question text (`timeline|history|when|events` → `journal`,
+everything else → `rag`). That function is gone. The orchestrator now decides on request *shape and
+size*:
+
+1. `injuryId` present → load that injury whole (`journalTool`).
+2. `injuryId` absent → load every injury the user owns whole (`journalToolAll`).
+3. Estimated context above `CONTEXT_TOKEN_BUDGET` → fall back to the retrieval path unchanged,
+   and the response reports `intent: "rag"`.
+
+So `intent` still describes which path produced the answer, but it is no longer predictable from
+the question's wording alone — a caller cannot infer it without knowing the journal's size. Two
+user-visible responses disappeared with `routeIntent()`: `"An injury must be selected for journal
+questions."` (an unscoped question now answers across all injuries instead) and the generic
+`"Unable to determine how to handle this request."` default branch.
+
+**Note — two distinct safety-routing paths, not a documentation gap:** `isDiagnosisRequest()`
+(`ai-agent-intent-router.ts`) returns `true` when the question matches a small keyword list —
+`diagnose`, `do i have`, `cancer`, `condition` — and `runAgent` then returns the same refusal shape
+as the main safety gate. This is separate from, and less thorough than, the actual safety gate that
+already ran earlier in the same function (`checkSafety`/`safetyTool`, a much larger regex set in
 `safety-service.ts`). The two mechanisms overlap but are not identical: a question that slips past
-`checkSafety` but matches `routeIntent`'s narrower list still gets a proper refusal, just via the
-second path. Reconciling the two keyword sets is out of scope for issue #86, which only closed the
-missing-switch-case defect.
+`checkSafety` but matches the narrower list still gets a proper refusal, just via the second path.
+The narrower list is also blunt enough to over-refuse — a bare `condition` substring match rejects
+"what treatments improved my condition?". Reconciling the two keyword sets remains out of scope
+here; issue #86 only closed the missing-branch defect.
 
 **Errors**
 
@@ -108,7 +130,8 @@ Every error body includes a machine-readable `code` field alongside `error` (iss
 | 429 | `{ "error": "Too many requests, please try again later.", "code": "rate_limited" }` | two-tier limiting (issue #89, refined by #145): a lenient per-IP limiter (40 req/60s) runs before `authenticate` to bound anonymous/invalid-token request volume, and a stricter per-user limiter (20 req/60s, keyed by `req.userId`) runs after — so one client's failed-auth traffic can no longer exhaust another authenticated user's budget on a shared IP. The IP limiter is kept at only 2x the per-user limit, not looser, so it still bounds worst-case LLM/embedding cost-abuse from a multi-account attacker sharing one IP. |
 | 500 | `{ "error": "Failed to process request", "code": "embedding_service_error" }` | the embedding service call (`src/embeddings/embedding-client.ts`) failed — missing `EMBEDDING_API_KEY`, network/connection failure, non-OK HTTP response, or an invalid/malformed response shape |
 | 500 | `{ "error": "Failed to process request", "code": "database_error" }` | Prisma threw `PrismaClientKnownRequestError` or `PrismaClientInitializationError` (query failure or DB unreachable) |
-| 500 | `{ "error": "Failed to process request", "code": "llm_service_error" }` | the Groq LLM call threw a `Groq.APIError` (or subclass — rate limit, auth, connection, etc.) |
+| 503 | `{ "error": "The assistant is temporarily over its request limit. ...", "code": "llm_rate_limited" }` | the Groq call threw a `Groq.APIError` with status `429` (the account's tokens-per-minute bucket) or `413` (one request larger than that whole bucket, which Groq rejects rather than queues). Split out from `llm_service_error` because neither means the service is down and both clear on their own. Reachable in ordinary use: a full-journal prompt is several thousand tokens against an 8,000/min bucket |
+| 500 | `{ "error": "Failed to process request", "code": "llm_service_error" }` | the Groq LLM call threw any other `Groq.APIError` (auth, connection, 5xx, etc.) |
 | 500 | `{ "error": "Failed to process request", "code": "internal_error" }` | fallback for any other unexpected exception, including a missing `JWT_SECRET` in `authenticate.ts` |
 
 `askAgent` destructures `req.body ?? {}`, so a body-less `POST /ai-agent` returns the 400 above

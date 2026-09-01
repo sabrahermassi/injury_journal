@@ -242,9 +242,11 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
   (`backend/src/services/assistantService.js`). This exists because the token is in an httpOnly
   cookie that browser JS cannot read — storing it somewhere readable would undo issue #8. Set
   `AI_ASSISTANT_URL` on the backend to point at the service.
-- **Retrieval path**: journal content → chunk → embed → pgvector cosine retrieval → LLM → cited
-  answer. Safety checks run before retrieval; an unsupported question gets an explicit
-  no-information response rather than an LLM guess.
+- **Answering path**: safety checks → load the whole injury record (or all of the user's) →
+  computed summary figures + records → LLM → cited answer. Vector retrieval (chunk → embed →
+  pgvector cosine search) is the *fallback*, used only when the journal is too large to hand over
+  whole; see that folder's `docs/02-architecture.md` D13. Safety checks run before either path;
+  an unsupported question gets an explicit no-information response rather than an LLM guess.
 - **Relationship to this app** (its own `docs/02-architecture.md`, decision D10): it does **not**
   own Injury CRUD or authentication — this app (`backend/`) does. It verifies JWTs issued by this
   repo's backend, so both apps must share the exact same `JWT_SECRET` (see `docs/14-deployment.md`).
@@ -267,9 +269,10 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
     `ai-injury-assistant/scripts/assert-local-db.mjs` enforces this and is wired into its
     `dev:migrate:local` script.
   - Its `prisma/schema.prisma` still declares the journal models because its Prisma Client needs
-    them. They are a compatible *subset* of the real tables — it does not yet model
-    `TreatmentOutcome`, so treatment check-ins are invisible to retrieval (`Treatment.outcome` is
-    not). Worth adding when outcome data matters to answers.
+    them. They are a compatible *subset* of the real tables. `TreatmentOutcome` is now among them,
+    so treatment check-ins are readable when the assistant loads a whole record — but its
+    *ingestion* pipeline still chunks only the older free-text `Treatment.outcome`, so check-ins
+    stay invisible on the vector-retrieval fallback path.
   - Both seed scripts refuse to run against the shared database (`prisma/seed-dev.ts` checks the
     database name, `prisma/seed.ts` requires `test` in the URL). Verified, but do not weaken those
     guards: `seed-dev.ts` opens with a `TRUNCATE`.
