@@ -556,3 +556,67 @@ export async function deleteTimelineEvent(id: number) {
     throw new Error("Failed to delete timeline event");
   }
 }
+
+export interface AssistantCitation {
+  label?: string;
+  sourceType?: string;
+  sourceId: number | string;
+  date?: string;
+}
+
+export interface AssistantAnswer {
+  answer: string;
+  citations?: AssistantCitation[];
+}
+
+// Goes through this app's own backend rather than calling the assistant
+// service directly: the JWT lives in an httpOnly cookie, so the browser has no
+// token to send as a Bearer header. The backend forwards its verified token
+// on our behalf (see backend/src/services/assistantService.js).
+export async function askAssistant(
+  question: string,
+  injuryId?: number,
+): Promise<AssistantAnswer> {
+  const response = await authFetch(`${API_URL}/api/assistant/ask`, {
+    method: "POST",
+    body: JSON.stringify(
+      injuryId === undefined ? { question } : { question, injuryId },
+    ),
+  });
+
+  let data: unknown;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(
+      `Unexpected non-JSON response from the server (HTTP ${response.status}).`,
+    );
+  }
+
+  if (!response.ok) {
+    const { error, code } = (data ?? {}) as { error?: string; code?: string };
+    throw new Error(
+      `${error ?? "Request failed"}${code ? ` (${code})` : ""}`,
+    );
+  }
+
+  const { answer, citations } = (data ?? {}) as {
+    answer?: unknown;
+    citations?: unknown;
+  };
+
+  // A 200 doesn't guarantee the shape — the assistant is a separate service.
+  // Surface a malformed body through the error path rather than throwing
+  // while rendering the answer.
+  if (
+    typeof answer !== "string" ||
+    (citations !== undefined && !Array.isArray(citations))
+  ) {
+    throw new Error(
+      `Unexpected response shape from the server (HTTP ${response.status}).`,
+    );
+  }
+
+  return { answer, citations: citations as AssistantCitation[] | undefined };
+}

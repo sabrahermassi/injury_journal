@@ -201,6 +201,10 @@ PORT=
 DATABASE_URL=
 
 JWT_SECRET=
+
+AI_ASSISTANT_URL=   # base URL of the ai-injury-assistant service
+                    # (defaults to http://localhost:3002); the backend proxies
+                    # POST /api/assistant/ask to it
 ```
 
 ---
@@ -212,6 +216,32 @@ Example:
 ```env
 VITE_API_URL=
 ```
+
+---
+
+## AI Injury Journal Variables (`ai-injury-assistant/`)
+
+The AI/RAG service is deployed separately from the backend above and has its
+own database. See `ai-injury-assistant/README.md` for setup detail.
+
+```env
+PORT=                 # defaults to 3002 (3000/3001 belong to frontend/backend)
+DATABASE_URL=         # its OWN database, requires the pgvector extension
+JWT_SECRET=           # MUST be byte-identical to the backend's JWT_SECRET
+GROQ_API_KEY=         # LLM generation
+EMBEDDING_API_KEY=    # shared secret for the embedding service
+ALLOWED_ORIGIN=       # required in production; comma-separated origin list
+```
+
+> **`JWT_SECRET` is shared between two services.** The backend issues the JWTs;
+> the AI service only verifies them (see `ai-injury-assistant/docs/02-architecture.md`
+> decision D10). If the two values ever diverge, every authenticated request to
+> the AI service returns `401` while the backend keeps working — a failure that
+> looks like an AI-service bug but is a configuration mismatch. Rotating the
+> secret means rotating it in both places at once.
+>
+> Note this also widens the blast radius: one leaked value grants access to both
+> services.
 
 ---
 

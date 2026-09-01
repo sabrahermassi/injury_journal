@@ -5,6 +5,7 @@ import {
   HeartPulse,
   LayoutDashboard,
   LineChart,
+  MessageCircleQuestion,
   PenLine,
   Settings,
   Sparkles,
@@ -37,6 +38,7 @@ const trackingNav = [
 
 const toolsNav = [
   { title: "AI Extractor", href: "/dashboard/extractor", icon: Sparkles },
+  { title: "Ask your journal", href: "/dashboard/assistant", icon: MessageCircleQuestion },
 ];
 
 const secondaryNav = [

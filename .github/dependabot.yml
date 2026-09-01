@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "pip"
-    directory: "/extractor/lambda"
+    directory: "/ai-injury-extractor/lambda"
     schedule:
       interval: "weekly"
   - package-ecosystem: "npm"

@@ -27,6 +27,7 @@ import {
   createTreatmentOutcomeController,
   getTreatmentOutcomesController,
   deleteTreatmentOutcomeController,
+  askAssistantController,
 } from './controllers.js';
 import {
   authenticate,
@@ -49,6 +50,7 @@ import {
   medicalVisitSchema,
   updateMedicalVisitSchema,
   treatmentOutcomeSchema,
+  assistantAskSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -273,6 +275,17 @@ router.delete(
   authenticate,
   validateNumericParam('id'),
   deleteTreatmentOutcomeController
+);
+
+// POST /api/assistant/ask
+// Proxies to the AI assistant service, forwarding the caller's own token.
+// See src/services/assistantService.js for why this goes through the backend
+// rather than the browser calling the assistant directly.
+router.post(
+  '/assistant/ask',
+  authenticate,
+  validate(assistantAskSchema),
+  askAssistantController
 );
 
 export default router;
