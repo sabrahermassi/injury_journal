@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { PlusCircle } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
+import { useAllSymptoms } from "@/hooks/use-symptoms";
 import { useDueFollowUps } from "@/hooks/use-due-followups";
 import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
+import { PainChart } from "@/components/dashboard/pain-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,10 +26,16 @@ export default function DashboardOverviewPage() {
   const router = useRouter();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
   const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
+  const { symptoms, error: symptomsError } = useAllSymptoms(injuries);
   const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
   const [createOpen, setCreateOpen] = useState(false);
 
   const recent = useMemo(() => events.slice(0, 5), [events]);
+
+  const trackedNames = useMemo(
+    () => injuries.map((injury) => injury.name).join(" & "),
+    [injuries],
+  );
 
   if (injuriesLoading) {
     return (
@@ -68,22 +77,84 @@ export default function DashboardOverviewPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-heading text-xl font-medium">{greeting()}</h2>
-          <p className="text-sm text-muted-foreground">
-            {injuries.length === 1
-              ? "1 injury profile being tracked."
-              : `${injuries.length} injury profiles being tracked.`}
+    <main className="flex flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6">
+      {/* Decorative sprig from the reference design, bleeding off the right
+          edge. Clipped by the section so it can never widen the page. */}
+      <section className="relative overflow-hidden">
+        <Image
+          src="/sprig-ref.png"
+          alt=""
+          width={326}
+          height={236}
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-6 right-0 w-[326px] max-w-[42%] select-none"
+        />
+
+        <div className="relative max-w-xl">
+          <h2 className="font-serif text-4xl leading-[1.02] font-light tracking-tight text-foreground md:text-[46px]">
+            {greeting()}
+          </h2>
+          <p className="mt-3.5 text-[15.5px] leading-relaxed text-muted-foreground">
+            Healing isn&apos;t linear, but every step counts.{" "}
+            <span className="text-accent-foreground" aria-hidden="true">
+              ♡
+            </span>
           </p>
         </div>
+      </section>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {injuries.length === 1
+            ? "1 injury profile being tracked."
+            : `${injuries.length} injury profiles being tracked.`}
+        </p>
 
         <Button onClick={() => router.push("/dashboard/log")}>
           <PlusCircle />
           Log something
         </Button>
       </div>
+
+      <Card className="gap-0 py-0">
+        <CardHeader className="flex flex-wrap items-start justify-between gap-4 px-6 pt-5.5 pb-0">
+          <div className="flex items-start gap-3">
+            <Image
+              src="/art-leaf-sm.png"
+              alt=""
+              width={30}
+              height={30}
+              aria-hidden="true"
+              className="mt-1 size-[30px] flex-none select-none"
+            />
+            <div>
+              <CardTitle className="font-serif text-2xl leading-tight font-medium">
+                How you&apos;ve been feeling
+              </CardTitle>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Past 30 days{trackedNames ? ` · ${trackedNames}` : ""}
+              </p>
+            </div>
+          </div>
+
+          {/* The design draws this as a dropdown. Daily average is the only
+              aggregation there is, so it stays a label rather than a
+              control that opens nothing. */}
+          <span className="flex h-11 flex-none items-center rounded-2xl bg-popover px-4 text-[13.5px] text-foreground/80 ring-1 ring-border">
+            Daily average
+          </span>
+        </CardHeader>
+
+        <CardContent className="px-6 pt-3.5 pb-5">
+          {symptomsError ? (
+            <p className="py-8 text-sm text-muted-foreground">
+              Couldn&apos;t load pain levels — try refreshing.
+            </p>
+          ) : (
+            <PainChart symptoms={symptoms} />
+          )}
+        </CardContent>
+      </Card>
 
       {dueFollowUpsError && (
         <Card>
@@ -131,10 +202,22 @@ export default function DashboardOverviewPage() {
         </Card>
       )}
 
+      <div className="flex items-baseline justify-between gap-4 px-1 pt-1">
+        <h3 className="font-serif text-2xl font-medium text-foreground">
+          Recent activity
+        </h3>
+        {recent.length > 0 && (
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/timeline")}
+            className="text-[13.5px] font-medium text-accent-foreground transition-colors hover:text-foreground"
+          >
+            View all
+          </button>
+        )}
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Recent activity</CardTitle>
-        </CardHeader>
         <CardContent>
           {eventsLoading ? (
             <div className="space-y-2">
