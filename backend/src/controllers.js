@@ -6,6 +6,7 @@ import {
 } from './services/authService.js';
 import { authCookieOptions, csrfCookieOptions } from './utils.js';
 import { askAssistant } from './services/assistantService.js';
+import { acceptExtraction } from './services/extractionService.js';
 import {
   createInjury,
   getInjuries,
@@ -98,6 +99,23 @@ export const deleteAccountController = async (req, res, next) => {
     res.clearCookie('token', authCookieOptions);
     res.clearCookie('csrfToken', csrfCookieOptions);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extractions/accept — files an AI extraction into the journal.
+export const acceptExtractionController = async (req, res, next) => {
+  try {
+    const result = await acceptExtraction(req.userId, req.body);
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }

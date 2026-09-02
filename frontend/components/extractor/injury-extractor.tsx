@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { extractInjury } from "@/services/extractor-api";
 import { ExtractionResult } from "./extraction-result";
+import { AcceptExtraction } from "./accept-extraction";
 import type { InjuryExtraction } from "@/lib/injury-schema";
 
 const EXAMPLE = "My left knee hurts after squats. Pain is 7 out of 10.";
@@ -140,7 +141,10 @@ export function InjuryExtractor({ children }: { children?: React.ReactNode }) {
           {loading ? (
             <ResultSkeleton />
           ) : result ? (
-            <ExtractionResult result={result} />
+            <>
+              <ExtractionResult result={result} />
+              <AcceptExtraction result={result} note={description} />
+            </>
           ) : (
             <p className="px-[22px] pb-6 text-sm text-muted-foreground text-pretty">
               Nothing extracted yet. Paste a note and run it to see the

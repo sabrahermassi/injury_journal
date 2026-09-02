@@ -4,6 +4,7 @@ import {
   login,
   logout,
   deleteAccountController,
+  acceptExtractionController,
   createInjuryController,
   getInjuriesController,
   getInjuryController,
@@ -55,6 +56,7 @@ import {
   updateMedicalVisitSchema,
   treatmentOutcomeSchema,
   assistantAskSchema,
+  acceptExtractionSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -86,6 +88,14 @@ router.post('/auth/logout', logout);
 
 // DELETE /api/auth/me
 router.delete('/auth/me', authenticate, deleteAccountController);
+
+// POST /api/extractions/accept — turn an AI extraction into journal records
+router.post(
+  '/extractions/accept',
+  authenticate,
+  validate(acceptExtractionSchema),
+  acceptExtractionController
+);
 
 // POST /api/injuries
 router.post(

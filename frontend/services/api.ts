@@ -198,6 +198,36 @@ export async function deleteAccount() {
   }
 }
 
+/**
+ * Files an AI extraction into the journal as real records.
+ *
+ * Goes to this app's backend, not the extractor's — the extractor keeps its
+ * own store and owns none of this data. Pass `injuryId` to file against an
+ * injury the user picked, or `injuryName` to open a new one; one of the two
+ * is required.
+ */
+export async function acceptExtraction(payload: {
+  injuryId?: number;
+  injuryName?: string;
+  bodyArea: string;
+  painLevel?: number | null;
+  symptoms: string[];
+  possibleCauses: string[];
+  note?: string;
+}): Promise<{ injury: Injury; symptoms: Symptom[]; event: TimelineEvent }> {
+  const response = await authFetch(`${API_URL}/api/extractions/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save this summary to your journal");
+  }
+
+  return response.json();
+}
+
 export async function getInjuries(): Promise<Injury[]> {
   const response = await authFetch(`${API_URL}/api/injuries`);
 
