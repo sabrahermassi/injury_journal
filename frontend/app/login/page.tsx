@@ -6,13 +6,9 @@ import { loginUser } from "../../services/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import PageContainer from "@/components/PageContainer";
-import AuthCard from "@/components/AuthCard";
-import AuthHeader from "@/components/AuthHeader";
-
+import { AuthLayout } from "@/components/auth-layout";
+import { AuthField, AuthPasswordField } from "@/components/auth-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,49 +45,56 @@ export default function LoginPage() {
   };
 
   return (
-    <PageContainer>
-      <div className="w-full max-w-md">
-        <AuthHeader />
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Your journal is right where you left it."
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+        <AuthField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="email"
+          required
+        />
 
-        <AuthCard title="Welcome back!">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+        <AuthPasswordField
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+        />
 
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.currentTarget.value)}
-              />
-            </div>
+        {/* The design's frame also has "Keep me signed in", "Forgot
+            password?", and Apple/Google buttons under an "or" divider. None
+            of the three exists: the session length is fixed by the login
+            cookie, there is no password-reset route, and there is no OAuth
+            provider wired up — backend/src/routes.js has exactly
+            /auth/login, /auth/register and /auth/logout. They are left out
+            rather than shipped as controls that go nowhere. */}
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="mt-2.5 h-14 rounded-full text-[15px] font-semibold"
+        >
+          {loading ? "Signing in..." : "Sign in"}
+        </Button>
 
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.currentTarget.value)}
-              />
-            </div>
+        <p aria-live="polite" className="min-h-5 text-center text-sm text-destructive">
+          {message}
+        </p>
 
-            <Button type="submit" disabled={loading} className="w-full">
-              Login
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="underline">
-                Create one
-              </Link>
-            </p>
-          </form>
-
-          {message && <p className="mt-4 text-center text-sm">{message}</p>}
-        </AuthCard>
-      </div>
-    </PageContainer>
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-medium text-accent-foreground hover:text-foreground"
+          >
+            Create one
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }
