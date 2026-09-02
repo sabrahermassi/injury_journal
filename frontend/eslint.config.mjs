@@ -12,6 +12,16 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright's own test API, not the Next.js app: `test.extend`'s `use`
+    // callback trips react-hooks/rules-of-hooks (a function argument named
+    // `use`, not a hook), and its fixtures/specs otherwise follow Playwright's
+    // conventions rather than this app's. Its own lint story is Playwright's,
+    // not eslint-config-next's -- same reasoning as backend/ keeping a
+    // separate config from frontend/.
+    "e2e/**",
+    "playwright.config.ts",
+    "playwright-report/**",
+    "e2e-results.json",
   ]),
 ]);
 
