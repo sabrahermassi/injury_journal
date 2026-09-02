@@ -15,13 +15,58 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArtIcon } from "@/components/ui/art-icon";
+import { cn } from "@/lib/utils";
 
 type Group = {
   name: string;
   attempts: TreatmentWithOutcomes[];
+  /** Mean pain reported at check-in, across every attempt that recorded one. */
+  outcomePain: number | null;
+  /** Longest relief any attempt reported, in days. */
+  reliefDays: number | null;
+  /** How much better than the injury's own baseline, in pain points. */
+  delta: number | null;
 };
 
-function groupByName(treatments: TreatmentWithOutcomes[]): Group[] {
+// The design's "What helped" row carries a session count, how long relief
+// held, a change figure and a bar. Every one of those is real:
+// TreatmentOutcome records `reliefDays` and `painLevel` per check-in, so the
+// change is the check-in pain measured against the baseline the user was at
+// before any of this — not a score we invented.
+//
+// Treatments with no check-in have no figure and say so, rather than being
+// given a zero that would read as "did nothing".
+function summarise(
+  attempts: TreatmentWithOutcomes[],
+  baselinePain: number | null,
+): Pick<Group, "outcomePain" | "reliefDays" | "delta"> {
+  const pains: number[] = [];
+  let reliefDays: number | null = null;
+
+  for (const attempt of attempts) {
+    for (const outcome of attempt.outcomes) {
+      if (typeof outcome.painLevel === "number") pains.push(outcome.painLevel);
+      if (typeof outcome.reliefDays === "number") {
+        reliefDays = Math.max(reliefDays ?? 0, outcome.reliefDays);
+      }
+    }
+  }
+
+  const outcomePain =
+    pains.length > 0 ? pains.reduce((a, b) => a + b, 0) / pains.length : null;
+
+  const delta =
+    outcomePain !== null && baselinePain !== null
+      ? outcomePain - baselinePain
+      : null;
+
+  return { outcomePain, reliefDays, delta };
+}
+
+function groupByName(
+  treatments: TreatmentWithOutcomes[],
+  baselinePain: number | null,
+): Group[] {
   const groups = new Map<string, TreatmentWithOutcomes[]>();
 
   for (const treatment of treatments) {
@@ -31,9 +76,24 @@ function groupByName(treatments: TreatmentWithOutcomes[]): Group[] {
     groups.set(key, existing);
   }
 
-  return Array.from(groups.values())
-    .map((attempts) => ({ name: attempts[0].name, attempts }))
-    .sort((a, b) => b.attempts.length - a.attempts.length);
+  return (
+    Array.from(groups.values())
+      .map((attempts) => ({
+        name: attempts[0].name,
+        attempts,
+        ...summarise(attempts, baselinePain),
+      }))
+      // Biggest improvement first; anything with no check-in sinks to the
+      // bottom rather than sorting as if it scored zero.
+      .sort((a, b) => {
+        if (a.delta === null && b.delta === null) {
+          return b.attempts.length - a.attempts.length;
+        }
+        if (a.delta === null) return 1;
+        if (b.delta === null) return -1;
+        return a.delta - b.delta;
+      })
+  );
 }
 
 function latestStatus(treatment: TreatmentWithOutcomes): string | null {
@@ -81,7 +141,6 @@ export default function InsightsPage() {
   const { treatments, loading, error } = useAllTreatmentOutcomes();
   const { symptoms, error: symptomsError } = useAllSymptoms();
 
-  const groups = useMemo(() => groupByName(treatments), [treatments]);
   const isLoading = injuriesLoading || loading;
 
   // Pinned once per mount. Reading the clock during render is impure: the
@@ -100,6 +159,35 @@ export default function InsightsPage() {
 
     return Math.max(0, Math.floor((now - earliest) / 86_400_000));
   }, [injuries, now]);
+
+  // Where the user started: the mean of the earliest pain check-ins, before
+  // any treatment had time to work. Every treatment's change figure is read
+  // against this, so they are all measured from the same line.
+  const baselinePain = useMemo(() => {
+    if (symptoms.length === 0) return null;
+
+    // `symptoms` arrives oldest-first from the API.
+    const earliest = symptoms.slice(0, Math.min(5, symptoms.length));
+    return earliest.reduce((sum, s) => sum + s.painLevel, 0) / earliest.length;
+  }, [symptoms]);
+
+  const groups = useMemo(
+    () => groupByName(treatments, baselinePain),
+    [treatments, baselinePain],
+  );
+
+  // The widest bar belongs to the biggest improvement; the rest are drawn in
+  // proportion to it, so the column compares treatments against each other
+  // rather than against an arbitrary ceiling.
+  const bestDelta = useMemo(
+    () =>
+      groups.reduce(
+        (best, group) =>
+          group.delta !== null && group.delta < best ? group.delta : best,
+        0,
+      ),
+    [groups],
+  );
 
   // Mean of every pain level logged in the last 30 days. Null when nothing
   // was logged in that window -- an empty average is not zero pain.
@@ -211,18 +299,55 @@ export default function InsightsPage() {
                       <p className="truncate font-serif text-[16.5px] leading-tight font-medium text-foreground">
                         {group.name}
                       </p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {group.attempts[0].injuryName} · tried{" "}
+                      <p className="mt-1 truncate text-xs leading-snug text-muted-foreground">
                         {group.attempts.length}{" "}
-                        {group.attempts.length === 1 ? "time" : "times"}
+                        {group.attempts.length === 1 ? "session" : "sessions"}
+                        {group.reliefDays !== null &&
+                          ` · relief held ${group.reliefDays} ${
+                            group.reliefDays === 1 ? "day" : "days"
+                          }`}
+                        {group.reliefDays === null &&
+                          ` · ${group.attempts[0].injuryName}`}
                       </p>
                     </div>
 
-                    <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      {latestStatus(
-                        group.attempts[group.attempts.length - 1],
-                      ) ?? "No check-in"}
+                    {/* The design's change pill. A treatment with no check-in
+                        has no figure, and says so rather than showing a zero
+                        that would read as "made no difference". */}
+                    <span
+                      className={cn(
+                        "flex-none rounded-full px-3 py-1.5 text-[12.5px] font-medium",
+                        group.delta === null
+                          ? "bg-muted text-muted-foreground"
+                          : group.delta < 0
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-[#F7EEDD] text-[#7A6234] dark:bg-muted dark:text-muted-foreground",
+                      )}
+                    >
+                      {group.delta === null
+                        ? (latestStatus(
+                            group.attempts[group.attempts.length - 1],
+                          ) ?? "No check-in")
+                        : `${group.delta < 0 ? "−" : "+"}${Math.abs(group.delta).toFixed(1)}`}
                     </span>
+                  </div>
+
+                  {/* Drawn in proportion to the biggest improvement in the
+                      list, so the column compares treatments with each other. */}
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EAE5DC] dark:bg-muted">
+                    <div
+                      className="h-full rounded-full transition-[width]"
+                      style={{
+                        width:
+                          group.delta !== null && bestDelta < 0
+                            ? `${Math.max(0, Math.min(100, (group.delta / bestDelta) * 100))}%`
+                            : "0%",
+                        background:
+                          group.delta !== null && group.delta < 0
+                            ? "var(--accent-foreground)"
+                            : "var(--muted-foreground-subtle)",
+                      }}
+                    />
                   </div>
                 </div>
               ))}
