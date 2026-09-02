@@ -77,8 +77,8 @@ function Stat({
 export default function InsightsPage() {
   const router = useRouter();
   const { injuries, loading: injuriesLoading } = useInjuries();
-  const { treatments, loading, error } = useAllTreatmentOutcomes(injuries);
-  const { symptoms, error: symptomsError } = useAllSymptoms(injuries);
+  const { treatments, loading, error } = useAllTreatmentOutcomes();
+  const { symptoms, error: symptomsError } = useAllSymptoms();
 
   const groups = useMemo(() => groupByName(treatments), [treatments]);
   const isLoading = injuriesLoading || loading;

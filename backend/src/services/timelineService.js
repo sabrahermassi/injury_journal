@@ -1,4 +1,28 @@
-import { prisma } from '../utils.js';
+import { prisma, flattenInjuryName } from '../utils.js';
+
+// Every timeline event the user has, newest first. See the note on
+// getAllSymptomsForUser for why the per-injury fan-out was replaced.
+export const getAllEventsForUser = async (userId) => {
+  const events = await prisma.timelineEvent.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'desc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  return events.map(flattenInjuryName);
+};
 
 // Create timeline event
 export const createTimelineEvent = async (injuryId, userId, eventData) => {

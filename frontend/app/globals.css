@@ -202,6 +202,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Radix locks body scroll while a Select or Dialog is open and pads the
+     body to replace the scrollbar's width. On a browser with a classic
+     overlay-less scrollbar that lands as a visible sideways jump of the whole
+     page the moment a dropdown opens. Reserving the gutter permanently means
+     there is nothing to compensate for, so nothing moves. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

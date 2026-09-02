@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Activity, Pill, Stethoscope, CalendarClock, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,11 +26,10 @@ function iconForType(type: string) {
 
 export default function TimelinePage() {
   const router = useRouter();
-  const { injuries, loading: injuriesLoading } = useInjuries();
-  const { events, loading: eventsLoading, error } = useAllTimelineEvents(injuries);
+  // No longer reads the injury list: each event arrives carrying its
+  // injury's name, so this page waits on exactly one request.
+  const { events, loading, error } = useAllTimelineEvents();
   const [typeFilter, setTypeFilter] = useState("all");
-
-  const loading = injuriesLoading || eventsLoading;
 
   const types = useMemo(
     () => Array.from(new Set(events.map((e) => e.type))).sort(),

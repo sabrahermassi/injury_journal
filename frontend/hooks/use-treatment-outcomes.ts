@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 
 import {
-  getTreatmentOutcomes,
-  getTreatments,
-  type Injury,
+  getAllTreatments,
   type Treatment,
   type TreatmentOutcome,
+  type WithInjury,
 } from "@/services/api";
 
-export type TreatmentWithOutcomes = Treatment & {
-  injuryId: number;
-  injuryName: string;
-  outcomes: TreatmentOutcome[];
-};
+export type TreatmentWithOutcomes = WithInjury<
+  Treatment & { outcomes: TreatmentOutcome[] }
+>;
 
-// Fans out per-injury and per-treatment requests — same tradeoff as
-// use-timeline-events.ts, fine at personal-journal scale.
-export function useAllTreatmentOutcomes(injuries: Injury[]) {
+/**
+ * Every treatment the user has, each with its outcome check-ins.
+ *
+ * One request. This used to fan out twice over — once per injury for the
+ * treatments, then once per treatment for its outcomes — which on a real
+ * account was 37 requests to draw one panel. The backend now joins the
+ * outcomes in; see `getAllTreatments`.
+ */
+export function useAllTreatmentOutcomes() {
   const [treatments, setTreatments] = useState<TreatmentWithOutcomes[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,42 +27,15 @@ export function useAllTreatmentOutcomes(injuries: Injury[]) {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAll() {
-      if (injuries.length === 0) {
-        if (!cancelled) {
-          setTreatments([]);
-          setLoading(false);
-        }
-        return;
-      }
-
+    async function load() {
       setLoading(true);
       setError(null);
 
       try {
-        const perInjury = await Promise.all(
-          injuries.map(async (injury) => {
-            const injuryTreatments = await getTreatments(injury.id);
-
-            return Promise.all(
-              injuryTreatments.map(async (treatment) => {
-                const outcomes = await getTreatmentOutcomes(treatment.id);
-                return {
-                  ...treatment,
-                  injuryId: injury.id,
-                  injuryName: injury.name,
-                  outcomes,
-                };
-              }),
-            );
-          }),
-        );
+        const data = await getAllTreatments();
 
         if (!cancelled) {
-          const merged = perInjury
-            .flat()
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setTreatments(merged);
+          setTreatments(data);
         }
       } catch (err) {
         console.error(err);
@@ -73,12 +49,12 @@ export function useAllTreatmentOutcomes(injuries: Injury[]) {
       }
     }
 
-    loadAll();
+    load();
 
     return () => {
       cancelled = true;
     };
-  }, [injuries]);
+  }, []);
 
   return { treatments, loading, error };
 }

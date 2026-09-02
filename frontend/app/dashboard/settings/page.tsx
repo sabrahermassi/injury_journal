@@ -8,6 +8,7 @@ import { logoutUser } from "@/services/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import { DeleteAccountCard } from "@/components/dashboard/delete-account-card";
 
 // Groups of label/value rows, "Injury Journal Botanical" reference design's
 // settings-screen pattern: an identity header, then rounded cards of rows
@@ -91,6 +92,8 @@ export default function SettingsPage() {
           Couldn&apos;t sign out — try again.
         </p>
       )}
+
+      <DeleteAccountCard email={user?.email ?? null} />
     </main>
   );
 }

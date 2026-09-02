@@ -176,6 +176,28 @@ export async function logoutUser() {
   }
 }
 
+/**
+ * Deletes the account and every record under it, permanently.
+ *
+ * The backend clears the session cookies as part of the response, so the
+ * cached session state here has to go too — otherwise the app keeps rendering
+ * as a signed-in user whose row no longer exists.
+ */
+export async function deleteAccount() {
+  const response = await authFetch(`${API_URL}/api/auth/me`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete account");
+  }
+
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("csrfToken");
+    sessionStorage.removeItem("currentUser");
+  }
+}
+
 export async function getInjuries(): Promise<Injury[]> {
   const response = await authFetch(`${API_URL}/api/injuries`);
 
@@ -244,6 +266,55 @@ export async function deleteInjury(id: number) {
   if (!response.ok) {
     throw new Error("Failed to delete injury");
   }
+}
+
+// Rows from the user-scoped collection endpoints carry the parent injury's
+// name, so a caller never has to hold the injury list to label them.
+export type WithInjury<T> = T & { injuryId: number; injuryName: string };
+
+/**
+ * Every symptom, event or treatment the user has, in one request each.
+ *
+ * These replaced a per-injury fan-out. An account with ten injuries and
+ * twenty-seven treatments spent 48 requests drawing the insights page alone,
+ * which exhausted the backend's 100-per-15-minutes rate limit before the
+ * dashboard finished loading — the whole app then returned 429 for a quarter
+ * of an hour.
+ */
+export async function getAllSymptoms(): Promise<WithInjury<Symptom>[]> {
+  const response = await authFetch(`${API_URL}/api/symptoms`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch symptoms");
+  }
+
+  return response.json();
+}
+
+export async function getAllTimelineEvents(): Promise<
+  WithInjury<TimelineEvent>[]
+> {
+  const response = await authFetch(`${API_URL}/api/events`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch timeline events");
+  }
+
+  return response.json();
+}
+
+// Outcomes come attached — fetching them per treatment was the single biggest
+// contributor to the request storm above.
+export async function getAllTreatments(): Promise<
+  WithInjury<Treatment & { outcomes: TreatmentOutcome[] }>[]
+> {
+  const response = await authFetch(`${API_URL}/api/treatments`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch treatments");
+  }
+
+  return response.json();
 }
 
 export async function getSymptoms(injuryId: number): Promise<Symptom[]> {

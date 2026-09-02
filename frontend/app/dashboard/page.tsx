@@ -25,13 +25,13 @@ function greeting(hour: number) {
 export default function DashboardOverviewPage() {
   const router = useRouter();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
-  const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
+  const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents();
   const {
     symptoms,
     error: symptomsError,
     refresh: refreshSymptoms,
-  } = useAllSymptoms(injuries);
-  const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
+  } = useAllSymptoms();
+  const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps();
   const [createOpen, setCreateOpen] = useState(false);
 
   // Pinned once per mount -- reading the clock during render is impure, and

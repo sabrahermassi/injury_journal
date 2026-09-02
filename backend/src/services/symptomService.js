@@ -1,4 +1,33 @@
-import { prisma } from '../utils.js';
+import { prisma, flattenInjuryName } from '../utils.js';
+
+// Every symptom the user has, across all their injuries, in one query.
+//
+// This exists because the frontend used to ask per injury: an account with ten
+// injuries spent ten requests drawing one chart, and between the pages that do
+// that the 100-request rate limit was exhausted before the dashboard had
+// finished loading. Ownership is enforced by the `injury: { userId }` filter,
+// which is the same relation check every other function here makes.
+export const getAllSymptomsForUser = async (userId) => {
+  const symptoms = await prisma.symptom.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'asc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  return symptoms.map(flattenInjuryName);
+};
 
 // Create symptom
 export const createSymptom = async (injuryId, userId, symptomData) => {
