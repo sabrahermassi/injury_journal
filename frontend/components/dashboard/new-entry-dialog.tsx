@@ -23,11 +23,25 @@ import { cn } from "@/lib/utils";
 import { AiBadge } from "@/components/ui/ai-badge";
 
 /**
- * The reference design's ten-step pain ramp, verbatim (`RAMP` in the source
- * file). It is a finer-grained sibling of the five `--pain-*` tokens in
- * globals.css — same constant-lightness hue sweep, ten stops instead of five —
- * and is used only here, on the swatches themselves, so it stays a local
- * constant rather than ten more theme tokens.
+ * The reference design's ten-step pain ramp — a finer-grained sibling of the
+ * five `--pain-*` tokens in globals.css. Used only here, on the swatches
+ * themselves, so it stays a local constant rather than ten more theme tokens.
+ *
+ * Steps 1–8 are the design's own hexes. Steps 9 and 10 are its last two with
+ * their OKLab lightness raised (hue and chroma held exactly): as drawn they
+ * were `#A9757F` and `#916678`, and the selected swatch — full opacity under
+ * a 15px semibold numeral — measured 3.9:1 and 3.1:1 against this ink, below
+ * the 4.5:1 that text this size needs.
+ *
+ * Ink alone could not fix it. Step 9 sits at mid luminance, so it fails both
+ * ways (3.9:1 dark, 3.5:1 light) and even pure black only reaches 4.4:1 on
+ * step 10 — the swatch itself had to move. Lightness was the only axis
+ * touched, so the sweep still reads as the same hue progression, and the
+ * ramp's lightness spread narrows from 0.273 to 0.177, which is closer to the
+ * constant-lightness rule UI_GUIDE.md sets out than the design was.
+ *
+ * Now: 4.58:1 at worst selected, 8.05:1 at worst unselected (0.55 over the
+ * modal surface).
  */
 const RAMP = [
   "#AEBCA4",
@@ -38,8 +52,8 @@ const RAMP = [
   "#DDAC8C",
   "#D19A8A",
   "#C08789",
-  "#A9757F",
-  "#916678",
+  "#B6818B",
+  "#AF8295",
 ];
 
 type Kind = "Symptom" | "Visit" | "Treatment";
