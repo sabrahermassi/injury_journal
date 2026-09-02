@@ -34,9 +34,7 @@ export default function AssistantPage() {
         </div>
       </header>
 
-      <div className="w-full max-w-3xl">
-        <AskForm />
-      </div>
+      <AskForm />
     </main>
   );
 }

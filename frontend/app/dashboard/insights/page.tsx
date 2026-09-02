@@ -10,6 +10,7 @@ import {
   type TreatmentWithOutcomes,
 } from "@/hooks/use-treatment-outcomes";
 import { PainChart } from "@/components/dashboard/pain-chart";
+import { EntryIcon } from "@/components/dashboard/entry-icon";
 import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -213,7 +214,9 @@ export default function InsightsPage() {
                   key={`${group.attempts[0].injuryId}-${group.name}`}
                   className="border-t border-border px-[22px] py-4"
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <EntryIcon from={[group.name]} size={44} />
+
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-serif text-[16.5px] leading-tight font-medium text-foreground">
                         {group.name}

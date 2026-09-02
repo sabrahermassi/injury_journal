@@ -12,6 +12,7 @@ import { useDueFollowUps } from "@/hooks/use-due-followups";
 import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
 import { PainChart } from "@/components/dashboard/pain-chart";
 import { TodayPainCard } from "@/components/dashboard/today-pain-card";
+import { EntryIcon } from "@/components/dashboard/entry-icon";
 import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,6 +203,8 @@ export default function DashboardOverviewPage() {
                   }
                   className="flex w-full items-center gap-4 border-t border-border px-5.5 py-4.5 text-left transition-colors first:border-t-0 hover:bg-accent/40"
                 >
+                  <EntryIcon from={[event.type, event.description]} size={44} />
+
                   <div className="min-w-0 sm:w-[190px] sm:flex-none">
                     <p className="truncate font-serif text-[19px] leading-tight font-medium text-foreground capitalize">
                       {event.type}
