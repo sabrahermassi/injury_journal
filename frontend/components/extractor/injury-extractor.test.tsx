@@ -28,7 +28,7 @@ describe("InjuryExtractor", () => {
     render(<InjuryExtractor />);
 
     await user.type(
-      screen.getByLabelText(/injury description/i),
+      screen.getByLabelText(/paste the note/i),
       "My ankle hurts after running.",
     );
     await user.click(screen.getByRole("button", { name: /analyze injury/i }));
@@ -46,7 +46,7 @@ describe("InjuryExtractor", () => {
     render(<InjuryExtractor />);
 
     await user.type(
-      screen.getByLabelText(/injury description/i),
+      screen.getByLabelText(/paste the note/i),
       "My ankle hurts after running.",
     );
     await user.click(screen.getByRole("button", { name: /analyze injury/i }));
@@ -60,7 +60,7 @@ describe("InjuryExtractor", () => {
 
     expect(screen.getByRole("button", { name: /analyze injury/i })).toBeDisabled();
 
-    await userEvent.setup().type(screen.getByLabelText(/injury description/i), "ok");
+    await userEvent.setup().type(screen.getByLabelText(/paste the note/i), "ok");
 
     expect(screen.getByRole("button", { name: /analyze injury/i })).toBeDisabled();
   });
