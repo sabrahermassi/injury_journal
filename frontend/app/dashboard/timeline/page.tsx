@@ -2,15 +2,28 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Activity, Pill, Stethoscope, CalendarClock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-const selectClassName =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+// `type` is a free-text field (backend/src/validators.js), not a fixed enum
+// -- these three are what the app's own forms write, everything else falls
+// back to a generic icon rather than assuming the set is closed.
+const TYPE_ICONS: Record<string, LucideIcon> = {
+  symptom: Activity,
+  treatment: Pill,
+  visit: Stethoscope,
+};
+
+function iconForType(type: string) {
+  return TYPE_ICONS[type.toLowerCase()] ?? CalendarClock;
+}
 
 export default function TimelinePage() {
   const router = useRouter();
@@ -39,18 +52,26 @@ export default function TimelinePage() {
         </p>
 
         {types.length > 0 && (
-          <select
-            className={selectClassName}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="all">All types</option>
-            {types.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {["all", ...types].map((type) => {
+              const active = typeFilter === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTypeFilter(type)}
+                  className={cn(
+                    "h-8 rounded-full px-3.5 text-xs font-medium capitalize transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-muted-foreground ring-1 ring-border hover:text-foreground",
+                  )}
+                >
+                  {type === "all" ? "All" : type}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -81,33 +102,66 @@ export default function TimelinePage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map((event) => (
-            <Card key={`${event.injuryId}-${event.id}`}>
-              <CardContent className="flex items-start justify-between gap-4">
-                <div className="space-y-0.5">
-                  <p className="font-medium">{event.type}</p>
-                  <p className="text-sm">{event.description}</p>
-                  {event.result && (
-                    <p className="text-sm text-muted-foreground">
-                      Result: {event.result}
-                    </p>
-                  )}
+          {filtered.map((event) => {
+            const eventDate = new Date(event.date);
+            const Icon = iconForType(event.type);
+
+            return (
+              <div
+                key={`${event.injuryId}-${event.id}`}
+                className="flex items-stretch gap-3"
+              >
+                <div className="w-12 flex-none pt-3.5 text-right">
+                  <p className="text-xs font-semibold text-foreground/80">
+                    {eventDate.toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {eventDate.getFullYear()}
+                  </p>
                 </div>
 
-                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(event.date).toLocaleDateString()}
-                  </span>
-                  <button
-                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-                    onClick={() => router.push(`/dashboard/injuries/${event.injuryId}`)}
-                  >
-                    {event.injuryName}
-                  </button>
+                <div className="flex w-3.5 flex-none justify-center">
+                  <div className="w-px bg-border" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                <Card className="flex-1 py-0">
+                  <CardContent className="flex items-start gap-3 py-3.5">
+                    <div className="flex size-9 flex-none items-center justify-center rounded-full bg-accent text-accent-foreground">
+                      <Icon className="size-4" aria-hidden="true" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-serif text-base text-foreground capitalize">
+                          {event.type}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/dashboard/injuries/${event.injuryId}`)
+                          }
+                          className="flex-none rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          {event.injuryName}
+                        </button>
+                      </div>
+                      <p className="mt-1 text-sm text-foreground/80">
+                        {event.description}
+                      </p>
+                      {event.result && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Result: {event.result}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })}
         </div>
       )}
     </main>
