@@ -51,13 +51,18 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  // Lets one dialog restyle its own scrim without changing every other
+  // dialog's — the new-entry modal's is the design's dark green, not the
+  // default black wash.
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  overlayClassName?: string
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useNewEntry } from "./new-entry-provider";
 
 // Pill nav rows at the reference design's proportions: 48px tall, fully
 // rounded, 11px gap. The design's own nav is a flat list of five because it
@@ -55,6 +56,7 @@ const secondaryNav = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { openNewEntry } = useNewEntry();
 
   // "/dashboard" prefixes every other route, so it only matches exactly. The
   // rest stay lit while you are inside one of their nested routes.
@@ -78,11 +80,16 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <Button asChild size="lg" className="h-12 w-full justify-start gap-[11px] rounded-full px-3.5">
-          <Link href="/dashboard/log">
-            <Plus className="size-4" aria-hidden="true" />
-            New entry
-          </Link>
+        {/* The design makes this a modal over whatever you are looking at,
+            not a route. /dashboard/log still exists and still opens it, so
+            older deep links keep working. */}
+        <Button
+          size="lg"
+          onClick={() => openNewEntry()}
+          className="h-12 w-full justify-center gap-[11px] rounded-full px-3.5"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          New entry
         </Button>
       </SidebarHeader>
 

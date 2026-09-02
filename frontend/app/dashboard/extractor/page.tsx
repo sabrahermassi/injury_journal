@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import { InjuryExtractor } from "@/components/extractor/injury-extractor";
 import { InjuryHistory } from "@/components/extractor/injury-history";
+import { AiBadge } from "@/components/ui/ai-badge";
 
 // Two-column treatment from the "Injury Journal Botanical" reference design:
 // heading + paste box on the left, extracted summary panel on the right,
@@ -32,9 +33,7 @@ export default function ExtractorPage() {
               <h1 className="font-serif text-4xl leading-none font-light tracking-tight text-foreground">
                 AI Injury Extractor
               </h1>
-              <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium tracking-wide text-accent-foreground uppercase">
-                AI
-              </span>
+              <AiBadge />
             </div>
 
             <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground text-pretty">

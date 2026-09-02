@@ -52,6 +52,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-entry-surface: var(--entry-surface);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -93,6 +94,11 @@
 
   --secondary: #EDF0E8;
   --secondary-foreground: #142922;
+
+  /* The new-entry modal's own surface. The design gives it #FCF9F5 — a shade
+     off both --background and --card, so it reads as a sheet above the page
+     rather than a panel in it. */
+  --entry-surface: #FCF9F5;
 
   --muted: #F6F3EE;
   --muted-foreground: #6E7269;               /* secondary text */
@@ -161,6 +167,8 @@
 
   --secondary: #2A2620;
   --secondary-foreground: #EEE9E0;
+
+  --entry-surface: #262219;
 
   --muted: #2A2620;
   --muted-foreground: #A79E8E;

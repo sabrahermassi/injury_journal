@@ -6,6 +6,7 @@ import { Activity, Pill, Stethoscope, CalendarClock, ChevronRight } from "lucide
 import type { LucideIcon } from "lucide-react";
 
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
+import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,7 @@ function iconForType(type: string) {
 
 export default function TimelinePage() {
   const router = useRouter();
+  const { openNewEntry } = useNewEntry();
   // No longer reads the injury list: each event arrives carrying its
   // injury's name, so this page waits on exactly one request.
   const { events, loading, error } = useAllTimelineEvents();
@@ -97,7 +99,7 @@ export default function TimelinePage() {
                 : "Nothing matches that filter."}
             </p>
             {events.length === 0 && (
-              <Button size="sm" onClick={() => router.push("/dashboard/log")}>
+              <Button size="sm" onClick={() => openNewEntry()}>
                 Log your first entry
               </Button>
             )}

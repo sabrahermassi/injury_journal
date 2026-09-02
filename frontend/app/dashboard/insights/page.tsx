@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
@@ -11,6 +10,7 @@ import {
   type TreatmentWithOutcomes,
 } from "@/hooks/use-treatment-outcomes";
 import { PainChart } from "@/components/dashboard/pain-chart";
+import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,7 +75,7 @@ function Stat({
 }
 
 export default function InsightsPage() {
-  const router = useRouter();
+  const { openNewEntry } = useNewEntry();
   const { injuries, loading: injuriesLoading } = useInjuries();
   const { treatments, loading, error } = useAllTreatmentOutcomes();
   const { symptoms, error: symptomsError } = useAllSymptoms();
@@ -201,7 +201,7 @@ export default function InsightsPage() {
               </p>
               <Button
                 size="sm"
-                onClick={() => router.push("/dashboard/log?type=treatment")}
+                onClick={() => openNewEntry({ kind: "Treatment" })}
               >
                 Log a treatment
               </Button>

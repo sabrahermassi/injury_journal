@@ -12,6 +12,7 @@ import { useDueFollowUps } from "@/hooks/use-due-followups";
 import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
 import { PainChart } from "@/components/dashboard/pain-chart";
 import { TodayPainCard } from "@/components/dashboard/today-pain-card";
+import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +25,7 @@ function greeting(hour: number) {
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
+  const { openNewEntry } = useNewEntry();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
   const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents();
   const {
@@ -186,7 +188,7 @@ export default function DashboardOverviewPage() {
                   Nothing logged yet — a note today is worth more than a
                   perfect one later.
                 </p>
-                <Button size="sm" onClick={() => router.push("/dashboard/log")}>
+                <Button size="sm" onClick={() => openNewEntry()}>
                   Log your first entry
                 </Button>
               </div>

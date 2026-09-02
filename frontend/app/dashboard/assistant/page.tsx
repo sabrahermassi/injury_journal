@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { AskForm } from "@/components/assistant/ask-form";
+import { AiBadge } from "@/components/ui/ai-badge";
 
 export default function AssistantPage() {
   return (
@@ -22,9 +23,7 @@ export default function AssistantPage() {
             <h2 className="font-serif text-4xl leading-tight font-light tracking-tight text-foreground md:text-[42px]">
               AI Assistant
             </h2>
-            <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium tracking-wide text-accent-foreground uppercase">
-              AI
-            </span>
+            <AiBadge />
           </div>
 
           <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">

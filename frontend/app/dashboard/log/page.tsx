@@ -9,6 +9,7 @@ import { ChevronRight } from "lucide-react";
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { LogEntryForm } from "@/components/dashboard/log-entry-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AiBadge } from "@/components/ui/ai-badge";
 
 function LogPageContent() {
   const { injuries, loading } = useInjuries();
@@ -74,9 +75,7 @@ export default function LogEntryPage() {
             <span className="font-serif text-[17px] leading-tight font-medium text-foreground">
               Have a clinical note?
             </span>
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium tracking-wide text-accent-foreground uppercase">
-              AI
-            </span>
+            <AiBadge />
           </div>
           <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
             Run it through the Injury Extractor to pull out the structure

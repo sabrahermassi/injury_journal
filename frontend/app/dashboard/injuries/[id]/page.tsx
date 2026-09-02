@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { getInjury, type Injury } from "@/services/api";
+import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ function formatStoredDate(iso: string) {
 export default function InjuryDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { openNewEntry } = useNewEntry();
 
   const [injury, setInjury] = useState<Injury | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,7 @@ export default function InjuryDetailsPage() {
         </div>
 
         <Button
-          onClick={() => router.push(`/dashboard/log?injuryId=${injury.id}`)}
+          onClick={() => openNewEntry({ injuryId: injury.id })}
         >
           Log entry
         </Button>
