@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { SymptomWithInjury } from "@/hooks/use-symptoms";
 
@@ -23,7 +23,7 @@ function painVar(level: number) {
   return "var(--pain-5)";
 }
 
-function startOfDay(value: string | Date) {
+function startOfDay(value: string | number | Date) {
   const d = new Date(value);
   d.setHours(0, 0, 0, 0);
   return d;
@@ -32,8 +32,12 @@ function startOfDay(value: string | Date) {
 type Point = { x: number; y: number; day: Date; level: number };
 
 export function PainChart({ symptoms }: { symptoms: SymptomWithInjury[] }) {
+  // Pinned once per mount. Reading the clock during render is impure -- the
+  // 30-day window would shift on an unrelated re-render.
+  const [nowMs] = useState(() => Date.now());
+
   const points = useMemo<Point[]>(() => {
-    const today = startOfDay(new Date());
+    const today = startOfDay(nowMs);
     const first = new Date(today);
     first.setDate(first.getDate() - (DAYS - 1));
 
@@ -73,7 +77,7 @@ export function PainChart({ symptoms }: { symptoms: SymptomWithInjury[] }) {
           y: PAD_T + (1 - level / 10) * plotH,
         };
       });
-  }, [symptoms]);
+  }, [symptoms, nowMs]);
 
   if (points.length === 0) {
     return (
