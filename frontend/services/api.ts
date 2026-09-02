@@ -1,3 +1,5 @@
+import type { EntryCategory, EntryIconKey } from "@/lib/entry-art";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
@@ -299,8 +301,15 @@ export async function deleteInjury(id: number) {
 }
 
 // Rows from the user-scoped collection endpoints carry the parent injury's
-// name, so a caller never has to hold the injury list to label them.
-export type WithInjury<T> = T & { injuryId: number; injuryName: string };
+// name, so a caller never has to hold the injury list to label them, plus the
+// icon and filter category the server resolved for them — that table lives in
+// backend/src/entryIcons.js and is the only place it lives.
+export type WithInjury<T> = T & {
+  injuryId: number;
+  injuryName: string;
+  icon: EntryIconKey;
+  category: EntryCategory | null;
+};
 
 /**
  * Every symptom, event or treatment the user has, in one request each.
@@ -663,6 +672,9 @@ export async function deleteTimelineEvent(id: number) {
 }
 
 export interface AssistantCitation {
+  // Stamped by this app's backend as it proxies the answer through; the
+  // assistant service knows nothing about icons.
+  icon?: EntryIconKey;
   label?: string;
   sourceType?: string;
   sourceId: number | string;

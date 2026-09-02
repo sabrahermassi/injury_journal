@@ -1,4 +1,5 @@
 import { prisma, flattenInjuryName } from '../utils.js';
+import { iconFor, CATEGORIES } from '../entryIcons.js';
 
 // Every treatment the user has, each with its outcome check-ins attached.
 //
@@ -30,7 +31,13 @@ export const getAllTreatmentsForUser = async (userId) => {
     },
   });
 
-  return treatments.map(flattenInjuryName);
+  // Matched on the name alone: two courses of "Physiotherapy" must draw the
+  // same picture whatever their provider, cost or notes say.
+  return treatments.map((treatment) => ({
+    ...flattenInjuryName(treatment),
+    icon: iconFor(treatment.name),
+    category: CATEGORIES.TREATMENT,
+  }));
 };
 
 // Create treatment

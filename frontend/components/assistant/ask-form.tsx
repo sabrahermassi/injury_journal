@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { SubmitEventHandler } from "react";
-import Image from "next/image";
 import { SendHorizonal } from "lucide-react";
 
 import {
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EntryIcon } from "@/components/dashboard/entry-icon";
+import { ArtIcon } from "@/components/ui/art-icon";
 import {
   askAssistant,
   getInjuries,
@@ -134,14 +134,7 @@ export function AskForm() {
             </div>
 
             <div className="mt-4 flex items-start gap-3">
-              <Image
-                src="/art-sparkle.png"
-                alt=""
-                width={30}
-                height={30}
-                aria-hidden="true"
-                className="mt-2 size-[30px] flex-none select-none"
-              />
+              <ArtIcon src="/art-sparkle.png" size={30} className="mt-2" />
 
               <div className="min-w-0 flex-1 rounded-[20px_20px_20px_6px] bg-card px-5.5 py-5 ring-1 ring-border">
                 <p className="text-[15px] leading-[1.65] whitespace-pre-wrap text-foreground/80">
@@ -238,10 +231,7 @@ export function AskForm() {
                 key={`${citation.sourceType ?? "source"}-${citation.sourceId}-${index}`}
                 className="flex items-center gap-3 rounded-[18px] bg-popover p-3.5 ring-1 ring-border"
               >
-                <EntryIcon
-                  from={[citation.label, citation.sourceType]}
-                  size={40}
-                />
+                <EntryIcon icon={citation.icon} size={40} />
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-serif text-[15px] leading-[1.2] font-medium text-foreground">

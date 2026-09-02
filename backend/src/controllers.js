@@ -605,6 +605,17 @@ export const askAssistantController = async (req, res, next) => {
   try {
     const { status, data } = await askAssistant(req.token, req.body);
 
+    // The assistant is a separate service and knows nothing about icons, so
+    // its citations are stamped here on the way through. Same table as every
+    // other entry: a cited "Physiotherapy" draws what the timeline's
+    // "Physiotherapy" draws.
+    if (Array.isArray(data?.citations)) {
+      data.citations = data.citations.map((citation) => ({
+        ...citation,
+        icon: iconFor(citation?.label ?? citation?.sourceType),
+      }));
+    }
+
     res.status(status).json(data);
   } catch (error) {
     next(error);

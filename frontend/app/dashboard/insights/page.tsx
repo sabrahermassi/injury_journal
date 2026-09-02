@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllSymptoms } from "@/hooks/use-symptoms";
@@ -15,6 +14,7 @@ import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArtIcon } from "@/components/ui/art-icon";
 
 type Group = {
   name: string;
@@ -134,10 +134,7 @@ export default function InsightsPage() {
               : "days since your first injury started"
           }
         />
-        <Stat
-          value={String(symptoms.length)}
-          label="pain check-ins logged"
-        />
+        <Stat value={String(symptoms.length)} label="pain check-ins logged" />
         <Stat
           value={
             recentAveragePain === null ? "—" : recentAveragePain.toFixed(1)
@@ -155,14 +152,7 @@ export default function InsightsPage() {
         <Card className="w-full min-w-0 flex-1 gap-0 py-0">
           <CardContent className="px-6 py-5.5">
             <div className="flex items-center gap-3">
-              <Image
-                src="/art-leaf-sm.png"
-                alt=""
-                width={28}
-                height={28}
-                aria-hidden="true"
-                className="size-7 flex-none select-none"
-              />
+              <ArtIcon src="/art-leaf-sm.png" size={28} />
               <h3 className="font-serif text-[23px] leading-tight font-medium text-foreground">
                 How you&apos;ve been feeling
               </h3>
@@ -197,8 +187,8 @@ export default function InsightsPage() {
           ) : groups.length === 0 ? (
             <div className="flex flex-col items-start gap-3 px-[22px] pb-5">
               <p className="text-sm text-muted-foreground">
-                Nothing to compare yet — log a treatment and check in on it
-                once it&apos;s had time to work, or not.
+                Nothing to compare yet — log a treatment and check in on it once
+                it&apos;s had time to work, or not.
               </p>
               <Button
                 size="sm"
@@ -215,7 +205,7 @@ export default function InsightsPage() {
                   className="border-t border-border px-[22px] py-4"
                 >
                   <div className="flex items-center gap-3.5">
-                    <EntryIcon from={[group.name]} size={44} />
+                    <EntryIcon icon={group.attempts[0].icon} size={44} />
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-serif text-[16.5px] leading-tight font-medium text-foreground">
@@ -229,8 +219,9 @@ export default function InsightsPage() {
                     </div>
 
                     <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      {latestStatus(group.attempts[group.attempts.length - 1]) ??
-                        "No check-in"}
+                      {latestStatus(
+                        group.attempts[group.attempts.length - 1],
+                      ) ?? "No check-in"}
                     </span>
                   </div>
                 </div>

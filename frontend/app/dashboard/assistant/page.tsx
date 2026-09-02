@@ -1,22 +1,14 @@
 "use client";
 
-import Image from "next/image";
-
 import { AskForm } from "@/components/assistant/ask-form";
 import { AiBadge } from "@/components/ui/ai-badge";
+import { ArtIcon } from "@/components/ui/art-icon";
 
 export default function AssistantPage() {
   return (
     <main className="flex flex-1 flex-col gap-7 p-4 md:p-11">
       <header className="flex items-start gap-3.5">
-        <Image
-          src="/art-sparkle.png"
-          alt=""
-          width={38}
-          height={38}
-          aria-hidden="true"
-          className="mt-1 size-[38px] flex-none select-none"
-        />
+        <ArtIcon src="/art-sparkle.png" size={38} className="mt-1" />
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3.5">

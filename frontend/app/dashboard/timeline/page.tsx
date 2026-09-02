@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EntryIcon } from "@/components/dashboard/entry-icon";
-import { categoryFor, type EntryCategory } from "@/lib/entry-art";
+import type { EntryCategory } from "@/lib/entry-art";
 import { cn } from "@/lib/utils";
 
 // The design's filter row is a fixed four, not one chip per value found in the
@@ -35,10 +35,7 @@ export default function TimelinePage() {
     () =>
       typeFilter === "all"
         ? events
-        : events.filter(
-            (event) =>
-              categoryFor(event.type, event.description) === typeFilter,
-          ),
+        : events.filter((event) => event.category === typeFilter),
     [events, typeFilter],
   );
 
@@ -135,7 +132,7 @@ export default function TimelinePage() {
                   }
                   className="flex min-w-0 flex-1 items-center gap-4 rounded-[22px] bg-card px-5.5 py-5 text-left ring-1 ring-border transition-colors hover:bg-accent/40 md:gap-4.5"
                 >
-                  <EntryIcon from={[event.type, event.description]} size={54} />
+                  <EntryIcon icon={event.icon} size={54} />
 
                   {/* Stacked on a narrow screen, side by side from md up --
                       the design's fixed 300px title column would squeeze the

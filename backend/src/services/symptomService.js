@@ -1,4 +1,5 @@
 import { prisma, flattenInjuryName } from '../utils.js';
+import { ICONS, CATEGORIES } from '../entryIcons.js';
 
 // Every symptom the user has, across all their injuries, in one query.
 //
@@ -26,7 +27,13 @@ export const getAllSymptomsForUser = async (userId) => {
     },
   });
 
-  return symptoms.map(flattenInjuryName);
+  // Every symptom is a symptom, so this needs no lookup -- what matters is
+  // that the field is present and identical on all of them.
+  return symptoms.map((symptom) => ({
+    ...flattenInjuryName(symptom),
+    icon: ICONS.SYMPTOM,
+    category: CATEGORIES.SYMPTOM,
+  }));
 };
 
 // Create symptom

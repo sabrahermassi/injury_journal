@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { AiBadge } from "@/components/ui/ai-badge";
+import { ArtIcon } from "@/components/ui/art-icon";
 
 /**
  * The reference design's ten-step pain ramp — a finer-grained sibling of the
@@ -312,14 +312,7 @@ function NewEntryForm({
           onClick={onClose}
           className="flex items-center gap-3.5 rounded-[18px] bg-secondary p-4 transition-[filter] hover:brightness-[0.985]"
         >
-          <Image
-            src="/art-sparkle.png"
-            alt=""
-            width={28}
-            height={28}
-            aria-hidden="true"
-            className="size-7 flex-none select-none"
-          />
+          <ArtIcon src="/art-sparkle.png" size={28} />
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
