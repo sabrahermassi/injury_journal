@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -22,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   askAssistant,
   getInjuries,
-  type AssistantCitation,
   type AssistantAnswer,
   type Injury,
 } from "@/services/api";
@@ -30,16 +30,6 @@ import {
 // Radix Select has no concept of an empty value, so "all" stands in for
 // "no injuryId". It is never sent to the API -- see handleSubmit.
 const ALL_INJURIES = "all";
-
-function formatCitation(citation: AssistantCitation) {
-  const parts = [citation.label, citation.sourceType, `#${citation.sourceId}`];
-
-  if (citation.date) {
-    parts.push(citation.date);
-  }
-
-  return parts.filter(Boolean).join(" — ");
-}
 
 // Mirrors the assistant's journalTool "Body area: knee (left)" formatting so
 // the two surfaces describe an injury the same way.
@@ -57,6 +47,10 @@ export function AskForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AssistantAnswer | null>(null);
+  // What was actually submitted -- `question` keeps changing if the user
+  // edits the textarea after getting an answer, so the echoed bubble below
+  // needs its own snapshot rather than reading live state.
+  const [askedQuestion, setAskedQuestion] = useState("");
 
   // The injury list comes from this app's own API, not the assistant's
   // stopgap GET /injuries — the journal owns that data, and the user is
@@ -118,6 +112,7 @@ export function AskForm() {
         injuryId === ALL_INJURIES ? undefined : Number(injuryId),
       );
 
+      setAskedQuestion(trimmedQuestion);
       setResult(answer);
     } catch (err) {
       console.error(err);
@@ -134,7 +129,15 @@ export function AskForm() {
   return (
     <>
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader>
+          <CardTitle className="font-serif text-lg">AI Assistant</CardTitle>
+          <CardDescription>
+            Your recovery companion — every answer cites the entry it came
+            from.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="injury">Injury</Label>
@@ -189,31 +192,52 @@ export function AskForm() {
       </Card>
 
       {result && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Answer</CardTitle>
-          </CardHeader>
+        <div className="flex flex-col gap-3">
+          {/* Echoes what was actually asked -- see askedQuestion above -- as
+              a chat-style bubble, matching the design's conversation
+              treatment. This isn't a real multi-turn thread: the form still
+              answers one question at a time, submitting again replaces this. */}
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-secondary px-4 py-3 text-sm text-secondary-foreground">
+              {askedQuestion}
+            </div>
+          </div>
 
-          <CardContent className="space-y-4">
-            <p className="text-sm whitespace-pre-wrap">{result.answer}</p>
+          <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-card px-4 py-3.5 text-sm whitespace-pre-wrap text-card-foreground ring-1 ring-foreground/10">
+            {result.answer}
+          </div>
 
-            {result.citations && result.citations.length > 0 && (
-              <div className="space-y-2">
-                <h2 className="text-sm font-medium">Citations</h2>
+          {result.citations && result.citations.length > 0 && (
+            <div className="mt-1 flex flex-col gap-2">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Sources
+              </p>
 
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {result.citations.map((citation, index) => (
-                    <li
-                      key={`${citation.sourceType ?? "source"}-${citation.sourceId}-${index}`}
-                    >
-                      {formatCitation(citation)}
-                    </li>
-                  ))}
-                </ul>
+              <div className="flex flex-col gap-2">
+                {result.citations.map((citation, index) => (
+                  <div
+                    key={`${citation.sourceType ?? "source"}-${citation.sourceId}-${index}`}
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-2.5 ring-1 ring-foreground/10"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-serif text-sm text-foreground">
+                        {citation.label}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {[citation.sourceType, citation.date]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                    <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                      #{citation.sourceId}
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
       )}
     </>
   );
