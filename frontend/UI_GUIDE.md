@@ -15,28 +15,36 @@ monitoring console. Two consequences drive everything below:
 
 ## Colour
 
-Tokens live in `app/globals.css`. Neutrals are pulled green rather than left
-grey, so chrome sits in the same hue family as the accent. Author values as
-`oklch()`; the hex in the trailing comment is the reference.
+Tokens live in `app/globals.css`. Neutrals are pulled warm (linen/paper) rather
+than grey, so chrome sits in the same hue family as the accent. Values are
+authored as hex directly — the source design (Claude Design, "Injury Journal
+Botanical") specifies hex only, no oklch, and this palette is matched to it.
+`--destructive` is the one exception and stays in `oklch()`: the design has no
+error colour, so it was left as-is rather than invented.
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--background` | `#E7EEEA` | `#0F1614` | page ground |
-| `--card` / `--popover` / `--sidebar` | `#FCFDFC` | `#18211E` | raised surfaces |
-| `--muted` / `--secondary` | `#F1F6F3` | `#1F2A26` | inset fills |
-| `--foreground` | `#16211E` | `#E6EEE9` | primary text |
-| `--muted-foreground` | `#4A5B55` | `#A2B2AB` | secondary text, notes |
-| `--muted-foreground-subtle` | `#5F6F66` | `#82928B` | eyebrows, dates, axis ticks |
-| `--border` | `#D6E1DA` | `#2A352F` | decorative hairlines only |
-| `--input` | `#808A84` | `#67746D` | form field boundaries |
-| `--primary` / `--ring` | `#2F6B5B` | `#6FB49B` | accent, focus |
-| `--accent` | `#DBE9E2` | `#1D302A` | accent fill (pills, active nav) |
-| `--accent-foreground` | `#245447` | `#8ECBB3` | text on accent fill |
+| `--background` | `#FBF8F5` | `#1B1916` | page ground |
+| `--card` / `--sidebar` | `#F6F3EE` | `#232019` | raised surfaces |
+| `--popover` | `#FDFCFA` | `#232019` | menus, tooltips |
+| `--muted` | `#F6F3EE` | `#2A2620` | inset fills |
+| `--secondary` | `#EDF0E8` | `#2A2620` | callout/wash fills |
+| `--foreground` | `#142922` | `#EEE9E0` | primary text |
+| `--muted-foreground` | `#6E7269` | `#A79E8E` | secondary text, notes |
+| `--muted-foreground-subtle` | `#8A8F86` | `#8C8474` | eyebrows, dates, axis ticks |
+| `--border` | `#EFEAE2` | `#332F27` | decorative hairlines only |
+| `--input` | `#9B9284` | `#6B6355` | form field boundaries |
+| `--primary` / `--ring` | `#21382B` | `#84A796` | accent, focus |
+| `--accent` | `#E7EEE7` | `#2E3B30` | accent fill (pills, active nav) |
+| `--accent-foreground` | `#3B5C4A` | `#A7C4B0` | text on accent fill |
 | `--destructive` | `#A5453F` | `#E08079` | errors, destructive actions |
 
-`--border` and `--input` are deliberately **different values**. Card and section
-dividers are decorative and exempt from WCAG 1.4.11; a form field's boundary is
-not, and must clear 3:1 against the surface behind it. Do not collapse them.
+`--border` and `--input` are deliberately **different values** — more so than
+before. The source design's own field borders (`#EBE5DC` on `#FDFCFA`) don't
+clear 3:1; `--input` is re-picked from the same palette family rather than
+copied from the mockup. Card and section dividers stay exempt from WCAG
+1.4.11; a form field's boundary is not, and must clear 3:1 against the surface
+behind it. Do not collapse them.
 
 ### The pain scale
 
@@ -45,33 +53,38 @@ and so on. Map with `painLevel` → bucket:
 
 | Level | Token | Light | Dark |
 |---|---|---|---|
-| 0–2 | `--pain-1` | `#4E8E7D` | `#64A995` |
-| 3–4 | `--pain-2` | `#688D5E` | `#92B786` |
-| 5–6 | `--pain-3` | `#9D7F38` | `#D2B46E` |
-| 7–8 | `--pain-4` | `#B1764B` | `#D69A6E` |
-| 9–10 | `--pain-5` | `#BB6B67` | `#CE817C` |
+| 0–2 | `--pain-1` | `#7A8F72` (sage) | `#96AC8C` |
+| 3–4 | `--pain-2` | `#B7A15C` (wheat) | `#D4BC7E` |
+| 5–6 | `--pain-3` | `#C0894F` (clay) | `#D9A874` |
+| 7–8 | `--pain-4` | `#BD6F52` (terracotta) | `#D68F76` |
+| 9–10 | `--pain-5` | `#9B5C6E` (dusty plum) | `#B67F8E` |
 
 **Rules:**
 
-- The ramp ends in a muted coral. **It never reaches an alarm red.** Do not add
-  a sixth, hotter step.
-- In light mode all five sit at roughly equal lightness (L ≈ 0.60), so the ramp
-  is a *hue* sweep at constant visual weight, not light-to-dark. This is
-  deliberate — a high score should not also look heavier — and it is what lets
-  every step clear 3:1 on a near-white surface.
+- The ramp ends in a dusty plum. **It never reaches an alarm red.** Do not add
+  a sixth, hotter step. This also matches the source design's own rule
+  ("never red — sage → wheat → clay → dusty plum").
+- In light mode all five sit at roughly equal lightness (L ≈ 0.55–0.60), so the
+  ramp is a *hue* sweep at constant visual weight, not light-to-dark. This is
+  deliberate — a high score should not also look heavier. **Note:** the source
+  design's own pain ramp does *not* follow this rule (its swatches vary in
+  lightness and rely on a fixed dark ink instead) — this project's ramp was
+  re-hued into the same palette family rather than copied from it, specifically
+  to keep the constant-lightness/3:1 property.
 - **Use it only for large numerals (≥ 24px) and graphical marks** — chart dots,
-  sparkline endpoints, timeline marks. At 3:1 these tokens satisfy WCAG for
-  large text and non-text contrast, but **not** for body copy. Never colour
-  small text with a pain token; use `--foreground` or `--muted-foreground`.
+  sparkline endpoints, timeline marks. Never colour small text with a pain
+  token; use `--foreground` or `--muted-foreground`.
 - Always render the number alongside the colour.
 
 ### Contrast
 
-Every text pair in the table above is checked to WCAG AA (4.5:1 for body,
-3:1 for large text and UI boundaries) against `--card`, `--muted` and
-`--background` in both themes. If you change a colour, re-check it — the
-palette has very little headroom, particularly the light pain ramp, which sits
-within 0.05–0.25 of its minimum.
+The previous (eucalyptus) palette's values here were checked pair-by-pair
+against WCAG AA. This palette's values were chosen by eye, at the same
+approximate lightness as the tokens they replaced, following the same rules
+(constant-lightness pain ramp, a darker `--input` than `--border`) — but they
+have **not** been independently re-verified against a contrast checker. Do
+that before leaning on this table for anything accessibility-load-bearing,
+particularly the pain ramp, which had the least headroom before.
 
 ## Type
 
