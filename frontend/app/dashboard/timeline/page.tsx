@@ -132,7 +132,7 @@ export default function TimelinePage() {
                   }
                   className="flex min-w-0 flex-1 items-center gap-4 rounded-[22px] bg-card px-5.5 py-5 text-left ring-1 ring-border transition-colors hover:bg-accent/40 md:gap-4.5"
                 >
-                  <EntryIcon icon={event.icon} size={54} />
+                  <EntryIcon icon={event.icon} size={72} />
 
                   {/* Stacked on a narrow screen, side by side from md up --
                       the design's fixed 300px title column would squeeze the

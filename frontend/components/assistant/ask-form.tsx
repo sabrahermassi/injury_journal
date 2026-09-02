@@ -231,7 +231,7 @@ export function AskForm() {
                 key={`${citation.sourceType ?? "source"}-${citation.sourceId}-${index}`}
                 className="flex items-center gap-3 rounded-[18px] bg-popover p-3.5 ring-1 ring-border"
               >
-                <EntryIcon icon={citation.icon} size={40} />
+                <EntryIcon icon={citation.icon} size={52} />
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-serif text-[15px] leading-[1.2] font-medium text-foreground">

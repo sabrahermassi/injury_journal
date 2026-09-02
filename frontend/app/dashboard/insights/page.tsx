@@ -205,7 +205,7 @@ export default function InsightsPage() {
                   className="border-t border-border px-[22px] py-4"
                 >
                   <div className="flex items-center gap-3.5">
-                    <EntryIcon icon={group.attempts[0].icon} size={44} />
+                    <EntryIcon icon={group.attempts[0].icon} size={60} />
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-serif text-[16.5px] leading-tight font-medium text-foreground">

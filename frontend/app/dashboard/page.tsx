@@ -197,7 +197,7 @@ export default function DashboardOverviewPage() {
                   }
                   className="flex w-full items-center gap-4 border-t border-border px-5.5 py-4.5 text-left transition-colors first:border-t-0 hover:bg-accent/40"
                 >
-                  <EntryIcon icon={event.icon} size={44} />
+                  <EntryIcon icon={event.icon} size={60} />
 
                   <div className="min-w-0 sm:w-[190px] sm:flex-none">
                     <p className="truncate font-serif text-[19px] leading-tight font-medium text-foreground capitalize">
