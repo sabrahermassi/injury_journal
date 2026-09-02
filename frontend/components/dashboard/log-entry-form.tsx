@@ -152,7 +152,7 @@ export function LogEntryForm({
       resetFields();
     } catch (err) {
       console.error(err);
-      setError("Could not save this entry — try again.");
+      setError("Could not save this entry - try again.");
     } finally {
       setLoading(false);
     }
@@ -224,7 +224,7 @@ export function LogEntryForm({
             <>
               <div className="space-y-2">
                 <Label htmlFor="painLevel">
-                  Pain level — <span className="tabular font-serif">{painLevel}</span>/10
+                  Pain level - <span className="tabular font-serif">{painLevel}</span>/10
                 </Label>
                 <input
                   id="painLevel"
@@ -306,7 +306,7 @@ export function LogEntryForm({
 
               <div className="space-y-2">
                 <Label htmlFor="checkBackInDays">
-                  Check back in (days) — optional
+                  Check back in (days) - optional
                 </Label>
                 <Input
                   id="checkBackInDays"

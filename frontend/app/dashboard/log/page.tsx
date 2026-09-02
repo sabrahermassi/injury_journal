@@ -9,7 +9,7 @@ import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { LogEntryForm } from "@/components/dashboard/log-entry-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AiBadge } from "@/components/ui/ai-badge";
-import { ArtIcon } from "@/components/ui/art-icon";
+import { ToolIcon } from "@/components/ui/tool-icon";
 
 function LogPageContent() {
   const { injuries, loading } = useInjuries();
@@ -52,7 +52,7 @@ export default function LogEntryPage() {
           New entry
         </h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-          A symptom, a treatment you tried, or a visit — whatever happened,
+          A symptom, a treatment you tried, or a visit - whatever happened,
           it&apos;s worth putting down while it&apos;s fresh.
         </p>
       </div>
@@ -65,7 +65,7 @@ export default function LogEntryPage() {
         href="/dashboard/extractor"
         className="flex max-w-2xl items-center gap-3.5 rounded-[18px] bg-secondary p-4 transition-colors hover:bg-accent"
       >
-        <ArtIcon src="/art-sparkle.png" size={28} />
+        <ToolIcon tool="extractor" size={36} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">

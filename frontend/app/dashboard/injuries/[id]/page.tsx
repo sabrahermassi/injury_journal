@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { getInjury, type Injury } from "@/services/api";
-import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,6 @@ function formatStoredDate(iso: string) {
 export default function InjuryDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { openNewEntry } = useNewEntry();
 
   const [injury, setInjury] = useState<Injury | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +83,7 @@ export default function InjuryDetailsPage() {
     return (
       <main className="flex flex-col items-start gap-3 p-4 md:p-11">
         <p className="text-muted-foreground">
-          Couldn&apos;t load this injury — try again.
+          Couldn&apos;t load this injury - try again.
         </p>
         <Button variant="outline" onClick={() => setRetryKey((key) => key + 1)}>
           Retry
@@ -129,12 +127,6 @@ export default function InjuryDetailsPage() {
             </p>
           </div>
         </div>
-
-        <Button
-          onClick={() => openNewEntry({ injuryId: injury.id })}
-        >
-          Log entry
-        </Button>
       </div>
 
       <Card className="rounded-3xl">

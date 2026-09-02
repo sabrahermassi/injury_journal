@@ -78,7 +78,7 @@ export function TreatmentsCard({ injuryId }: { injuryId: number }) {
         ) : treatments.length === 0 ? (
           <div className="flex flex-col items-start gap-2">
             <p className="text-muted-foreground">
-              Nothing logged yet — treatments you try are what this app is
+              Nothing logged yet - treatments you try are what this app is
               for.
             </p>
             <Button size="sm" onClick={() => router.push(logHref)}>

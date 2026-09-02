@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-import { createInjury } from "@/services/api";
+import { createInjury, type Injury } from "@/services/api";
 
 export function CreateInjuryDialog({
   open,
@@ -25,7 +25,7 @@ export function CreateInjuryDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onCreated: (injury: Injury) => void;
 }) {
   const [name, setName] = useState("");
   const [bodyArea, setBodyArea] = useState("");
@@ -52,7 +52,7 @@ export function CreateInjuryDialog({
     setError("");
 
     try {
-      await createInjury({
+      const created = await createInjury({
         name,
         bodyArea,
         side: side || null,
@@ -62,7 +62,7 @@ export function CreateInjuryDialog({
         status: "Active",
       });
 
-      onCreated();
+      onCreated(created);
       resetForm();
       onOpenChange(false);
     } catch {

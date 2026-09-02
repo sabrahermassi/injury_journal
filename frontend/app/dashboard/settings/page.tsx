@@ -52,7 +52,7 @@ export default function SettingsPage() {
             Account
           </h2>
           <p className="mt-1.5 truncate text-[13.5px] text-muted-foreground">
-            {user?.email ?? "Unknown — try signing in again"}
+            {user?.email ?? "Unknown - try signing in again"}
           </p>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function SettingsPage() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground">Email</p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {user?.email ?? "Unknown — try signing in again"}
+                {user?.email ?? "Unknown - try signing in again"}
               </p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default function SettingsPage() {
 
       {logoutError && (
         <p className="text-sm text-destructive">
-          Couldn&apos;t sign out — try again.
+          Couldn&apos;t sign out - try again.
         </p>
       )}
 

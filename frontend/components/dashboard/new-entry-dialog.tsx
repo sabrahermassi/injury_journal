@@ -12,6 +12,7 @@ import {
 } from "@/services/api";
 import { useInjuries } from "./injuries-provider";
 import { useNewEntry } from "./new-entry-provider";
+import { CreateInjuryDialog } from "./create-injury-dialog";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { AiBadge } from "@/components/ui/ai-badge";
-import { ArtIcon } from "@/components/ui/art-icon";
+import { ToolIcon } from "@/components/ui/tool-icon";
 
 /**
  * The reference design's ten-step pain ramp — a finer-grained sibling of the
@@ -140,6 +141,7 @@ function NewEntryForm({
     options.injuryId,
   );
   const [injuryOpen, setInjuryOpen] = useState(false);
+  const [creatingInjury, setCreatingInjury] = useState(false);
 
   const [pain, setPain] = useState(3);
   const [doctor, setDoctor] = useState("");
@@ -263,8 +265,8 @@ function NewEntryForm({
         setSaving(false);
         setError(
           i === 0
-            ? "Couldn't save that — nothing was written. Try again."
-            : `Saved ${i} of ${queue.length}. The rest are still here — try again.`,
+            ? "Couldn't save that - nothing was written. Try again."
+            : `Saved ${i} of ${queue.length}. The rest are still here - try again.`,
         );
         return;
       }
@@ -281,6 +283,19 @@ function NewEntryForm({
 
   return (
     <>
+      <CreateInjuryDialog
+        open={creatingInjury}
+        onOpenChange={setCreatingInjury}
+        onCreated={(created) => {
+          // Select it directly, from the record the create call returned --
+          // not by re-fetching and guessing which entry in the refreshed list
+          // is newest. getInjuries has no orderBy, so that order is not
+          // guaranteed to put it anywhere in particular.
+          setInjuryId(created.id);
+          refresh();
+        }}
+      />
+
       <div className="flex items-start justify-between gap-4 px-6.5 pt-6 pb-4">
         <div>
           <DialogTitle className="font-serif text-[28px] leading-[1.12] font-normal text-foreground">
@@ -312,7 +327,7 @@ function NewEntryForm({
           onClick={onClose}
           className="flex items-center gap-3.5 rounded-[18px] bg-secondary p-4 transition-[filter] hover:brightness-[0.985]"
         >
-          <ArtIcon src="/art-sparkle.png" size={28} />
+          <ToolIcon tool="extractor" size={36} />
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -371,14 +386,21 @@ function NewEntryForm({
                     </button>
                   ))}
 
-                  <Link
-                    href="/dashboard/injuries"
-                    onClick={onClose}
-                    className="flex items-center gap-2 border-t border-border px-4 py-3 text-[13.5px] font-semibold text-accent-foreground transition-colors hover:bg-muted"
+                  {/* Opens the create-injury dialog over this one. It used to
+                      navigate to the injuries list, which closed the entry you
+                      were part-way through and left you on a page with no way
+                      to create anything - the broken path. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInjuryOpen(false);
+                      setCreatingInjury(true);
+                    }}
+                    className="flex w-full items-center gap-2 border-t border-border px-4 py-3 text-left text-[13.5px] font-semibold text-accent-foreground transition-colors hover:bg-muted"
                   >
                     <Plus className="size-3.5" aria-hidden="true" />
                     Add a new injury
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
@@ -613,7 +635,7 @@ function NewEntryForm({
             type="button"
             onClick={save}
             disabled={total === 0 || saving}
-            className="h-[54px] flex-1 rounded-full bg-primary text-[14.5px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="h-[54px] flex-1 rounded-full bg-primary text-[14.5px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
             {saveLabel}
           </button>

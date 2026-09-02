@@ -215,7 +215,7 @@ export default function InsightsPage() {
 
       <div className="grid gap-5 sm:grid-cols-3">
         <Stat
-          value={daysTracked === null ? "—" : String(daysTracked)}
+          value={daysTracked === null ? "-" : String(daysTracked)}
           label={
             daysTracked === null
               ? "No injury profile yet"
@@ -225,7 +225,7 @@ export default function InsightsPage() {
         <Stat value={String(symptoms.length)} label="pain check-ins logged" />
         <Stat
           value={
-            recentAveragePain === null ? "—" : recentAveragePain.toFixed(1)
+            recentAveragePain === null ? "-" : recentAveragePain.toFixed(1)
           }
           label="average pain, last 30 days"
           tone={
@@ -249,7 +249,7 @@ export default function InsightsPage() {
             <div className="mt-3">
               {symptomsError ? (
                 <p className="py-8 text-sm text-muted-foreground">
-                  Couldn&apos;t load pain levels — try refreshing.
+                  Couldn&apos;t load pain levels - try refreshing.
                 </p>
               ) : (
                 <PainChart symptoms={symptoms} />
@@ -275,7 +275,7 @@ export default function InsightsPage() {
           ) : groups.length === 0 ? (
             <div className="flex flex-col items-start gap-3 px-[22px] pb-5">
               <p className="text-sm text-muted-foreground">
-                Nothing to compare yet — log a treatment and check in on it once
+                Nothing to compare yet - log a treatment and check in on it once
                 it&apos;s had time to work, or not.
               </p>
               <Button

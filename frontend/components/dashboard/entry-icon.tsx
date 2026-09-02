@@ -5,21 +5,17 @@ import { cn } from "@/lib/utils";
 /**
  * An entry's illustration inside the design's round holder.
  *
- * The holder is deliberately larger than the art it contains — the
- * illustrations are drawn edge to edge, and without the inset they crowd the
- * circle and read as clipped. The design uses the same proportion on the home
- * screen's encouragement card: a 66px circle around a 40px image.
- *
- * `size` is the holder, so it has to exceed the size the design draws the art
- * at (54px in a timeline row) rather than match it — setting the holder to 54
- * left the illustration at 33px, noticeably smaller than designed. INSET is
- * the one number to turn if the art wants more or less room.
+ * The illustrations carry no transparent margin of their own - measured, the
+ * entry art is drawn edge to edge at 0% padding - so any gap between art and
+ * disc is inset this component adds. It adds almost none: the art fills the
+ * disc and the disc clips it to a circle, which is why the holder needs
+ * `overflow-hidden`.
  *
  * `icon` comes from the API (backend/src/entryIcons.js), so two records that
  * say the same thing always draw the same picture. Anything unrecognised
  * arrives as "leaf".
  */
-const INSET = 0.66;
+const INSET = 0.94;
 
 export function EntryIcon({
   icon,
@@ -33,7 +29,7 @@ export function EntryIcon({
   return (
     <span
       className={cn(
-        "flex flex-none items-center justify-center rounded-full bg-secondary",
+        "flex flex-none items-center justify-center overflow-hidden rounded-full bg-icon-disc",
         className,
       )}
       style={{ width: size, height: size }}

@@ -133,7 +133,7 @@ export function AcceptExtraction({
 
       {error && (
         <p className="text-sm text-destructive">
-          Couldn&apos;t save that — nothing was written. Try again.
+          Couldn&apos;t save that - nothing was written. Try again.
         </p>
       )}
     </div>

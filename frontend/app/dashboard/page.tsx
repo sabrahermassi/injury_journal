@@ -73,7 +73,7 @@ export default function DashboardOverviewPage() {
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
               Set up a profile for what you&apos;re tracking, and everything
-              after — symptoms, treatments, visits — gets kept in one place
+              after - symptoms, treatments, visits - gets kept in one place
               against it. The first week is just about building the record;
               there&apos;s no catching up to do.
             </p>
@@ -144,7 +144,7 @@ export default function DashboardOverviewPage() {
             <CardContent className="px-6 pt-3.5 pb-5">
               {symptomsError ? (
                 <p className="py-8 text-sm text-muted-foreground">
-                  Couldn&apos;t load pain levels — try refreshing.
+                  Couldn&apos;t load pain levels - try refreshing.
                 </p>
               ) : (
                 <PainChart symptoms={symptoms} />
@@ -175,12 +175,12 @@ export default function DashboardOverviewPage() {
               </div>
             ) : eventsError ? (
               <p className="p-5 text-muted-foreground">
-                Couldn&apos;t load recent activity — try refreshing.
+                Couldn&apos;t load recent activity - try refreshing.
               </p>
             ) : recent.length === 0 ? (
               <div className="flex flex-col items-start gap-2 p-5">
                 <p className="text-muted-foreground">
-                  Nothing logged yet — a note today is worth more than a perfect
+                  Nothing logged yet - a note today is worth more than a perfect
                   one later.
                 </p>
                 <Button size="sm" onClick={() => openNewEntry()}>
@@ -261,7 +261,7 @@ export default function DashboardOverviewPage() {
                 Worth a check-in
               </p>
               <p className="mt-2 text-[12.5px] text-muted-foreground">
-                Couldn&apos;t check for due follow-ups — try refreshing.
+                Couldn&apos;t check for due follow-ups - try refreshing.
               </p>
             </div>
           )}

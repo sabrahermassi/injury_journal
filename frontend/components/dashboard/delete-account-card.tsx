@@ -104,7 +104,7 @@ export function DeleteAccountCard({ email }: { email: string | null }) {
 
           {error && (
             <p className="text-sm text-destructive">
-              Couldn&apos;t delete the account — nothing was removed. Try again.
+              Couldn&apos;t delete the account - nothing was removed. Try again.
             </p>
           )}
 

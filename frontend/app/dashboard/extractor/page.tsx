@@ -3,7 +3,7 @@
 import { InjuryExtractor } from "@/components/extractor/injury-extractor";
 import { InjuryHistory } from "@/components/extractor/injury-history";
 import { AiBadge } from "@/components/ui/ai-badge";
-import { ArtIcon } from "@/components/ui/art-icon";
+import { ToolIcon } from "@/components/ui/tool-icon";
 
 // Two-column treatment from the "Injury Journal Botanical" reference design:
 // the paste box on the left, the extracted summary panel on the right.
@@ -20,7 +20,7 @@ export default function ExtractorPage() {
   return (
     <main className="flex w-full flex-1 flex-col gap-8 p-4 md:p-11">
       <header className="flex items-start gap-4">
-        <ArtIcon src="/art-sparkle.png" size={38} className="mt-1" />
+        <ToolIcon tool="extractor" size={44} className="mt-0.5" />
 
         <div>
           <div className="flex flex-wrap items-center gap-3">

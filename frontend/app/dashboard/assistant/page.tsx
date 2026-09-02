@@ -2,13 +2,13 @@
 
 import { AskForm } from "@/components/assistant/ask-form";
 import { AiBadge } from "@/components/ui/ai-badge";
-import { ArtIcon } from "@/components/ui/art-icon";
+import { ToolIcon } from "@/components/ui/tool-icon";
 
 export default function AssistantPage() {
   return (
     <main className="flex flex-1 flex-col gap-7 p-4 md:p-11">
       <header className="flex items-start gap-3.5">
-        <ArtIcon src="/art-sparkle.png" size={38} className="mt-1" />
+        <ToolIcon tool="assistant" size={44} className="mt-0.5" />
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3.5">
@@ -19,7 +19,7 @@ export default function AssistantPage() {
           </div>
 
           <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-            Ask about your own record — which treatments helped, or a summary
+            Ask about your own record - which treatments helped, or a summary
             across one injury or all of them. Every answer cites the entries
             behind it.
           </p>

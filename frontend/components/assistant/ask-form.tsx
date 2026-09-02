@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EntryIcon } from "@/components/dashboard/entry-icon";
-import { ArtIcon } from "@/components/ui/art-icon";
+import { ToolIcon } from "@/components/ui/tool-icon";
 import {
   askAssistant,
   getInjuries,
@@ -29,7 +29,7 @@ const ALL_INJURIES = "all";
 function formatInjuryLabel(injury: Injury) {
   const area = `${injury.bodyArea}${injury.side ? ` (${injury.side})` : ""}`;
 
-  return `${injury.name} — ${area}`;
+  return `${injury.name} - ${area}`;
 }
 
 export function AskForm() {
@@ -112,7 +112,7 @@ export function AskForm() {
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong — try again.",
+          : "Something went wrong - try again.",
       );
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ export function AskForm() {
             </div>
 
             <div className="mt-4 flex items-start gap-3">
-              <ArtIcon src="/art-sparkle.png" size={30} className="mt-2" />
+              <ToolIcon tool="assistant" size={34} className="mt-1.5" />
 
               <div className="min-w-0 flex-1 rounded-[20px_20px_20px_6px] bg-card px-5.5 py-5 ring-1 ring-border">
                 <p className="text-[15px] leading-[1.65] whitespace-pre-wrap text-foreground/80">
