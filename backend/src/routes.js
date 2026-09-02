@@ -28,6 +28,8 @@ import {
   getTreatmentOutcomesController,
   deleteTreatmentOutcomeController,
   askAssistantController,
+  extractInjuryController,
+  getInjuryHistoryController,
 } from './controllers.js';
 import {
   authenticate,
@@ -51,6 +53,7 @@ import {
   updateMedicalVisitSchema,
   treatmentOutcomeSchema,
   assistantAskSchema,
+  extractSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -287,5 +290,19 @@ router.post(
   validate(assistantAskSchema),
   askAssistantController
 );
+
+// POST /api/extract
+// GET /api/extract/injuries
+// Proxies to the AI extractor Lambda, forwarding the caller's own token so
+// it can scope DynamoDB reads/writes to the authenticated user instead of a
+// hardcoded demo user (issue #59). See src/services/extractorService.js.
+router.post(
+  '/extract',
+  authenticate,
+  validate(extractSchema),
+  extractInjuryController
+);
+
+router.get('/extract/injuries', authenticate, getInjuryHistoryController);
 
 export default router;
