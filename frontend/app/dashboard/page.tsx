@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { PlusCircle } from "lucide-react";
+import { ChevronRight, PlusCircle } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
@@ -11,12 +11,12 @@ import { useAllSymptoms } from "@/hooks/use-symptoms";
 import { useDueFollowUps } from "@/hooks/use-due-followups";
 import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
 import { PainChart } from "@/components/dashboard/pain-chart";
+import { TodayPainCard } from "@/components/dashboard/today-pain-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function greeting() {
-  const hour = new Date().getHours();
+function greeting(hour: number) {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
@@ -26,9 +26,17 @@ export default function DashboardOverviewPage() {
   const router = useRouter();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
   const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
-  const { symptoms, error: symptomsError } = useAllSymptoms(injuries);
+  const {
+    symptoms,
+    error: symptomsError,
+    refresh: refreshSymptoms,
+  } = useAllSymptoms(injuries);
   const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
   const [createOpen, setCreateOpen] = useState(false);
+
+  // Pinned once per mount -- reading the clock during render is impure, and
+  // the greeting has no business changing on an unrelated re-render.
+  const [hour] = useState(() => new Date().getHours());
 
   const recent = useMemo(() => events.slice(0, 5), [events]);
 
@@ -39,19 +47,21 @@ export default function DashboardOverviewPage() {
 
   if (injuriesLoading) {
     return (
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <Skeleton className="h-24 rounded-xl" />
-        <Skeleton className="h-48 rounded-xl" />
+      <main className="flex flex-1 flex-col gap-6 p-4 md:p-11">
+        <Skeleton className="h-24 rounded-3xl" />
+        <Skeleton className="h-48 rounded-3xl" />
       </main>
     );
   }
 
   if (injuries.length === 0) {
     return (
-      <main className="flex flex-1 flex-col items-start gap-4 p-4 md:gap-6 md:p-6">
-        <Card className="max-w-lg">
+      <main className="flex flex-1 flex-col items-start gap-6 p-4 md:p-11">
+        <Card className="max-w-lg rounded-3xl">
           <CardHeader>
-            <CardTitle>Start your record</CardTitle>
+            <CardTitle className="font-serif text-2xl font-medium">
+              Start your record
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
@@ -77,22 +87,22 @@ export default function DashboardOverviewPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6">
+    <main className="flex flex-1 flex-col p-4 md:px-11 md:pt-9 md:pb-11">
       {/* Decorative sprig from the reference design, bleeding off the right
           edge. Clipped by the section so it can never widen the page. */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden pb-6">
         <Image
           src="/sprig-ref.png"
           alt=""
           width={326}
           height={236}
           aria-hidden="true"
-          className="pointer-events-none absolute -top-6 right-0 w-[326px] max-w-[42%] select-none"
+          className="pointer-events-none absolute -top-8 right-0 w-[326px] max-w-[42%] select-none"
         />
 
         <div className="relative max-w-xl">
           <h2 className="font-serif text-4xl leading-[1.02] font-light tracking-tight text-foreground md:text-[46px]">
-            {greeting()}
+            {greeting(hour)}
           </h2>
           <p className="mt-3.5 text-[15.5px] leading-relaxed text-muted-foreground">
             Healing isn&apos;t linear, but every step counts.{" "}
@@ -103,163 +113,203 @@ export default function DashboardOverviewPage() {
         </div>
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {injuries.length === 1
-            ? "1 injury profile being tracked."
-            : `${injuries.length} injury profiles being tracked.`}
-        </p>
+      <div className="relative flex flex-col items-start gap-6 lg:flex-row">
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+          <Card className="gap-0 rounded-3xl py-0">
+            <CardHeader className="flex flex-wrap items-start justify-between gap-4 px-6 pt-5.5 pb-0">
+              <div className="flex items-start gap-3">
+                <Image
+                  src="/art-leaf-sm.png"
+                  alt=""
+                  width={30}
+                  height={30}
+                  aria-hidden="true"
+                  className="mt-1 size-[30px] flex-none select-none"
+                />
+                <div>
+                  <CardTitle className="font-serif text-2xl leading-tight font-medium">
+                    How you&apos;ve been feeling
+                  </CardTitle>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    Past 30 days{trackedNames ? ` · ${trackedNames}` : ""}
+                  </p>
+                </div>
+              </div>
 
-        <Button onClick={() => router.push("/dashboard/log")}>
-          <PlusCircle />
-          Log something
-        </Button>
-      </div>
+              {/* The design draws this as a dropdown. Daily average is the only
+                  aggregation there is, so it stays a label rather than a
+                  control that opens nothing. */}
+              <span className="flex h-11 flex-none items-center rounded-2xl bg-popover px-4 text-[13.5px] text-foreground/80 ring-1 ring-border">
+                Daily average
+              </span>
+            </CardHeader>
 
-      <Card className="gap-0 py-0">
-        <CardHeader className="flex flex-wrap items-start justify-between gap-4 px-6 pt-5.5 pb-0">
-          <div className="flex items-start gap-3">
-            <Image
-              src="/art-leaf-sm.png"
-              alt=""
-              width={30}
-              height={30}
-              aria-hidden="true"
-              className="mt-1 size-[30px] flex-none select-none"
-            />
-            <div>
-              <CardTitle className="font-serif text-2xl leading-tight font-medium">
-                How you&apos;ve been feeling
-              </CardTitle>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                Past 30 days{trackedNames ? ` · ${trackedNames}` : ""}
+            <CardContent className="px-6 pt-3.5 pb-5">
+              {symptomsError ? (
+                <p className="py-8 text-sm text-muted-foreground">
+                  Couldn&apos;t load pain levels — try refreshing.
+                </p>
+              ) : (
+                <PainChart symptoms={symptoms} />
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="flex items-baseline justify-between gap-4 px-1 pt-1">
+            <h3 className="font-serif text-[26px] leading-tight font-medium text-foreground">
+              Recent activity
+            </h3>
+            {recent.length > 0 && (
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/timeline")}
+                className="text-[13.5px] font-medium text-accent-foreground transition-colors hover:text-foreground"
+              >
+                View all
+              </button>
+            )}
+          </div>
+
+          <Card className="gap-0 overflow-hidden rounded-3xl py-0">
+            {eventsLoading ? (
+              <div className="space-y-2 p-5">
+                <Skeleton className="h-14 w-full rounded-xl" />
+                <Skeleton className="h-14 w-full rounded-xl" />
+              </div>
+            ) : eventsError ? (
+              <p className="p-5 text-muted-foreground">
+                Couldn&apos;t load recent activity — try refreshing.
+              </p>
+            ) : recent.length === 0 ? (
+              <div className="flex flex-col items-start gap-2 p-5">
+                <p className="text-muted-foreground">
+                  Nothing logged yet — a note today is worth more than a
+                  perfect one later.
+                </p>
+                <Button size="sm" onClick={() => router.push("/dashboard/log")}>
+                  Log your first entry
+                </Button>
+              </div>
+            ) : (
+              recent.map((event) => (
+                <button
+                  key={`${event.injuryId}-${event.id}`}
+                  type="button"
+                  onClick={() =>
+                    router.push(`/dashboard/injuries/${event.injuryId}`)
+                  }
+                  className="flex w-full items-center gap-4 border-t border-border px-5.5 py-4.5 text-left transition-colors first:border-t-0 hover:bg-accent/40"
+                >
+                  <div className="min-w-0 sm:w-[190px] sm:flex-none">
+                    <p className="truncate font-serif text-[19px] leading-tight font-medium text-foreground capitalize">
+                      {event.type}
+                    </p>
+                    <p className="mt-1 truncate text-[12.5px] text-muted-foreground">
+                      {event.injuryName}
+                    </p>
+                  </div>
+
+                  <p className="hidden min-w-0 flex-1 truncate text-sm text-foreground/80 sm:block">
+                    {event.description}
+                  </p>
+
+                  <span className="ml-auto flex-none text-[12.5px] text-muted-foreground sm:ml-0">
+                    {new Date(event.date).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+
+                  <ChevronRight
+                    className="size-4 flex-none text-muted-foreground-subtle"
+                    aria-hidden="true"
+                  />
+                </button>
+              ))
+            )}
+          </Card>
+        </div>
+
+        <div className="flex w-full flex-none flex-col gap-4.5 lg:w-[364px]">
+          <div className="flex items-center gap-4 rounded-3xl bg-card p-5 ring-1 ring-border">
+            <span className="flex size-[66px] flex-none items-center justify-center rounded-full bg-accent">
+              <Image
+                src="/art-leaf-lg.png"
+                alt=""
+                width={40}
+                height={40}
+                aria-hidden="true"
+                className="size-10 select-none"
+              />
+            </span>
+            <div className="min-w-0">
+              <p className="font-serif text-[19px] leading-tight font-medium text-foreground">
+                Small steps, real progress.
+              </p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                Your consistency is building a clearer picture of your healing.
               </p>
             </div>
           </div>
 
-          {/* The design draws this as a dropdown. Daily average is the only
-              aggregation there is, so it stays a label rather than a
-              control that opens nothing. */}
-          <span className="flex h-11 flex-none items-center rounded-2xl bg-popover px-4 text-[13.5px] text-foreground/80 ring-1 ring-border">
-            Daily average
-          </span>
-        </CardHeader>
+          {/* The design's right rail also carries a "Next appointment" card and
+              an appointment-summary prompt. There is no scheduled-appointment
+              model -- MedicalVisit records a visit that already happened -- so
+              those are left out rather than mocked up. */}
 
-        <CardContent className="px-6 pt-3.5 pb-5">
-          {symptomsError ? (
-            <p className="py-8 text-sm text-muted-foreground">
-              Couldn&apos;t load pain levels — try refreshing.
-            </p>
-          ) : (
-            <PainChart symptoms={symptoms} />
-          )}
-        </CardContent>
-      </Card>
+          <TodayPainCard
+            injuries={injuries}
+            symptoms={symptoms}
+            onLogged={refreshSymptoms}
+          />
 
-      {dueFollowUpsError && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Worth a check-in</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Couldn&apos;t check for due follow-ups — try refreshing.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {!dueFollowUpsError && dueFollowUps.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Worth a check-in</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dueFollowUps.map((treatment) => (
-              <div
-                key={treatment.id}
-                className="flex items-center justify-between gap-4 border-t pt-3 first:border-t-0 first:pt-0"
-              >
-                <p className="text-sm">
-                  How did <span className="font-medium">{treatment.name}</span>{" "}
-                  work out?{" "}
-                  <span className="text-muted-foreground">
-                    ({treatment.injuryName})
-                  </span>
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    router.push(`/dashboard/injuries/${treatment.injuryId}`)
-                  }
-                >
-                  Check in
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex items-baseline justify-between gap-4 px-1 pt-1">
-        <h3 className="font-serif text-2xl font-medium text-foreground">
-          Recent activity
-        </h3>
-        {recent.length > 0 && (
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard/timeline")}
-            className="text-[13.5px] font-medium text-accent-foreground transition-colors hover:text-foreground"
-          >
-            View all
-          </button>
-        )}
-      </div>
-
-      <Card>
-        <CardContent>
-          {eventsLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-14 w-full" />
-              <Skeleton className="h-14 w-full" />
-            </div>
-          ) : eventsError ? (
-            <p className="text-muted-foreground">
-              Couldn&apos;t load recent activity — try refreshing.
-            </p>
-          ) : recent.length === 0 ? (
-            <div className="flex flex-col items-start gap-2">
-              <p className="text-muted-foreground">
-                Nothing logged yet — a note today is worth more than a
-                perfect one later.
+          {dueFollowUpsError && (
+            <div className="rounded-3xl bg-card p-5 ring-1 ring-border">
+              <p className="font-serif text-[19px] leading-tight font-medium text-foreground">
+                Worth a check-in
               </p>
-              <Button size="sm" onClick={() => router.push("/dashboard/log")}>
-                Log your first entry
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recent.map((event) => (
-                <div
-                  key={`${event.injuryId}-${event.id}`}
-                  className="flex items-start justify-between gap-4 border-t pt-4 first:border-t-0 first:pt-0"
-                >
-                  <div className="space-y-0.5">
-                    <p className="font-medium">{event.type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {event.injuryName}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-sm text-muted-foreground">
-                    {new Date(event.date).toLocaleDateString()}
-                  </span>
-                </div>
-              ))}
+              <p className="mt-2 text-[12.5px] text-muted-foreground">
+                Couldn&apos;t check for due follow-ups — try refreshing.
+              </p>
             </div>
           )}
-        </CardContent>
-      </Card>
+
+          {!dueFollowUpsError && dueFollowUps.length > 0 && (
+            <div className="rounded-3xl bg-card p-5 ring-1 ring-border">
+              <p className="font-serif text-[19px] leading-tight font-medium text-foreground">
+                Worth a check-in
+              </p>
+
+              <div className="mt-3 flex flex-col gap-3">
+                {dueFollowUps.map((treatment) => (
+                  <div
+                    key={treatment.id}
+                    className="flex items-center justify-between gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0"
+                  >
+                    <p className="min-w-0 text-[13px] text-foreground/80">
+                      How did{" "}
+                      <span className="font-medium text-foreground">
+                        {treatment.name}
+                      </span>{" "}
+                      work out?
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-none"
+                      onClick={() =>
+                        router.push(`/dashboard/injuries/${treatment.injuryId}`)
+                      }
+                    >
+                      Check in
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { getSymptoms, type Injury, type Symptom } from "@/services/api";
 
@@ -13,6 +13,11 @@ export function useAllSymptoms(injuries: Injury[]) {
   const [symptoms, setSymptoms] = useState<SymptomWithInjury[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Callers that write a symptom (the home screen's quick log) need the
+  // chart and today's average to catch up without a full page reload.
+  const refresh = useCallback(() => setReloadKey((key) => key + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +72,7 @@ export function useAllSymptoms(injuries: Injury[]) {
     return () => {
       cancelled = true;
     };
-  }, [injuries]);
+  }, [injuries, reloadKey]);
 
-  return { symptoms, loading, error };
+  return { symptoms, loading, error, refresh };
 }

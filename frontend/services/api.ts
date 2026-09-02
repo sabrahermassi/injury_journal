@@ -263,7 +263,11 @@ export async function createSymptom(
   symptom: {
     date: string;
     painLevel: number;
-    location: string;
+    // Optional on the API too (symptomSchema in backend/src/validators.js) --
+    // a date and a level is a complete symptom, which is what the home
+    // screen's one-tap check-in sends. Omit it rather than sending "": the
+    // schema is `.min(1)`, so an empty string is rejected.
+    location?: string;
     trigger?: string;
     duration?: string;
     notes?: string;
