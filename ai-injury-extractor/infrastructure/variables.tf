@@ -10,5 +10,5 @@ variable "allowed_origin" {
 
 variable "groq_model" {
   type    = string
-  default = "llama-3.1-8b-instant"
+  default = "openai/gpt-oss-20b"
 }
