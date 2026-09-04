@@ -1,6 +1,8 @@
-# Welcome to your Expo app 👋
+# Injury Journal — mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The Expo / React Native client for the Injury Journal API. See `CLAUDE.md` in this
+folder (and root `CLAUDE.md` §12) for the conventions and the shared-API contract with
+`frontend/`.
 
 ## Get started
 
@@ -10,7 +12,18 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Configure the API URL
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Set `EXPO_PUBLIC_API_URL` to an address your phone can reach — a LAN IP, not
+   `localhost` (on the phone, `localhost` is the phone). That same address must also
+   appear in the repo-root `.env`'s comma-separated `FRONTEND_URL`, or the API rejects
+   the origin.
+
+3. Start the app
 
    ```bash
    npx expo start
@@ -23,17 +36,7 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Routes are file-based under `src/app/` (not `app/`) — see [file-based routing](https://docs.expo.dev/router/introduction).
 
 ### Other setup steps
 

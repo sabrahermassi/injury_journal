@@ -73,6 +73,14 @@ export default function InjuryDetailScreen() {
     Timeline: timeline,
   }[section];
 
+  // The summary card above the segmented control reads from `injury`, a
+  // separate query from whichever section is active -- pull-to-refresh has to
+  // refetch both or the summary goes stale while the list below it updates.
+  const onRefresh = () => {
+    injury.refetch();
+    activeQuery.refetch();
+  };
+
   return (
     <>
       <Stack.Screen options={{ title: injury.data?.name ?? 'Injury' }} />
@@ -80,8 +88,8 @@ export default function InjuryDetailScreen() {
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
-            refreshing={activeQuery.isRefetching}
-            onRefresh={activeQuery.refetch}
+            refreshing={injury.isRefetching || activeQuery.isRefetching}
+            onRefresh={onRefresh}
             tintColor={colors.primary}
           />
         }>

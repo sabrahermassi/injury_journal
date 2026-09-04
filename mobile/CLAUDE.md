@@ -20,6 +20,13 @@ phone, where `localhost` is the phone. The same address must also appear in the 
 Expo Go on the same Wi-Fi; `npx expo start --tunnel` if the network blocks it (public
 Wi-Fi profile, AP isolation, firewall).
 
+`--tunnel` only tunnels Metro (the JS bundle) — it does not proxy the app's own API
+requests. `EXPO_PUBLIC_API_URL` still has to be an address the phone can reach, so on
+tunnel mode that means running a separate tunnel (e.g. `ngrok http 3001`) for the
+backend and pointing `EXPO_PUBLIC_API_URL` at that URL, added to `FRONTEND_URL` as
+above. `FRONTEND_URL` is still the web-origin allowlist — never set it to the backend's
+own URL.
+
 There is no iOS Simulator on Windows and never will be — that needs Xcode. It does not
 block iOS: Expo Go covers development, and EAS Build compiles on hosted Apple hardware.
 

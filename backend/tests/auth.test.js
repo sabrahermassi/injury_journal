@@ -200,6 +200,31 @@ describe('Native session handling', () => {
     expect(replay.statusCode).toBe(401);
   });
 
+  test('two concurrent refreshes of the same token produce only one successor', async () => {
+    const { body } = await registerNative();
+
+    const [first, second] = await Promise.all([
+      request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: body.refreshToken }),
+      request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: body.refreshToken }),
+    ]);
+
+    const statusCodes = [first.statusCode, second.statusCode].sort();
+
+    expect(statusCodes).toEqual([200, 401]);
+
+    const winner = first.statusCode === 200 ? first : second;
+
+    const me = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${winner.body.token}`);
+
+    expect(me.statusCode).toBe(200);
+  });
+
   test('replaying a rotated token revokes the whole family', async () => {
     const { body } = await registerNative();
 

@@ -18,12 +18,14 @@ Phone   -> Expo / React Native app (mobile/) ───────────�
                                                                           Prisma ORM -> PostgreSQL
 ```
 
-Two clients, one API, two deliberately different auth strategies. The web app keeps
-its token in an httpOnly cookie because the threat there is XSS reading it (issue #8).
-A native bundle has no DOM and stores the token in the Keychain/Keystore, so it uses
-a Bearer header instead — and `verifyCsrf` already short-circuits when no auth cookie
-is present, which is what makes that path work without a second code path in the API.
-See §12.
+Two clients, one API, two deliberately different auth strategies. The web app's actual
+session lives in an httpOnly cookie set by login/register, which is what defeats XSS
+reading it (issue #8) — the same response's JSON body also carries the token, for
+`.http` files and Bearer-style tests (see §8), so the guarantee is "a script can't read
+the cookie," not "the token appears nowhere else." A native bundle has no DOM and stores
+the token in the Keychain/Keystore, so it uses a Bearer header instead — and `verifyCsrf`
+already short-circuits when no auth cookie is present, which is what makes that path work
+without a second code path in the API. See §12.
 
 All backend resources (Injury, TimelineEvent, Symptom, Treatment, MedicalVisit) are scoped to the authenticated user, either directly (`Injury.userId`) or transitively through the parent Injury. Every read/update/delete in the service layer re-checks ownership before touching a nested resource — this is the central invariant of the app and must be preserved in any new endpoint.
 

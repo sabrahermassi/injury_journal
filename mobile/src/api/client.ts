@@ -75,7 +75,14 @@ export function setSignedOutHandler(handler: (() => void) | null): void {
 // family. So: one refresh at a time, everyone waits for it.
 let refreshInFlight: Promise<Session | null> | null = null;
 
+// Bumped every time logout() authoritatively ends a session. A refresh that
+// started before the bump has no business writing anything after it -- the
+// user (or a fresh login) has moved on, and persisting a late-arriving
+// rotated token would resurrect a session that was just ended.
+let sessionGeneration = 0;
+
 async function performRefresh(): Promise<Session | null> {
+  const generation = sessionGeneration;
   const session = await getSession();
 
   if (!session) {
@@ -99,14 +106,35 @@ async function performRefresh(): Promise<Session | null> {
     return null;
   }
 
-  if (!response.ok) {
-    await setSession(null);
-    onSignedOut?.();
+  if (response.status === 401) {
+    // The backend answers every rejected refresh with 401 -- see
+    // `unauthorized` in authService.js -- so this is the one response that
+    // actually means the stored session is dead. Only act on it if a logout
+    // didn't already move the session on while this request was in flight.
+    if (generation === sessionGeneration) {
+      await setSession(null);
+      onSignedOut?.();
+    }
 
     return null;
   }
 
+  if (!response.ok) {
+    // 429 (rate limited) or 5xx: the server is having a moment, not the
+    // session. Same call as the network-down case above -- keep the tokens.
+    return null;
+  }
+
   const body = await response.json();
+
+  if (generation !== sessionGeneration) {
+    // logout() ran while this refresh was in flight. The rotated tokens in
+    // `body` are already consumed server-side either way -- discarding them
+    // here just means they're orphaned instead of resurrecting a session the
+    // user ended.
+    return null;
+  }
+
   const next: Session = {
     accessToken: body.token,
     refreshToken: body.refreshToken,
@@ -271,8 +299,18 @@ export async function register(email: string, password: string): Promise<User> {
   return { id: body.id, email: body.email };
 }
 
-export async function logout(): Promise<void> {
+// `revoked: false` means the local session was cleared but the server was
+// never told -- the refresh token is still live there. Callers that promise
+// the user their session was ended on the server (see settings.tsx) need to
+// know when that promise didn't hold.
+export async function logout(): Promise<{ revoked: boolean }> {
+  // Bumped up front, not after the network round-trip below: a refresh that
+  // was already in flight when logout() was called must lose the race no
+  // matter how the timing falls.
+  sessionGeneration++;
+
   const session = await getSession();
+  let revoked = false;
 
   if (session) {
     try {
@@ -281,13 +319,18 @@ export async function logout(): Promise<void> {
         body: { refreshToken: session.refreshToken },
         retryOnUnauthorized: false,
       });
+      revoked = true;
     } catch {
       // The local session is cleared below regardless. A user who taps "log
       // out" must end up logged out even if the server is unreachable.
     }
+  } else {
+    revoked = true;
   }
 
   await setSession(null);
+
+  return { revoked };
 }
 
 export function getCurrentUser(): Promise<User> {

@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import * as api from '@/api/client';
+import { queryClient } from '@/api/query-client';
 import { getSession } from '@/api/session';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -18,7 +19,7 @@ type AuthValue = {
   user: api.User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ revoked: boolean }>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -32,6 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // this instead, and the route guard reacts to `status`.
   useEffect(() => {
     api.setSignedOutHandler(() => {
+      // Cached queries belong to the account that was just signed out of --
+      // leaving them would let the next account render this one's data.
+      queryClient.clear();
       setUser(null);
       setStatus('unauthenticated');
     });
@@ -65,11 +69,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(currentUser);
           setStatus('authenticated');
         }
-      } catch {
-        // The client already tried to refresh and cleared the session if the
-        // server rejected it. Anything still failing here is unusable.
-        if (!cancelled) {
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        // `request()` already tried a refresh on a 401 and only surfaces an
+        // ApiError if that failed too -- a genuinely dead session. Anything
+        // else (a thrown network error, offline) is connectivity, not
+        // authentication: trust the stored session rather than bouncing an
+        // offline user to the login screen, and let the app's own queries
+        // retry once the network is back.
+        if (error instanceof api.ApiError) {
           setStatus('unauthenticated');
+        } else {
+          setStatus('authenticated');
         }
       }
     })();
@@ -91,9 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await api.logout();
+    const result = await api.logout();
+
+    queryClient.clear();
     setUser(null);
     setStatus('unauthenticated');
+
+    return result;
   }, []);
 
   const value = useMemo(

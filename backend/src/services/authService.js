@@ -140,10 +140,25 @@ export const refreshSession = async (rawToken) => {
     throw unauthorized('Invalid or expired session');
   }
 
-  await prisma.refreshToken.update({
-    where: { id: stored.id },
+  // Conditioned on revokedAt still being null at write time, not just at the
+  // read above: two requests racing on the same token would otherwise both
+  // pass the check above and both walk away with a valid successor. Whoever
+  // loses this compare-and-set gets treated as the reuse case one line above
+  // -- the whole family dies, since we can no longer tell which caller was
+  // legitimate.
+  const consumed = await prisma.refreshToken.updateMany({
+    where: { id: stored.id, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+
+  if (consumed.count === 0) {
+    await prisma.refreshToken.updateMany({
+      where: { familyId: stored.familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    throw unauthorized('Invalid or expired session');
+  }
 
   return {
     token: createToken(user.id),
