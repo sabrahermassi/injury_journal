@@ -3,6 +3,8 @@ import {
   register,
   login,
   logout,
+  me,
+  refresh,
   createInjuryController,
   getInjuriesController,
   getInjuryController,
@@ -39,6 +41,7 @@ import {
 import {
   registerSchema,
   loginSchema,
+  refreshSchema,
   injurySchema,
   updateInjurySchema,
   timelineSchema,
@@ -76,6 +79,16 @@ if (process.env.NODE_ENV !== 'test') {
   // POST /api/auth/login
   router.post('/auth/login', validate(loginSchema), login);
 }
+
+// GET /api/auth/me
+router.get('/auth/me', authenticate, me);
+
+// POST /api/auth/refresh
+// Deliberately not behind authLimiter: the token is 256 bits of CSPRNG output,
+// so there is nothing to brute-force, and sharing login's ten-request bucket
+// would let ordinary session upkeep lock a user out of logging in -- which is
+// a real risk on mobile, where carrier NAT puts many users on one address.
+router.post('/auth/refresh', validate(refreshSchema), refresh);
 
 // POST /api/auth/logout
 router.post('/auth/logout', logout);
