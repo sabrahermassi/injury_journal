@@ -87,7 +87,14 @@ describe('AI agent route integration', () => {
     mockGenerateAnswer.mockResolvedValue('mocked agent answer');
   });
 
-  it('routes a RAG question through the RAG tool', async () => {
+  // The record here (one injury, one treatment) is far under CONTEXT_TOKEN_BUDGET,
+  // so this goes through the whole-record journal path, not RAG -- RAG only
+  // fires once the record is too large to hand over whole, which is covered
+  // deterministically by ai-agent-orchestrator.test.ts's own budget test rather
+  // than by trying to grow a fixture past the threshold here.
+  it('cites the whole record, not just the questioned treatment', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+
     const response = await request(app)
       .post('/ai-agent')
       .set('Authorization', authHeader)
@@ -100,20 +107,31 @@ describe('AI agent route integration', () => {
 
     expect(response.body.answer).toBe('mocked agent answer');
 
-    expect(response.body.citations).toHaveLength(1);
-
-    expect(response.body.metadata.retrievedChunks).toEqual([
+    expect(response.body.citations).toEqual([
+      {
+        sourceType: 'injury',
+        sourceId: injuryId,
+        label: `Injury #${injuryId}`,
+        injuryId,
+        injuryName: 'AI Agent Route Test',
+        date: today,
+      },
       {
         sourceType: 'treatment',
         sourceId: treatmentId,
+        label: `Treatment #${treatmentId}`,
         injuryId,
+        injuryName: 'AI Agent Route Test',
+        date: today,
       },
     ]);
 
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
-      'What treatments did I have?',
-      expect.any(String),
-    );
+    expect(response.body.metadata.retrievedChunks).toEqual([
+      { sourceType: 'injury', sourceId: injuryId, injuryId },
+      { sourceType: 'treatment', sourceId: treatmentId, injuryId },
+    ]);
+
+    expect(mockEmbedQuery).not.toHaveBeenCalled();
 
     expect(mockGenerateAnswer).toHaveBeenCalledTimes(1);
   });
@@ -156,7 +174,10 @@ describe('AI agent route integration', () => {
 
     expect(response.body.answer).toBe('mocked agent answer');
 
-    expect(response.body.citations).toEqual([]);
+    // One citation per record in the injury (the injury itself plus its
+    // treatment) -- see the "cites the whole record" test above for the
+    // exact shape.
+    expect(response.body.citations).toHaveLength(2);
 
     expect(mockEmbedQuery).not.toHaveBeenCalled();
 
@@ -184,6 +205,9 @@ describe('AI agent route integration', () => {
       answer: 'Unable to generate a summary from your injury record right now.',
       citations: [],
       intent: 'journal',
+      metadata: {
+        retrievedChunks: [],
+      },
     });
 
     expect(mockGenerateAnswer).toHaveBeenCalledTimes(1);
@@ -203,6 +227,9 @@ describe('AI agent route integration', () => {
       answer: 'An injury must be selected for journal questions.',
       citations: [],
       intent: 'journal',
+      metadata: {
+        retrievedChunks: [],
+      },
     });
 
     expect(mockEmbedQuery).not.toHaveBeenCalled();
