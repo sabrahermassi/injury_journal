@@ -180,7 +180,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - Every service function that touches a nested resource (Symptom, Treatment, MedicalVisit, TimelineEvent) takes `(id, userId, data)` and does a `findFirst` ownership check (directly or via `injury: { userId }`) before mutating. New nested-resource endpoints should follow this exact pattern.
 - Every Zod schema has a paired `updateXSchema = xSchema.partial()` for PATCH-style PUT requests.
 - Controllers return `404` with `{ error: '<Resource> not found' }` when a service returns `null` (used both for "doesn't exist" and "exists but belongs to another user" — this is intentional, not a bug: it avoids leaking existence of other users' records).
-- `errorHandler.js` matches on literal `error.message` strings for a couple of known cases; anything else falls through to a generic `500`. Prefer throwing errors whose `.message` matches existing handled cases, or extend `errorHandler.js`, rather than adding new one-off message string checks.
+- Errors that need a specific HTTP status are `new AppError(message, statusCode)` (`backend/src/utils.js`), thrown from the service layer — `errorHandler.js` honors `error.statusCode` generically and needs no per-error-type change. Do not match on literal `error.message` strings in `errorHandler.js`; that was issue #19 (rewording a matched message silently fell through to a generic `500`).
 - Rate limiting (`authLimiter`, `apiLimiter`) is skipped entirely when `NODE_ENV === 'test'` (see `routes.js` and `app.js`) — don't assume rate-limit tests will run in CI as currently written.
 
 ## 8. Known constraints / gotchas (from audit)

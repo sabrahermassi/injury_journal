@@ -1,3 +1,5 @@
+import { AppError } from '../utils.js';
+
 // Thin proxy to the AI extractor Lambda (ai-injury-extractor/), mirroring
 // assistantService.js: the browser cannot call it directly because this
 // app's JWT lives in an httpOnly cookie scoped to this origin, so client-side
@@ -14,9 +16,7 @@ async function callExtractor(token, path, options = {}) {
   const extractorUrl = process.env.EXTRACTOR_API_URL;
 
   if (!extractorUrl) {
-    const notConfigured = new Error('Extractor service not configured');
-    notConfigured.statusCode = 503;
-    throw notConfigured;
+    throw new AppError('Extractor service not configured', 503);
   }
 
   let response;
@@ -33,8 +33,7 @@ async function callExtractor(token, path, options = {}) {
   } catch (error) {
     // The extractor is a separate, independently deployed service -- it
     // being down is an upstream failure, not a bug in this request.
-    const unreachable = new Error('Extractor service unreachable');
-    unreachable.statusCode = 503;
+    const unreachable = new AppError('Extractor service unreachable', 503);
     unreachable.cause = error;
     throw unreachable;
   }
@@ -44,9 +43,7 @@ async function callExtractor(token, path, options = {}) {
   try {
     data = await response.json();
   } catch {
-    const badResponse = new Error('Extractor service returned an invalid response');
-    badResponse.statusCode = 502;
-    throw badResponse;
+    throw new AppError('Extractor service returned an invalid response', 502);
   }
 
   // Pass the extractor's own status and error body through rather than
