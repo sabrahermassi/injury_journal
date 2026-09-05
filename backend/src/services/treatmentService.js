@@ -1,10 +1,12 @@
 import { prisma, nullOnRecordNotFound, flattenInjuryName } from '../utils.js';
 import { iconFor, CATEGORIES } from '../entryIcons.js';
+import { findOwnedResource } from './ownership.js';
 
-// Every function here carries the ownership predicate inside the statement that
-// reads or writes, rather than proving it in a separate findFirst first (issue
-// #21). The two-step version was correct only for as long as nothing reassigns
-// an injury's owner; this version does not depend on that.
+// Create/update/delete carry the ownership predicate inside the statement that
+// writes, rather than proving it in a separate findFirst first (issue #21).
+// getTreatments below still does a real two-step check-then-list, and shares
+// that shape via ownership.js (issue #18) -- there's no mutation to race
+// against.
 
 // Every treatment the user has, each with its outcome check-ins attached.
 //
@@ -65,12 +67,7 @@ export const createTreatment = async (injuryId, userId, treatmentData) =>
 
 // Get treatments
 export const getTreatments = async (injuryId, userId) => {
-  const injury = await prisma.injury.findFirst({
-    where: {
-      id: injuryId,
-      userId,
-    },
-  });
+  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
 
   if (!injury) {
     return null;

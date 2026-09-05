@@ -1,12 +1,15 @@
 import { prisma, nullOnRecordNotFound } from '../utils.js';
+import { findOwnedResource } from './ownership.js';
 
 // Outcomes are append-only observations against a treatment — see the
 // TreatmentOutcome model comment in schema.prisma. There is deliberately no
 // update here; a wrong observation gets deleted and re-logged, not edited.
 //
-// Every function here carries the ownership predicate inside the statement that
-// reads or writes, rather than proving it in a separate findFirst first (issue
-// #21). Ownership is two relations up: outcome -> treatment -> injury.userId.
+// Create/delete carry the ownership predicate inside the statement that
+// writes, rather than proving it in a separate findFirst first (issue #21).
+// getTreatmentOutcomes below still does a real two-step check-then-list, and
+// shares that shape via ownership.js (issue #18). Ownership is two relations
+// up: outcome -> treatment -> injury.userId.
 
 // Create treatment outcome
 //
@@ -40,12 +43,9 @@ export const createTreatmentOutcome = async (treatmentId, userId, outcomeData) =
 // change hands mid-request the answer is an empty list rather than another
 // user's outcomes.
 export const getTreatmentOutcomes = async (treatmentId, userId) => {
-  const treatment = await prisma.treatment.findFirst({
-    where: {
-      id: treatmentId,
-      injury: {
-        userId,
-      },
+  const treatment = await findOwnedResource(prisma.treatment, treatmentId, {
+    injury: {
+      userId,
     },
   });
 

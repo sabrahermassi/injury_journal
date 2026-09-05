@@ -1,4 +1,5 @@
 import { prisma, nullOnRecordNotFound } from '../utils.js';
+import { findOwnedResource } from './ownership.js';
 
 export const createInjury = async (userId, injuryData) => {
   const injury = await prisma.injury.create({
@@ -22,14 +23,7 @@ export const getInjuries = async (userId) => {
 };
 
 export const getInjuryById = async (id, userId) => {
-  const injury = await prisma.injury.findFirst({
-    where: {
-      id,
-      userId,
-    },
-  });
-
-  return injury;
+  return findOwnedResource(prisma.injury, id, { userId });
 };
 
 // `id_userId` is the @@unique([id, userId]) in schema.prisma. Using it rather
