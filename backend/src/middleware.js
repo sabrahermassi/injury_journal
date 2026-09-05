@@ -1,8 +1,8 @@
-import { verifyToken } from './utils.js';
+import { verifyToken, prisma } from './utils.js';
 import rateLimit from 'express-rate-limit';
 
 // JWT authentication
-export const authenticate = (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   // Prefer the httpOnly cookie; fall back to the Authorization header
@@ -18,6 +18,28 @@ export const authenticate = (req, res, next) => {
   try {
     // Verify token
     const decoded = verifyToken(token);
+
+    // A signature alone is not enough: tokens live for an hour, and nothing
+    // revokes them, so a deleted account's token stayed usable until it
+    // expired. Reads returned empty (every query is scoped by userId) but
+    // writes hit a foreign-key violation and surfaced as a 500. One indexed
+    // primary-key lookup per request is the price of DELETE /api/auth/me
+    // actually ending the session.
+    const user = await prisma.user.findUnique({
+      where: {
+        id: decoded.userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        error: 'Invalid or expired token',
+      });
+    }
+
     // Attach user information to request
     req.userId = decoded.userId;
     // The raw token, so a controller can forward it to another service that
@@ -114,6 +136,19 @@ export const apiLimiter = rateLimit({
   skip: (req) => req.path === '/health',
   message: {
     error: 'Too many requests, please try again later',
+  },
+});
+
+// Strict limiter for the AI extractor. Every call spends Groq tokens against
+// the project's own quota, so the general 100/15min ceiling is far too loose —
+// an authenticated user could still drain the budget on their own. Keyed per
+// user rather than per IP, since these routes are authenticated anyway.
+export const extractorLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => String(req.userId),
+  message: {
+    error: 'Too many extraction requests, please try again later',
   },
 });
 

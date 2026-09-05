@@ -15,13 +15,14 @@ Priorities:
 
 1. Correct extraction/storage of the fixed schema (`injury_name`,
    `body_area`, `pain_level`, `symptoms`, `possible_causes`)
-2. Don't regress the documented dev-only security posture without flagging it
+2. Don't regress the security posture (shared-secret auth, per-user scoping,
+   throttling — issue #32) without flagging it
 3. Keep docs (`README.md`, `docs/*.md`) truthful to actual behavior
 
 ## 2. Tech Stack
 
 - Backend: Python 3.12 on AWS Lambda (single function, no framework),
-  `groq` SDK (`llama-3.1-8b-instant`)
+  `groq` SDK (`openai/gpt-oss-20b`)
 - Infra: Terraform, API Gateway (REST, AWS_PROXY), DynamoDB (pay-per-request)
 - Frontend that calls this API lives outside this directory now, in the
   main app's `frontend/` (Next.js 16, React 19, TypeScript, Tailwind v4,
@@ -34,23 +35,22 @@ Design Decision" for why it's currently one function.
 ## 3. Architecture
 
 ```
-frontend/app/dashboard/extractor → backend/ (cookie auth) → API Gateway (Bearer JWT) → Lambda
-                                                                                          ├── Groq API (extraction)
-                                                                                          └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
+frontend/app/dashboard/extractor → backend/ (cookie auth) → API Gateway (shared secret) → Lambda
+                                                                                             ├── Groq API (extraction)
+                                                                                             └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
 ```
 
 - Code is authoritative over docs; verify claims against `lambda/handler.py`
   and `infrastructure/*.tf` before trusting a doc.
-- The browser never calls this Lambda directly. `backend/` proxies
-  `POST /api/extract` and `GET /api/extract/injuries`, forwarding the
-  caller's own JWT — see `backend/src/services/extractorService.js` (same
-  pattern as `assistantService.js`). API Gateway authorization stays `NONE`;
-  the Lambda verifies the token itself (`get_user_id` in `handler.py`) and
-  scopes every DynamoDB read/write to the userId it contains. A request with
-  no token, a bad signature, or a non-positive userId claim gets a 401.
-- `JWT_SECRET` must be byte-identical to the main app's (`root .env`
-  `JWT_SECRET`, this Lambda's `jwt_secret` Terraform variable) or every
-  request fails as 401 with nothing in the logs explaining why.
+- No caller reaches this API directly any more. `backend/` authenticates the
+  user and proxies both routes (`backend/src/services/extractorService.js`),
+  presenting a shared secret (`X-Extractor-Secret`) the Lambda checks before
+  doing anything else, and the real `userId` the backend resolved from the
+  caller's JWT. `authorization = "NONE"` in `infrastructure/api_gateway.tf`
+  is API Gateway's own authorizer setting, not the absence of auth — see the
+  comment there. This closes issue #32 (previously: a hardcoded
+  `"test-user-001"`, no auth, no throttling, reachable straight from the
+  browser).
 
 See `docs/lambda-design.md` and `docs/dynamodb-design.md` for full design
 rationale; `docs/ROADMAP.md` for known gaps and planned work.
@@ -90,13 +90,16 @@ rationale; `docs/ROADMAP.md` for known gaps and planned work.
 
 ## 7. Safe-Change Rules
 
-- Auth exists now (see §3) — verify its actual behavior in `handler.py`
-  `get_user_id` rather than assuming either "none" or "fully hardened."
+- Auth and user isolation now exist (issue #32): the Lambda 403s any request
+  without the shared secret, and every read/write is scoped to the `userId`
+  the backend sends. Do not add a code path that reads/writes DynamoDB
+  without that `userId` — verify in `lambda/handler.py` before assuming
+  otherwise.
 - DynamoDB key/schema changes (`userId`/`timestamp` composite key) must
   account for the existing item shape and any already-stored data.
-- CORS origin is hardcoded in **two** places that must stay in sync:
-  `lambda/handler.py` `CORS_HEADERS` and `infrastructure/api_gateway.tf`
-  (OPTIONS mock integration response).
+- There is no CORS handling any more — this API has no browser caller, so
+  don't reintroduce `CORS_HEADERS`/OPTIONS resources without first checking
+  whether that assumption changed.
 - Treat user-submitted injury text as untrusted input, not as trusted
   instructions to the LLM — it's currently interpolated directly into the
   Groq prompt with no delimiting/sanitization beyond a length check.

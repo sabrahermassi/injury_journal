@@ -1,38 +1,46 @@
-// Thin proxy to the AI extractor Lambda (ai-injury-extractor/), mirroring
-// assistantService.js: the browser cannot call it directly because this
-// app's JWT lives in an httpOnly cookie scoped to this origin, so client-side
-// JS has no token to attach. Forwarding the caller's own verified token from
-// here keeps it out of JS while giving the Lambda the identity it needs to
-// scope DynamoDB reads/writes. Both services must share the same JWT_SECRET.
+// Read per call, not once at module load — same reason as assistantService: at
+// module scope this resolves before a test can point it somewhere else.
+const extractorUrl = () => process.env.EXTRACTOR_API_URL;
+const sharedSecret = () => process.env.EXTRACTOR_SHARED_SECRET;
+
+// Thin proxy to the AI extractor Lambda (ai-injury-extractor/).
 //
-// Read per-call, not at module load -- unlike the assistant, this Lambda has
-// no runnable localhost default, so leaving it unset must fail cleanly
-// rather than resolve to some placeholder that only breaks at fetch time.
-const EXTRACTOR_TIMEOUT_MS = 10_000;
+// The browser used to call the Lambda's API Gateway URL directly, with no
+// credentials of any kind, and the Lambda filed every extraction under one
+// hardcoded "test-user-001" partition — so any caller could read back everyone
+// else's raw injury text and burn the project's Groq quota (issue #32). Routing
+// through here means the Lambda is no longer internet-facing: it trusts exactly
+// one caller, this backend, proven by a shared secret, and takes the user id
+// from a JWT this app has already verified.
+//
+// Unlike the assistant, the Lambda does not verify JWTs itself, so the token is
+// never forwarded — only the id it resolved to. That keeps JWT_SECRET out of AWS.
+const callExtractor = async (path, { method, body }) => {
+  const baseUrl = extractorUrl();
+  const secret = sharedSecret();
 
-async function callExtractor(token, path, options = {}) {
-  const extractorUrl = process.env.EXTRACTOR_API_URL;
-
-  if (!extractorUrl) {
-    const notConfigured = new Error('Extractor service not configured');
-    notConfigured.statusCode = 503;
-    throw notConfigured;
+  // Misconfiguration, not a bad request: fail loudly here rather than sending an
+  // unauthenticated call that the Lambda would (correctly) reject as a 403.
+  if (!baseUrl || !secret) {
+    const misconfigured = new Error('Extractor service unreachable');
+    misconfigured.statusCode = 503;
+    throw misconfigured;
   }
 
   let response;
 
   try {
-    response = await fetch(`${extractorUrl}${path}`, {
-      ...options,
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
       headers: {
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
+        'Content-Type': 'application/json',
+        'X-Extractor-Secret': secret,
       },
-      signal: AbortSignal.timeout(EXTRACTOR_TIMEOUT_MS),
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch (error) {
-    // The extractor is a separate, independently deployed service -- it
-    // being down is an upstream failure, not a bug in this request.
+    // The extractor is a separate, independently deployed service — it being
+    // down is an upstream failure, not a bug in this request.
     const unreachable = new Error('Extractor service unreachable');
     unreachable.statusCode = 503;
     unreachable.cause = error;
@@ -49,16 +57,27 @@ async function callExtractor(token, path, options = {}) {
     throw badResponse;
   }
 
-  // Pass the extractor's own status and error body through rather than
-  // flattening everything to 500.
-  return { status: response.status, data };
-}
+  // Pass the Lambda's own status and error body through rather than flattening
+  // everything to 500 — its 400/502 responses are meaningful to the caller. The
+  // one exception is 403, which can only mean our own secret is wrong; that is
+  // our misconfiguration to own, not something to blame on the user.
+  if (response.status === 403) {
+    const rejected = new Error('Extractor service rejected this service');
+    rejected.statusCode = 502;
+    throw rejected;
+  }
 
-export const extractInjury = (token, { text }) =>
-  callExtractor(token, '/extract', {
+  return { status: response.status, data };
+};
+
+export const extractInjury = async (userId, { text }) =>
+  callExtractor('/extract', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: { userId: String(userId), text },
   });
 
-export const getInjuryHistory = (token) => callExtractor(token, '/injuries');
+export const getExtractionHistory = async (userId) =>
+  // The id goes in the query string because API Gateway maps GET bodies away.
+  callExtractor(`/injuries?userId=${encodeURIComponent(String(userId))}`, {
+    method: 'GET',
+  });
