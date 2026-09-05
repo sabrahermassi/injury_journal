@@ -49,7 +49,7 @@ export default function Home() {
 
           <p className="max-w-md text-base leading-7 text-muted-foreground">
             Symptoms, treatments and appointments, kept in order over months
-            and years - so you can see what actually helped, and answer
+            and years — so you can see what actually helped, and answer
             &ldquo;when did this start?&rdquo; without reconstructing it from
             memory.
           </p>

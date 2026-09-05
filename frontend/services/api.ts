@@ -1,10 +1,29 @@
-import type { EntryCategory, EntryIconKey } from "@/lib/entry-art";
+const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
+if (!CONFIGURED_API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined");
 }
+
+// In development the same dev server is reached two ways: as localhost from
+// this machine, and as a LAN IP from a phone on the same Wi-Fi. The API must be
+// called on whichever host served the page — the auth cookie is SameSite=Lax,
+// so a call from localhost:3000 to 192.168.x.x:3001 is cross-site and the
+// browser drops it, with nothing in the console explaining the 401. Only a
+// localhost host is rewritten, so a real deployed API URL is left alone.
+function resolveApiUrl(configured: string): string {
+  if (typeof window === "undefined") return configured;
+
+  const url = new URL(configured);
+
+  if (url.hostname === "localhost" && window.location.hostname !== "localhost") {
+    url.hostname = window.location.hostname;
+    return url.origin;
+  }
+
+  return configured;
+}
+
+const API_URL = resolveApiUrl(CONFIGURED_API_URL);
 
 export interface Injury {
   id: number;
@@ -178,58 +197,6 @@ export async function logoutUser() {
   }
 }
 
-/**
- * Deletes the account and every record under it, permanently.
- *
- * The backend clears the session cookies as part of the response, so the
- * cached session state here has to go too — otherwise the app keeps rendering
- * as a signed-in user whose row no longer exists.
- */
-export async function deleteAccount() {
-  const response = await authFetch(`${API_URL}/api/auth/me`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to delete account");
-  }
-
-  if (typeof sessionStorage !== "undefined") {
-    sessionStorage.removeItem("csrfToken");
-    sessionStorage.removeItem("currentUser");
-  }
-}
-
-/**
- * Files an AI extraction into the journal as real records.
- *
- * Goes to this app's backend, not the extractor's — the extractor keeps its
- * own store and owns none of this data. Pass `injuryId` to file against an
- * injury the user picked, or `injuryName` to open a new one; one of the two
- * is required.
- */
-export async function acceptExtraction(payload: {
-  injuryId?: number;
-  injuryName?: string;
-  bodyArea: string;
-  painLevel?: number | null;
-  symptoms: string[];
-  possibleCauses: string[];
-  note?: string;
-}): Promise<{ injury: Injury; symptoms: Symptom[]; event: TimelineEvent }> {
-  const response = await authFetch(`${API_URL}/api/extractions/accept`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to save this summary to your journal");
-  }
-
-  return response.json();
-}
-
 export async function getInjuries(): Promise<Injury[]> {
   const response = await authFetch(`${API_URL}/api/injuries`);
 
@@ -298,62 +265,6 @@ export async function deleteInjury(id: number) {
   if (!response.ok) {
     throw new Error("Failed to delete injury");
   }
-}
-
-// Rows from the user-scoped collection endpoints carry the parent injury's
-// name, so a caller never has to hold the injury list to label them, plus the
-// icon and filter category the server resolved for them — that table lives in
-// backend/src/entryIcons.js and is the only place it lives.
-export type WithInjury<T> = T & {
-  injuryId: number;
-  injuryName: string;
-  icon: EntryIconKey;
-  category: EntryCategory | null;
-};
-
-/**
- * Every symptom, event or treatment the user has, in one request each.
- *
- * These replaced a per-injury fan-out. An account with ten injuries and
- * twenty-seven treatments spent 48 requests drawing the insights page alone,
- * which exhausted the backend's 100-per-15-minutes rate limit before the
- * dashboard finished loading — the whole app then returned 429 for a quarter
- * of an hour.
- */
-export async function getAllSymptoms(): Promise<WithInjury<Symptom>[]> {
-  const response = await authFetch(`${API_URL}/api/symptoms`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch symptoms");
-  }
-
-  return response.json();
-}
-
-export async function getAllTimelineEvents(): Promise<
-  WithInjury<TimelineEvent>[]
-> {
-  const response = await authFetch(`${API_URL}/api/events`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch timeline events");
-  }
-
-  return response.json();
-}
-
-// Outcomes come attached — fetching them per treatment was the single biggest
-// contributor to the request storm above.
-export async function getAllTreatments(): Promise<
-  WithInjury<Treatment & { outcomes: TreatmentOutcome[] }>[]
-> {
-  const response = await authFetch(`${API_URL}/api/treatments`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch treatments");
-  }
-
-  return response.json();
 }
 
 export async function getSymptoms(injuryId: number): Promise<Symptom[]> {
@@ -672,9 +583,6 @@ export async function deleteTimelineEvent(id: number) {
 }
 
 export interface AssistantCitation {
-  // Stamped by this app's backend as it proxies the answer through; the
-  // assistant service knows nothing about icons.
-  icon?: EntryIconKey;
   label?: string;
   sourceType?: string;
   sourceId: number | string;

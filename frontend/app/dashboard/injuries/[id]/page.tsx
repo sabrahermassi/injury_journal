@@ -83,7 +83,7 @@ export default function InjuryDetailsPage() {
     return (
       <main className="flex flex-col items-start gap-3 p-4 md:p-11">
         <p className="text-muted-foreground">
-          Couldn&apos;t load this injury - try again.
+          Couldn&apos;t load this injury — try again.
         </p>
         <Button variant="outline" onClick={() => setRetryKey((key) => key + 1)}>
           Retry
@@ -127,6 +127,12 @@ export default function InjuryDetailsPage() {
             </p>
           </div>
         </div>
+
+        <Button
+          onClick={() => router.push(`/dashboard/log?injuryId=${injury.id}`)}
+        >
+          Log entry
+        </Button>
       </div>
 
       <Card className="rounded-3xl">

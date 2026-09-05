@@ -92,7 +92,7 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
       setShowForm(false);
     } catch (err) {
       console.error(err);
-      setError("Couldn't save that - try again.");
+      setError("Couldn't save that — try again.");
     } finally {
       setSaving(false);
     }
@@ -124,7 +124,7 @@ export function TreatmentOutcomes({ treatmentId }: { treatmentId: number }) {
             <p className="text-xs text-muted-foreground">Loading...</p>
           ) : loadError ? (
             <p className="text-xs text-destructive">
-              Couldn&apos;t load check-ins - try again.
+              Couldn&apos;t load check-ins — try again.
             </p>
           ) : outcomes.length === 0 ? (
             <p className="text-xs text-muted-foreground">

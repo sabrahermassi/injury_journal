@@ -37,8 +37,8 @@ export default function InjuriesPage() {
       ) : injuries.length === 0 ? (
         <div className="rounded-3xl bg-card p-6 ring-1 ring-border">
           <p className="text-muted-foreground">
-            No injury profiles yet - open &ldquo;New entry&rdquo; and choose
-            &ldquo;Add a new injury&rdquo; to start one.
+            No injury profiles yet — use &ldquo;Add injury&rdquo; above to start
+            one.
           </p>
         </div>
       ) : (

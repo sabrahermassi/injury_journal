@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { getTimelineEvents, type TimelineEvent } from "@/services/api";
 import {
@@ -11,10 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNewEntry } from "./new-entry-provider";
 
 export function TimelineCard({ injuryId }: { injuryId: number }) {
-  const { openNewEntry } = useNewEntry();
+  const router = useRouter();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export function TimelineCard({ injuryId }: { injuryId: number }) {
             </p>
             <Button
               size="sm"
-              onClick={() => openNewEntry({ injuryId })}
+              onClick={() => router.push(`/dashboard/log?injuryId=${injuryId}`)}
             >
               Log the first entry
             </Button>

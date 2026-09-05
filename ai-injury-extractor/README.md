@@ -51,32 +51,41 @@ This was designed as a standalone serverless demo, then integrated into the inju
 - This API receives requests only from that host application's backend, proven by a shared secret (`X-Extractor-Secret`) it checks before doing anything else — the browser no longer calls it directly.
 - Extracted injury data is scoped per user (the `userId` the host app resolved), not a single hardcoded id.
 
-Extraction records still live in this repository's own DynamoDB table, separate from the host app's primary PostgreSQL database — accepting an extraction into the actual journal (`Injury`/`Symptom`/`TimelineEvent` rows) is a distinct, explicit step the user takes afterward (`POST /api/extractions/accept` in `backend/`), not something this API does on its own.
+Extraction records still live in this repository's own DynamoDB table, separate from the host app's primary PostgreSQL database.
+
+DynamoDB is used in this repository to demonstrate a complete serverless AWS architecture and end-to-end data flow.
 
 ## Architecture
 
 ```mermaid
 sequenceDiagram
   participant Client
+  participant Journal Backend
   participant API Gateway
   participant Injury Extractor Lambda
   participant Groq API
   participant InjuryEntries DynamoDB
 
-  Client->>API Gateway: POST /extract with injury text
+  Client->>Journal Backend: POST /api/extractions/extract with injury text (cookie auth)
+  Journal Backend->>API Gateway: POST /extract, X-Extractor-Secret + userId
   API Gateway->>Injury Extractor Lambda: Proxy request
+  Injury Extractor Lambda->>Injury Extractor Lambda: Verify shared secret
   Injury Extractor Lambda->>Groq API: Extract structured injury data
   Groq API-->>Injury Extractor Lambda: Injury JSON
-  Injury Extractor Lambda->>InjuryEntries DynamoDB: Store injury entry
+  Injury Extractor Lambda->>InjuryEntries DynamoDB: Store injury entry (keyed by userId)
   Injury Extractor Lambda-->>API Gateway: HTTP 200 response
-  API Gateway-->>Client: Extraction result
+  API Gateway-->>Journal Backend: Extraction result
+  Journal Backend-->>Client: Extraction result
 
-  Client->>API Gateway: GET /injuries
+  Client->>Journal Backend: GET /api/extractions/history (cookie auth)
+  Journal Backend->>API Gateway: GET /injuries?userId, X-Extractor-Secret
   API Gateway->>Injury Extractor Lambda: Proxy request
-  Injury Extractor Lambda->>InjuryEntries DynamoDB: Retrieve injury entries
+  Injury Extractor Lambda->>Injury Extractor Lambda: Verify shared secret
+  Injury Extractor Lambda->>InjuryEntries DynamoDB: Query entries for userId
   InjuryEntries DynamoDB-->>Injury Extractor Lambda: Injury history
   Injury Extractor Lambda-->>API Gateway: HTTP 200 response
-  API Gateway-->>Client: Injury history list
+  API Gateway-->>Journal Backend: Injury history list
+  Journal Backend-->>Client: Injury history list
 ```
 
 ## Prerequisites
@@ -93,12 +102,19 @@ Before deployment, ensure you have:
 The frontend that calls this API now lives in the main app's `frontend/`
 (`frontend/app/dashboard/extractor/page.tsx` and
 `frontend/components/extractor/`), not in this directory. Run it via the
-It requires `NEXT_PUBLIC_API_URL` (the app's usual backend base URL). As of
-issue #32, the browser no longer calls this Lambda directly -- the main app's
-`backend/` does, authenticating the user first
-(`backend/src/services/extractorService.js`). It is `backend/` that needs
-pointing at this deployed API Gateway invoke URL, via `EXTRACTOR_API_URL` and
-`EXTRACTOR_SHARED_SECRET` in the repo-root `.env` (see `.env.example`).
+main `frontend/` app's own README/CLAUDE.md.
+
+It does not call this Lambda directly — the browser has no way to attach the
+shared secret this Lambda now requires, and never had a way to reach it
+without going through an authenticated caller. It calls the main app's own
+`backend/` (`NEXT_PUBLIC_API_URL`), which proxies to this Lambda with the
+shared secret and the caller's resolved userId; see
+`backend/src/services/extractorService.js`. Set `EXTRACTOR_API_URL` and
+`EXTRACTOR_SHARED_SECRET` in the repo-root `.env` for that proxy to work (see
+root `.env.example`).
+
+There is currently no local/mocked backend for the Lambda itself — the proxy
+always calls a real deployed API Gateway + Lambda stack.
 
 ## Deploy Lambda and Infrastructure
 
@@ -112,16 +128,17 @@ cd lambda
 
 This installs Lambda dependencies into `package/`, zips `function.zip`, and
 runs `terraform apply` in `../infrastructure`. It requires AWS CLI
-credentials, Terraform, and a `groq_api_key` Terraform variable (e.g. via
-`TF_VAR_groq_api_key` or a gitignored `terraform.tfvars`).
+credentials, Terraform, and `groq_api_key` and `extractor_shared_secret`
+Terraform variables (e.g. via `TF_VAR_groq_api_key`/`TF_VAR_extractor_shared_secret`
+or a gitignored `terraform.tfvars`). `extractor_shared_secret` must match the
+main app's `EXTRACTOR_SHARED_SECRET` (root `.env`) — it's how the Lambda
+verifies who's calling; generate one with
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 
-The allowed CORS origin is also a Terraform variable, `allowed_origin`
-(default `http://localhost:3000`) — set it (e.g. via `TF_VAR_allowed_origin`)
-to your deployed frontend's origin when deploying anywhere other than local
-dev.
+There is no CORS variable any more — this API has no browser caller.
 
 The Groq model id is configurable via the `groq_model` Terraform variable
-(default `llama-3.1-8b-instant`, e.g. via `TF_VAR_groq_model`) so it can be
+(default `openai/gpt-oss-20b`, e.g. via `TF_VAR_groq_model`) so it can be
 swapped without a code change if the model is deprecated.
 
 ## Testing
@@ -197,7 +214,7 @@ aws lambda update-function-code \
 ```bash
 aws lambda update-function-configuration \
 --function-name injury-extractor \
---environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=llama-3.1-8b-instant,DYNAMODB_TABLE=InjuryEntries,ALLOWED_ORIGIN=http://localhost:3000}"
+--environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=openai/gpt-oss-20b,DYNAMODB_TABLE=InjuryEntries,EXTRACTOR_SHARED_SECRET=YOUR_SECRET}"
 ```
 
 ---
@@ -225,7 +242,7 @@ aws logs tail /aws/lambda/injury-extractor --follow
 aws lambda invoke \
 --function-name injury-extractor \
 --cli-binary-format raw-in-base64-out \
---payload '{"body":"{\"text\":\"I have hip pain\"}"}' \
+--payload '{"httpMethod":"POST","headers":{"Authorization":"Bearer YOUR_JWT"},"body":"{\"text\":\"I have hip pain\"}"}' \
 response.json
 
 cat response.json

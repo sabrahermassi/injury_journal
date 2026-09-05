@@ -6,7 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const FIELD_CLASS =
-  "h-14 w-full rounded-2xl bg-popover px-4.5 text-[14.5px] text-foreground ring-1 ring-border outline-none transition-shadow placeholder:text-muted-foreground-subtle focus-visible:ring-2 focus-visible:ring-ring";
+  "h-14 w-full rounded-2xl bg-popover px-4.5 text-[14.5px] text-foreground ring-1 ring-input outline-none transition-shadow placeholder:text-muted-foreground-subtle focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AuthField({
   label,

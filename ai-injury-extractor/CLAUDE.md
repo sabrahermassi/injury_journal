@@ -22,7 +22,7 @@ Priorities:
 ## 2. Tech Stack
 
 - Backend: Python 3.12 on AWS Lambda (single function, no framework),
-  `groq` SDK (`llama-3.1-8b-instant`)
+  `groq` SDK (`openai/gpt-oss-20b`)
 - Infra: Terraform, API Gateway (REST, AWS_PROXY), DynamoDB (pay-per-request)
 - Frontend that calls this API lives outside this directory now, in the
   main app's `frontend/` (Next.js 16, React 19, TypeScript, Tailwind v4,
@@ -35,9 +35,9 @@ Design Decision" for why it's currently one function.
 ## 3. Architecture
 
 ```
-frontend/app/dashboard/extractor → API Gateway → Lambda (routes on event.httpMethod)
-                                                     ├── Groq API (extraction)
-                                                     └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
+frontend/app/dashboard/extractor → backend/ (cookie auth) → API Gateway (shared secret) → Lambda
+                                                                                             ├── Groq API (extraction)
+                                                                                             └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
 ```
 
 - Code is authoritative over docs; verify claims against `lambda/handler.py`
@@ -97,9 +97,9 @@ rationale; `docs/ROADMAP.md` for known gaps and planned work.
   otherwise.
 - DynamoDB key/schema changes (`userId`/`timestamp` composite key) must
   account for the existing item shape and any already-stored data.
-- CORS origin is hardcoded in **two** places that must stay in sync:
-  `lambda/handler.py` `CORS_HEADERS` and `infrastructure/api_gateway.tf`
-  (OPTIONS mock integration response).
+- There is no CORS handling any more — this API has no browser caller, so
+  don't reintroduce `CORS_HEADERS`/OPTIONS resources without first checking
+  whether that assumption changed.
 - Treat user-submitted injury text as untrusted input, not as trusted
   instructions to the LLM — it's currently interpolated directly into the
   Groq prompt with no delimiting/sanitization beyond a length check.

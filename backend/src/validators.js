@@ -1,16 +1,23 @@
 import { z } from 'zod';
 
 // AUTH
+// Email is trimmed and lowercased so login isn't case- or whitespace-sensitive
+// against what register stored -- Postgres string equality is exact, and
+// nothing else in the stack normalizes this.
 export const registerSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
 
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
 
   password: z.string().min(1, 'Password is required'),
+});
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
 // INJURY
@@ -119,8 +126,8 @@ export const assistantAskSchema = z.object({
 // over-long description is rejected here with a clean 400 rather than costing a
 // round trip to AWS to be rejected there.
 // .strict() so a caller-supplied `userId` is a visible 400 rather than being
-// silently stripped. The service builds the outgoing body from the verified
-// JWT either way, so this changes nothing about what reaches the Lambda — it
+// silently stripped. The service always sends the backend-resolved userId
+// either way, so this changes nothing about what reaches the Lambda — it
 // just refuses to look like it accepted something it ignored.
 export const extractTextSchema = z
   .object({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { getMedicalVisits, type MedicalVisit } from "@/services/api";
 import {
@@ -12,10 +13,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 
 export function MedicalVisitsCard({ injuryId }: { injuryId: number }) {
-  const { openNewEntry } = useNewEntry();
+  const router = useRouter();
   const [visits, setVisits] = useState<MedicalVisit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,13 +53,14 @@ export function MedicalVisitsCard({ injuryId }: { injuryId: number }) {
     };
   }, [injuryId]);
 
+  const logHref = `/dashboard/log?injuryId=${injuryId}&type=visit`;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Medical visits</CardTitle>
         <CardAction>
-          <Button size="sm" variant="outline" onClick={() => openNewEntry({ injuryId, kind: "Visit" })}>
+          <Button size="sm" variant="outline" onClick={() => router.push(logHref)}>
             Log visit
           </Button>
         </CardAction>
@@ -78,7 +79,7 @@ export function MedicalVisitsCard({ injuryId }: { injuryId: number }) {
             <p className="text-muted-foreground">
               No medical visits recorded yet.
             </p>
-            <Button size="sm" onClick={() => openNewEntry({ injuryId, kind: "Visit" })}>
+            <Button size="sm" onClick={() => router.push(logHref)}>
               Log a visit
             </Button>
           </div>

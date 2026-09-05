@@ -1,20 +1,16 @@
 import { useEffect, useState } from "react";
 
-import {
-  getAllTimelineEvents,
-  type TimelineEvent,
-  type WithInjury,
-} from "@/services/api";
+import { getTimelineEvents, type Injury, type TimelineEvent } from "@/services/api";
 
-export type EventWithInjury = WithInjury<TimelineEvent>;
+export type EventWithInjury = TimelineEvent & {
+  injuryId: number;
+  injuryName: string;
+};
 
-/**
- * Every timeline event across every injury, newest first.
- *
- * One request — the backend does the merge and the ordering. This used to ask
- * per injury; see `getAllTimelineEvents` for why that stopped working.
- */
-export function useAllTimelineEvents() {
+// Fans out one request per injury (there's no cross-injury events endpoint on
+// the backend) and merges the results newest-first. Fine for a personal
+// journal's injury count; would need a real backend query if that changes.
+export function useAllTimelineEvents(injuries: Injury[]) {
   const [events, setEvents] = useState<EventWithInjury[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,15 +18,35 @@ export function useAllTimelineEvents() {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadAll() {
+      if (injuries.length === 0) {
+        if (!cancelled) {
+          setEvents([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
       try {
-        const data = await getAllTimelineEvents();
+        const perInjury = await Promise.all(
+          injuries.map(async (injury) => {
+            const injuryEvents = await getTimelineEvents(injury.id);
+            return injuryEvents.map((event) => ({
+              ...event,
+              injuryId: injury.id,
+              injuryName: injury.name,
+            }));
+          }),
+        );
 
         if (!cancelled) {
-          setEvents(data);
+          const merged = perInjury
+            .flat()
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setEvents(merged);
         }
       } catch (err) {
         console.error(err);
@@ -44,12 +60,12 @@ export function useAllTimelineEvents() {
       }
     }
 
-    load();
+    loadAll();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [injuries]);
 
   return { events, loading, error };
 }

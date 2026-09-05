@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { getSymptoms, type Symptom } from "@/services/api";
 import { painToneClass } from "@/lib/pain";
@@ -13,10 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 
 export function SymptomsCard({ injuryId }: { injuryId: number }) {
-  const { openNewEntry } = useNewEntry();
+  const router = useRouter();
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,13 +54,14 @@ export function SymptomsCard({ injuryId }: { injuryId: number }) {
     };
   }, [injuryId]);
 
+  const logHref = `/dashboard/log?injuryId=${injuryId}&type=symptom`;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Symptoms</CardTitle>
         <CardAction>
-          <Button size="sm" variant="outline" onClick={() => openNewEntry({ injuryId, kind: "Symptom" })}>
+          <Button size="sm" variant="outline" onClick={() => router.push(logHref)}>
             Log symptom
           </Button>
         </CardAction>
@@ -79,7 +80,7 @@ export function SymptomsCard({ injuryId }: { injuryId: number }) {
             <p className="text-muted-foreground">
               No symptoms recorded yet for this injury.
             </p>
-            <Button size="sm" onClick={() => openNewEntry({ injuryId, kind: "Symptom" })}>
+            <Button size="sm" onClick={() => router.push(logHref)}>
               Log your first symptom
             </Button>
           </div>

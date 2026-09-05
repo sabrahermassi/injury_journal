@@ -2,40 +2,45 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { Activity, Pill, Stethoscope, CalendarClock, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
+import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
-import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EntryIcon } from "@/components/dashboard/entry-icon";
-import type { EntryCategory } from "@/lib/entry-art";
 import { cn } from "@/lib/utils";
 
-// The design's filter row is a fixed four, not one chip per value found in the
-// data. `TimelineEvent.type` is free text, so events are sorted into these
-// buckets by categoryFor(); anything it cannot place stays under "All".
-const FILTERS: { label: string; value: EntryCategory | "all" }[] = [
-  { label: "All", value: "all" },
-  { label: "Symptoms", value: "symptom" },
-  { label: "Treatments", value: "treatment" },
-  { label: "Visits", value: "visit" },
-];
+// `type` is a free-text field (backend/src/validators.js), not a fixed enum
+// -- these three are what the app's own forms write, everything else falls
+// back to a generic icon rather than assuming the set is closed.
+const TYPE_ICONS: Record<string, LucideIcon> = {
+  symptom: Activity,
+  treatment: Pill,
+  visit: Stethoscope,
+};
+
+function iconForType(type: string) {
+  return TYPE_ICONS[type.toLowerCase()] ?? CalendarClock;
+}
 
 export default function TimelinePage() {
   const router = useRouter();
-  const { openNewEntry } = useNewEntry();
-  // No longer reads the injury list: each event arrives carrying its
-  // injury's name, so this page waits on exactly one request.
-  const { events, loading, error } = useAllTimelineEvents();
-  const [typeFilter, setTypeFilter] = useState<EntryCategory | "all">("all");
+  const { injuries, loading: injuriesLoading } = useInjuries();
+  const { events, loading: eventsLoading, error } = useAllTimelineEvents(injuries);
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const loading = injuriesLoading || eventsLoading;
+
+  const types = useMemo(
+    () => Array.from(new Set(events.map((e) => e.type))).sort(),
+    [events],
+  );
 
   const filtered = useMemo(
     () =>
-      typeFilter === "all"
-        ? events
-        : events.filter((event) => event.category === typeFilter),
+      typeFilter === "all" ? events : events.filter((e) => e.type === typeFilter),
     [events, typeFilter],
   );
 
@@ -51,27 +56,28 @@ export default function TimelinePage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {FILTERS.map((filter) => {
-            const active = typeFilter === filter.value;
-            return (
-              <button
-                key={filter.value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setTypeFilter(filter.value)}
-                className={cn(
-                  "h-11 rounded-full px-4.5 text-[13.5px] font-medium transition-colors",
-                  active
-                    ? "bg-accent-foreground text-background"
-                    : "bg-popover text-foreground/80 ring-1 ring-border hover:text-foreground",
-                )}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
+        {types.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {["all", ...types].map((type) => {
+              const active = typeFilter === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTypeFilter(type)}
+                  className={cn(
+                    "h-11 rounded-full px-4.5 text-[13.5px] font-medium capitalize transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-popover text-muted-foreground ring-1 ring-border hover:text-foreground",
+                  )}
+                >
+                  {type === "all" ? "All" : type}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -93,7 +99,7 @@ export default function TimelinePage() {
                 : "Nothing matches that filter."}
             </p>
             {events.length === 0 && (
-              <Button size="sm" onClick={() => openNewEntry()}>
+              <Button size="sm" onClick={() => router.push("/dashboard/log")}>
                 Log your first entry
               </Button>
             )}
@@ -103,6 +109,7 @@ export default function TimelinePage() {
         <div className="flex flex-col gap-3.5">
           {filtered.map((event) => {
             const eventDate = new Date(event.date);
+            const Icon = iconForType(event.type);
 
             return (
               <div
@@ -132,7 +139,9 @@ export default function TimelinePage() {
                   }
                   className="flex min-w-0 flex-1 items-center gap-4 rounded-[22px] bg-card px-5.5 py-5 text-left ring-1 ring-border transition-colors hover:bg-accent/40 md:gap-4.5"
                 >
-                  <EntryIcon icon={event.icon} size={72} />
+                  <div className="flex size-11 flex-none items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <Icon className="size-[18px]" aria-hidden="true" />
+                  </div>
 
                   {/* Stacked on a narrow screen, side by side from md up --
                       the design's fixed 300px title column would squeeze the

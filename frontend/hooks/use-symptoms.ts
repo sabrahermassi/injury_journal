@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getAllSymptoms, type Symptom, type WithInjury } from "@/services/api";
+import { getSymptoms, type Injury, type Symptom } from "@/services/api";
 
-export type SymptomWithInjury = WithInjury<Symptom>;
+export type SymptomWithInjury = Symptom & {
+  injuryId: number;
+  injuryName: string;
+};
 
-/**
- * Every pain check-in the user has logged, oldest first.
- *
- * One request. This used to fan out per injury and take the injury list as an
- * argument, which meant it could not start until `useInjuries` had resolved
- * and then cost one request per injury; see `getAllSymptoms` for what that
- * did to the rate limit.
- */
-export function useAllSymptoms() {
+// Fans out one request per injury — same tradeoff as use-timeline-events.ts
+// and use-treatment-outcomes.ts, fine at personal-journal scale.
+export function useAllSymptoms(injuries: Injury[]) {
   const [symptoms, setSymptoms] = useState<SymptomWithInjury[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,15 +22,38 @@ export function useAllSymptoms() {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadAll() {
+      if (injuries.length === 0) {
+        if (!cancelled) {
+          setSymptoms([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
       try {
-        const data = await getAllSymptoms();
+        const perInjury = await Promise.all(
+          injuries.map(async (injury) => {
+            const injurySymptoms = await getSymptoms(injury.id);
+
+            return injurySymptoms.map((symptom) => ({
+              ...symptom,
+              injuryId: injury.id,
+              injuryName: injury.name,
+            }));
+          }),
+        );
 
         if (!cancelled) {
-          setSymptoms(data);
+          const merged = perInjury
+            .flat()
+            .sort(
+              (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+            );
+          setSymptoms(merged);
         }
       } catch (err) {
         console.error(err);
@@ -47,12 +67,12 @@ export function useAllSymptoms() {
       }
     }
 
-    load();
+    loadAll();
 
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [injuries, reloadKey]);
 
   return { symptoms, loading, error, refresh };
 }
