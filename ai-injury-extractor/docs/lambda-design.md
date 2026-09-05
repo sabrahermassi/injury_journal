@@ -177,20 +177,23 @@ dynamodb:Query
 Purpose:
 
 - Store extracted injury entries
-- Retrieve injury history, scoped to the hardcoded `userId`
+- Retrieve injury history, scoped to the `userId` on the request
 
 Note:
 
-The `/injuries` endpoint already scopes reads to a single `userId` via Query
-rather than a table-wide Scan. `userId` is still hardcoded (no auth exists
-yet — see `CLAUDE.md` §3), so this scoping doesn't provide real user
-isolation until authentication is added.
+The `/injuries` endpoint scopes reads to a single `userId` via Query rather
+than a table-wide Scan. As of issue #32 this is real per-user isolation: the
+`userId` comes from the request the host backend sends (resolved from the
+caller's own JWT there, not from a Lambda-side JWT claim — see `CLAUDE.md`
+§3), and the Lambda rejects any request without a matching shared secret
+before this scoping is even reached.
 
-Before production use:
+Production posture (issue #32):
 
-- Add authentication and authorization
-- Extract user identity from JWT claims instead of the hardcoded userId
-- Apply least-privilege IAM permissions
+- Authentication and authorization: done, via the shared-secret + host-backend
+  pattern above, not a Lambda-side authorizer.
+- User identity: taken from the request `userId`, not a hardcoded value.
+- IAM permissions: already least-privilege (`PutItem`/`Query` only, see above).
 
 ---
 

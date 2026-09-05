@@ -235,8 +235,12 @@ are compiled into the browser bundle and must stay away from secrets.
 
 ```env
 NEXT_PUBLIC_API_URL=            # backend base URL; the app throws if unset
-NEXT_PUBLIC_EXTRACTOR_API_URL=  # ai-injury-extractor Lambda endpoint
 ```
+
+As of issue #32, the frontend no longer talks to the ai-injury-extractor Lambda
+directly -- `backend/` proxies it, authenticating the caller first. Point
+`backend/` at the Lambda instead, via `EXTRACTOR_API_URL` and
+`EXTRACTOR_SHARED_SECRET` in the repo-root `.env`.
 
 > **`JWT_SECRET` is shared between two services.** The backend issues the JWTs;
 > the AI service only verifies them (see `ai-injury-assistant/docs/02-architecture.md`

@@ -114,6 +114,20 @@ export const assistantAskSchema = z.object({
   injuryId: z.number().int().positive().optional(),
 });
 
+// AI EXTRACTOR
+// 5000 matches MAX_TEXT_LENGTH in ai-injury-extractor/lambda/handler.py, so an
+// over-long description is rejected here with a clean 400 rather than costing a
+// round trip to AWS to be rejected there.
+// .strict() so a caller-supplied `userId` is a visible 400 rather than being
+// silently stripped. The service builds the outgoing body from the verified
+// JWT either way, so this changes nothing about what reaches the Lambda — it
+// just refuses to look like it accepted something it ignored.
+export const extractTextSchema = z
+  .object({
+    text: z.string().min(1).max(5000),
+  })
+  .strict();
+
 // AI EXTRACTOR -> JOURNAL
 // The body mirrors what the extractor returns (frontend/lib/injury-schema.ts),
 // plus a destination. `painLevel` is optional here even though Symptom.painLevel

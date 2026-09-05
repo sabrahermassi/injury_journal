@@ -132,6 +132,19 @@ export const apiLimiter = rateLimit({
   },
 });
 
+// Strict limiter for the AI extractor. Every call spends Groq tokens against
+// the project's own quota, so the general 100/15min ceiling is far too loose —
+// an authenticated user could still drain the budget on their own. Keyed per
+// user rather than per IP, since these routes are authenticated anyway.
+export const extractorLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => String(req.userId),
+  message: {
+    error: 'Too many extraction requests, please try again later',
+  },
+});
+
 // Strict limiter for authentication
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

@@ -8,6 +8,10 @@ import { authCookieOptions, csrfCookieOptions } from './utils.js';
 import { askAssistant } from './services/assistantService.js';
 import { acceptExtraction } from './services/extractionService.js';
 import {
+  extractInjury,
+  getExtractionHistory,
+} from './services/extractorService.js';
+import {
   createInjury,
   getInjuries,
   getInjuryById,
@@ -615,6 +619,31 @@ export const askAssistantController = async (req, res, next) => {
         icon: iconFor(citation?.label ?? citation?.sourceType),
       }));
     }
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extractions/extract
+// The user id comes from the verified JWT, never from the request body — a
+// caller supplying their own would be choosing whose extraction history to
+// write into.
+export const extractInjuryController = async (req, res, next) => {
+  try {
+    const { status, data } = await extractInjury(req.userId, req.body);
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/extractions/history
+export const getExtractionHistoryController = async (req, res, next) => {
+  try {
+    const { status, data } = await getExtractionHistory(req.userId);
 
     res.status(status).json(data);
   } catch (error) {

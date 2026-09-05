@@ -45,15 +45,13 @@ Previously extracted injuries can be retrieved from DynamoDB through the history
 
 ## Integration
 
-Although this project is fully functional as a standalone serverless application, it was designed so that the AI extraction component can also be integrated into a larger healthcare application.
+This was designed as a standalone serverless demo, then integrated into the injury_journal monorepo. That integration is now real (issue #32), not just intended:
 
-In that scenario:
+- User authentication is handled by the host application (`backend/`), which verifies the caller's JWT.
+- This API receives requests only from that host application's backend, proven by a shared secret (`X-Extractor-Secret`) it checks before doing anything else — the browser no longer calls it directly.
+- Extracted injury data is scoped per user (the `userId` the host app resolved), not a single hardcoded id.
 
-- User authentication would be handled by the host application.
-- The AI extraction service would receive authenticated requests.
-- Extracted injury data could be persisted in the host application's primary database (for example, PostgreSQL) instead of DynamoDB.
-
-DynamoDB is used in this repository to demonstrate a complete serverless AWS architecture and end-to-end data flow.
+Extraction records still live in this repository's own DynamoDB table, separate from the host app's primary PostgreSQL database — accepting an extraction into the actual journal (`Injury`/`Symptom`/`TimelineEvent` rows) is a distinct, explicit step the user takes afterward (`POST /api/extractions/accept` in `backend/`), not something this API does on its own.
 
 ## Architecture
 
@@ -95,18 +93,12 @@ Before deployment, ensure you have:
 The frontend that calls this API now lives in the main app's `frontend/`
 (`frontend/app/dashboard/extractor/page.tsx` and
 `frontend/components/extractor/`), not in this directory. Run it via the
-main `frontend/` app's own README/CLAUDE.md.
-
-It requires `NEXT_PUBLIC_EXTRACTOR_API_URL` to be set to your deployed API
-Gateway invoke URL (no trailing slash, no `/extract` or `/injuries` suffix —
-the app appends those itself), for example in `frontend/.env.local`:
-
-```
-NEXT_PUBLIC_EXTRACTOR_API_URL=https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev
-```
-
-There is currently no local/mocked backend — the frontend always calls a
-real deployed API Gateway + Lambda stack.
+It requires `NEXT_PUBLIC_API_URL` (the app's usual backend base URL). As of
+issue #32, the browser no longer calls this Lambda directly -- the main app's
+`backend/` does, authenticating the user first
+(`backend/src/services/extractorService.js`). It is `backend/` that needs
+pointing at this deployed API Gateway invoke URL, via `EXTRACTOR_API_URL` and
+`EXTRACTOR_SHARED_SECRET` in the repo-root `.env` (see `.env.example`).
 
 ## Deploy Lambda and Infrastructure
 
@@ -148,25 +140,25 @@ request/response behavior should still be verified manually using the
 `curl` examples below and by running the frontend against a real deployed
 API.
 
-## Test injury data extractor API (Development only)
+## Test injury data extractor API
 
-> This endpoint is currently unauthenticated and intended for development/testing.
-> Authentication and authorization are handled by the consuming application and are not implemented in this standalone serverless demo.
+> Requires the shared secret and a userId — see "Integration" above. A request without a matching `X-Extractor-Secret` gets a 403 regardless of body content.
 
 ```bash
 curl -X POST \
 https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/extract \
 -H "Content-Type: application/json" \
--d '{"text":"I have had left hip pain for four years after gym training."}'
+-H "X-Extractor-Secret: YOUR_SHARED_SECRET" \
+-d '{"userId":"1","text":"I have had left hip pain for four years after gym training."}'
 ```
 
-## Test injury history API (Development only)
+## Test injury history API
 
-> This endpoint retrieves saved injury entries from DynamoDB.
-> Authentication is not implemented yet and the endpoint is intended for development/testing.
+> Also requires the shared secret; `userId` is a query parameter since GET has no body.
 
 ```bash
-curl https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/injuries
+curl "https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/injuries?userId=1" \
+-H "X-Extractor-Secret: YOUR_SHARED_SECRET"
 ```
 
 # Useful Commands

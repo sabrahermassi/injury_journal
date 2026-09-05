@@ -4,11 +4,10 @@ test.describe("AI extractor and assistant", () => {
   test("extractor page renders and fails gracefully with no analyzer configured", async ({
     page,
   }) => {
-    // frontend/.env.local has no NEXT_PUBLIC_EXTRACTOR_API_URL on this
-    // machine (PR #76, which wires the backend proxy, is still open). This
-    // asserts the app degrades to a message rather than a white screen or an
-    // uncaught exception -- see extractor-api.ts, which throws synchronously
-    // when the env var is missing.
+    // The extractor now goes through the backend proxy, which answers 503
+    // when EXTRACTOR_API_URL is unset -- as it is on this machine, which has
+    // no deployed Lambda. This asserts the app degrades to a message rather
+    // than a white screen or an uncaught exception.
     await page.goto("/dashboard/extractor");
     await expect(page.getByRole("heading", { name: "AI Injury Extractor" })).toBeVisible();
 

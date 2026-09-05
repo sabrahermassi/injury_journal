@@ -45,7 +45,11 @@ docs/                    Planning docs written before/during implementation (pro
 ai-injury-extractor/     Self-contained AWS Lambda service that extracts structured injury data
                          from free text (lambda/ handler + tests, infrastructure/ Terraform). Its
                          UI is NOT here — it lives in frontend/components/extractor/ and is served
-                         at /dashboard/extractor. Own CLAUDE.md and README.md.
+                         at /dashboard/extractor. Own CLAUDE.md and README.md. Not reachable from
+                         the browser directly (issue #32): backend/ authenticates the caller and
+                         proxies both routes (backend/src/services/extractorService.js), the same
+                         pattern as the assistant proxy below, presenting a shared secret the
+                         Lambda checks and the userId resolved from the caller's JWT.
 
 ai-injury-assistant/     Self-contained AI/RAG companion app, brought in from its own repository
                          (sabrahermassi/injury-journal-ai) via git subtree with full history
@@ -100,6 +104,9 @@ Two things deliberately stay out of the root file. `DATABASE_ENV` and
 And `frontend/` does not read `.env` at all: `NEXT_PUBLIC_*` values are compiled
 into the browser bundle, so they stay well away from secrets.
 `ai-injury-extractor/` is an AWS Lambda and takes its environment from Terraform.
+`backend/` does need two extractor-related values from the root file though —
+`EXTRACTOR_API_URL` and `EXTRACTOR_SHARED_SECRET` — to reach that Lambda; see
+`.env.example`.
 
 `ai-injury-assistant/prisma.config.ts` also deliberately reads only its own
 `.env.test`, never the root `.env`, so its Prisma CLI cannot reach the shared

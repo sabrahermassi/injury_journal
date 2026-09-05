@@ -33,12 +33,15 @@ import {
   getTreatmentOutcomesController,
   deleteTreatmentOutcomeController,
   askAssistantController,
+  extractInjuryController,
+  getExtractionHistoryController,
 } from './controllers.js';
 import {
   authenticate,
   validate,
   validateNumericParam,
   authLimiter,
+  extractorLimiter,
   verifyCsrf,
 } from './middleware.js';
 import {
@@ -57,6 +60,7 @@ import {
   treatmentOutcomeSchema,
   assistantAskSchema,
   acceptExtractionSchema,
+  extractTextSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -88,6 +92,25 @@ router.post('/auth/logout', logout);
 
 // DELETE /api/auth/me
 router.delete('/auth/me', authenticate, deleteAccountController);
+
+// The extractor Lambda used to be called straight from the browser, with no
+// auth at all — see src/services/extractorService.js for why it now goes
+// through here. Rate limiting is dropped under test for the same reason the
+// auth routes drop theirs: the suite would trip it.
+const extractorLimiters =
+  process.env.NODE_ENV === 'test' ? [] : [extractorLimiter];
+
+// POST /api/extractions/extract — free text -> structured injury data
+router.post(
+  '/extractions/extract',
+  authenticate,
+  ...extractorLimiters,
+  validate(extractTextSchema),
+  extractInjuryController
+);
+
+// GET /api/extractions/history — this user's past extractions
+router.get('/extractions/history', authenticate, getExtractionHistoryController);
 
 // POST /api/extractions/accept — turn an AI extraction into journal records
 router.post(
