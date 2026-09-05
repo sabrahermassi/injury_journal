@@ -287,11 +287,12 @@ flowchart TD
 > **Current status:** only "Citation Generation" from retrieved-chunk metadata is live
 > (`citation-builder.ts`) — it does not consult the generated answer (`A` in this diagram feeds
 > `V` conceptually, but no code path actually inspects the LLM's output when building citations).
-> Three additional modules exist for source verification and formatting
-> (`citation-verifier.ts`, `citation-source-mapper.ts`, `citation-formatter.ts`) but are not
-> wired into any response path yet — they represent planned work, not alternate current
-> behavior. Today's citations are a provenance list of what was retrieved, not a fact-checked
-> bibliography of what the answer actually used.
+> `citation-verifier.ts` now runs after citation generation and filters out any citation whose
+> source doesn't actually exist and belong to the cited injury (#124) — today's citations are a
+> verified provenance list of what was retrieved, not a fact-checked bibliography of what the
+> answer actually used. `citation-source-mapper.ts` (an overlapping, ownership-unchecked
+> alternative) and `citation-formatter.ts` (unwired display formatting, duplicated by the
+> frontend) were both retired rather than wired in (#124, #75).
 
 ### 5.4. Safety Guardrails Architecture
 
