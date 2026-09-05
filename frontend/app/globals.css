@@ -52,6 +52,21 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-entry-surface: var(--entry-surface);
+  --color-primary-hover: var(--primary-hover);
+  --color-body: var(--body);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-sage-soft: var(--sage-soft);
+  --color-icon-disc: var(--icon-disc);
+  --color-pill-better: var(--pill-better);
+  --color-pill-better-ink: var(--pill-better-ink);
+  --color-pill-sore: var(--pill-sore);
+  --color-pill-sore-ink: var(--pill-sore-ink);
+  --color-pill-noted: var(--pill-noted);
+  --color-pill-noted-ink: var(--pill-noted-ink);
+  --color-pill-visit: var(--pill-visit);
+  --color-pill-visit-ink: var(--pill-visit-ink);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -82,17 +97,38 @@
   --background: #FBF8F5;
   --foreground: #142922;
 
-  --card: #F6F3EE;
+  --card: #FCFBF9;
   --card-foreground: #142922;
 
-  --popover: #FDFCFA;
+  --popover: #FFFEFC;
   --popover-foreground: #142922;
 
-  --primary: #21382B;
+  /* Buttons are the palette's #3A5241, not the darker green this used to be.
+     Hover is its own token rather than an opacity step: primary/90 lightens
+     against the page, where the palette darkens. */
+  --primary: #3A5241;
+  --primary-hover: #2E4234;
   --primary-foreground: #F4F7F1;
+
+  /* Body copy. Distinct from --foreground (#142922), which is headline ink;
+     using foreground at reduced opacity for body text drifted off-palette. */
+  --body: #3F413F;
+
+  /* Sage, three depths, from the palette. */
+  --sage: #679882;
+  --sage-deep: #5E8370;
+  --sage-soft: #7C9984;
+
+  /* The disc an entry illustration sits on. */
+  --icon-disc: #EAEEE6;
 
   --secondary: #EDF0E8;
   --secondary-foreground: #142922;
+
+  /* The new-entry modal's own surface. The design gives it #FCF9F5 — a shade
+     off both --background and --card, so it reads as a sheet above the page
+     rather than a panel in it. */
+  --entry-surface: #FCF9F5;
 
   --muted: #F6F3EE;
   --muted-foreground: #6E7269;               /* secondary text */
@@ -101,6 +137,20 @@
   --accent: #E7EEE7;
   --accent-foreground: #3B5C4A;
 
+  /* Status pills, verbatim from the palette. */
+  --pill-better: #E7EEE7;
+  --pill-better-ink: #3B5C4A;
+  --pill-better-dot: #679882;
+  --pill-sore: #F7EEDD;
+  --pill-sore-ink: #7A6234;
+  --pill-sore-dot: #D9A648;
+  --pill-noted: #EFEDE6;
+  --pill-noted-ink: #6E7269;
+  --pill-noted-dot: #B3AC9E;
+  --pill-visit: #E6EBEF;
+  --pill-visit-ink: #3F5060;
+  --pill-visit-dot: #7C90A6;
+
   --destructive: oklch(0.517 0.128 26.1);    /* #A5453F — unchanged, design is silent on error colour */
   --destructive-foreground: oklch(0.993 0.002 145.6);
 
@@ -108,9 +158,9 @@
      The design's own field borders (#EBE5DC on #FDFCFA) don't clear that —
      they read fine in a static mockup but fail the project's own 3:1 rule, so
      --input is a darker warm-neutral from the same family instead. */
-  --border: #EFEAE2;
+  --border: #F0EAE1;
   --input: #938B7D;
-  --ring: #21382B;
+  --ring: #3A5241;
 
   /* Constant lightness across the five steps (~L 0.55–0.60), same strategy as
      before — a hue sweep at equal visual weight, re-hued into the botanical
@@ -131,12 +181,12 @@
 
   --sidebar: #F6F3EE;
   --sidebar-foreground: #142922;
-  --sidebar-primary: #21382B;
+  --sidebar-primary: #3A5241;
   --sidebar-primary-foreground: #F4F7F1;
   --sidebar-accent: #E7EEE7;
   --sidebar-accent-foreground: #3B5C4A;
   --sidebar-border: #EFEAE2;
-  --sidebar-ring: #21382B;
+  --sidebar-ring: #3A5241;
 
   --radius: 0.75rem;
 }
@@ -161,6 +211,26 @@
 
   --secondary: #2A2620;
   --secondary-foreground: #EEE9E0;
+
+  --entry-surface: #262219;
+  --primary-hover: #9DBBAB;
+  --body: #C9C3B5;
+  --sage: #84A796;
+  --sage-deep: #A7C4B0;
+  --sage-soft: #7C9984;
+  --icon-disc: #2E3B30;
+  --pill-better: #2E3B30;
+  --pill-better-ink: #A7C4B0;
+  --pill-better-dot: #679882;
+  --pill-sore: #3A3222;
+  --pill-sore-ink: #D9C08A;
+  --pill-sore-dot: #D9A648;
+  --pill-noted: #2F2C25;
+  --pill-noted-ink: #A79E8E;
+  --pill-noted-dot: #B3AC9E;
+  --pill-visit: #262E36;
+  --pill-visit-ink: #A9B8C6;
+  --pill-visit-dot: #7C90A6;
 
   --muted: #2A2620;
   --muted-foreground: #A79E8E;
@@ -202,6 +272,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Radix locks body scroll while a Select or Dialog is open and pads the
+     body to replace the scrollbar's width. On a browser with a classic
+     overlay-less scrollbar that lands as a visible sideways jump of the whole
+     page the moment a dropdown opens. Reserving the gutter permanently means
+     there is nothing to compensate for, so nothing moves. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

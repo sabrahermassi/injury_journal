@@ -126,3 +126,30 @@ export const extractSchema = z.object({
   // Matches the Lambda's own MAX_TEXT_LENGTH cap (ai-injury-extractor/lambda/handler.py).
   text: z.string().min(1).max(5000),
 });
+
+// AI EXTRACTOR -> JOURNAL
+// The body mirrors what the extractor returns (frontend/lib/injury-schema.ts),
+// plus a destination. `painLevel` is optional here even though Symptom.painLevel
+// is a required column: an extraction that never mentioned a pain level is
+// perfectly valid, and the service records the symptoms without inventing one
+// rather than rejecting the whole summary.
+export const acceptExtractionSchema = z
+  .object({
+    injuryId: z.number().int().positive().optional(),
+
+    injuryName: z.string().min(1).max(200).optional(),
+
+    bodyArea: z.string().min(1).max(200),
+
+    painLevel: z.number().int().min(1).max(10).optional().nullable(),
+
+    symptoms: z.array(z.string().min(1).max(500)).max(50).default([]),
+
+    possibleCauses: z.array(z.string().min(1).max(500)).max(50).default([]),
+
+    note: z.string().max(5000).optional(),
+  })
+  .refine((data) => data.injuryId !== undefined || data.injuryName !== undefined, {
+    message:
+      'Provide injuryId to file against an existing injury, or injuryName to open a new one',
+  });

@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 
-import { getTreatments, type Injury, type Treatment } from "@/services/api";
+import {
+  getAllTreatments,
+  type Treatment,
+  type WithInjury,
+} from "@/services/api";
 
-export type DueFollowUp = Treatment & { injuryId: number; injuryName: string };
+export type DueFollowUp = WithInjury<Treatment>;
 
-// Lighter than use-treatment-outcomes.ts — just the treatments, no outcome
-// history — since Home only needs to know what's due, not what happened.
-export function useDueFollowUps(injuries: Injury[]) {
+// Treatments whose follow-up date has arrived. Same single request as
+// use-treatment-outcomes.ts — the outcomes ride along unused here, which is
+// cheaper than the per-injury fan-out this replaced.
+export function useDueFollowUps() {
   const [dueFollowUps, setDueFollowUps] = useState<DueFollowUp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,32 +20,21 @@ export function useDueFollowUps(injuries: Injury[]) {
     let cancelled = false;
 
     async function load() {
-      if (injuries.length === 0) {
-        if (!cancelled) {
-          setDueFollowUps([]);
-          setLoading(false);
-        }
-        return;
-      }
-
       setLoading(true);
       setError(null);
 
       try {
+        const treatments = await getAllTreatments();
         const now = Date.now();
-        const perInjury = await Promise.all(
-          injuries.map(async (injury) => {
-            const treatments = await getTreatments(injury.id);
-            return treatments
-              .filter(
-                (t) => t.followUpDueAt && new Date(t.followUpDueAt).getTime() <= now,
-              )
-              .map((t) => ({ ...t, injuryId: injury.id, injuryName: injury.name }));
-          }),
-        );
 
         if (!cancelled) {
-          setDueFollowUps(perInjury.flat());
+          setDueFollowUps(
+            treatments.filter(
+              (treatment) =>
+                treatment.followUpDueAt &&
+                new Date(treatment.followUpDueAt).getTime() <= now,
+            ),
+          );
         }
       } catch (err) {
         console.error(err);
@@ -60,7 +54,7 @@ export function useDueFollowUps(injuries: Injury[]) {
     return () => {
       cancelled = true;
     };
-  }, [injuries]);
+  }, []);
 
   return { dueFollowUps, loading, error };
 }

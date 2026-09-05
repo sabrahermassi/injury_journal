@@ -2,16 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { SubmitEventHandler } from "react";
+import { SendHorizonal } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { EntryIcon } from "@/components/dashboard/entry-icon";
+import { ToolIcon } from "@/components/ui/tool-icon";
 import {
   askAssistant,
   getInjuries,
@@ -36,7 +29,7 @@ const ALL_INJURIES = "all";
 function formatInjuryLabel(injury: Injury) {
   const area = `${injury.bodyArea}${injury.side ? ` (${injury.side})` : ""}`;
 
-  return `${injury.name} — ${area}`;
+  return `${injury.name} - ${area}`;
 }
 
 export function AskForm() {
@@ -119,7 +112,7 @@ export function AskForm() {
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong — try again.",
+          : "Something went wrong - try again.",
       );
     } finally {
       setLoading(false);
@@ -127,118 +120,148 @@ export function AskForm() {
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-serif text-lg">AI Assistant</CardTitle>
-          <CardDescription>
-            Your recovery companion — every answer cites the entry it came
-            from.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="injury">Injury</Label>
-
-              <Select value={injuryId} onValueChange={setInjuryId}>
-                <SelectTrigger id="injury" className="w-full">
-                  <SelectValue>{selectedLabel}</SelectValue>
-                </SelectTrigger>
-
-                <SelectContent>
-                  <SelectItem value={ALL_INJURIES}>All injuries</SelectItem>
-
-                  {injuries.map((injury) => (
-                    <SelectItem key={injury.id} value={String(injury.id)}>
-                      {formatInjuryLabel(injury)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {injuriesError ? (
-                <p className="text-sm text-destructive">{injuriesError}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {injuries.length === 0
-                    ? "No injuries yet — add one to ask about it."
-                    : "Leave as All injuries to search across all of them."}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="question">Question</Label>
-
-              <Textarea
-                id="question"
-                placeholder="What treatments have I tried?"
-                maxLength={10000}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                required
-              />
-            </div>
-
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Asking..." : "Ask"}
-            </Button>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </form>
-        </CardContent>
-      </Card>
-
-      {result && (
-        <div className="flex flex-col gap-3">
-          {/* Echoes what was actually asked -- see askedQuestion above -- as
-              a chat-style bubble, matching the design's conversation
-              treatment. This isn't a real multi-turn thread: the form still
-              answers one question at a time, submitting again replaces this. */}
-          <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-              {askedQuestion}
-            </div>
-          </div>
-
-          <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-card px-4 py-3.5 text-sm whitespace-pre-wrap text-card-foreground ring-1 ring-foreground/10">
-            {result.answer}
-          </div>
-
-          {result.citations && result.citations.length > 0 && (
-            <div className="mt-1 flex flex-col gap-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Sources
+    <div className="flex flex-col items-start gap-6.5 lg:flex-row">
+      <div className="flex w-full min-w-0 flex-1 flex-col">
+        {/* The design draws a settled conversation. Before anything is asked
+            there is nothing to draw, so the thread is replaced by the same
+            prompt the empty state would otherwise have to invent. */}
+        {result ? (
+          <div className="flex flex-col">
+            <div className="ml-auto max-w-[60%] rounded-[20px_20px_6px_20px] bg-accent px-5 py-4">
+              <p className="text-[15px] leading-[1.5] text-foreground">
+                {askedQuestion}
               </p>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                {result.citations.map((citation, index) => (
-                  <div
-                    key={`${citation.sourceType ?? "source"}-${citation.sourceId}-${index}`}
-                    className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-2.5 ring-1 ring-foreground/10"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-serif text-sm text-foreground">
-                        {citation.label}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {[citation.sourceType, citation.date]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                    <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      #{citation.sourceId}
-                    </span>
-                  </div>
-                ))}
+            <div className="mt-4 flex items-start gap-3">
+              <ToolIcon tool="assistant" size={34} className="mt-1.5" />
+
+              <div className="min-w-0 flex-1 rounded-[20px_20px_20px_6px] bg-card px-5.5 py-5 ring-1 ring-border">
+                <p className="text-[15px] leading-[1.65] whitespace-pre-wrap text-foreground/80">
+                  {result.answer}
+                </p>
+
+                {result.citations && result.citations.length > 0 && (
+                  <p className="mt-3.5 text-[12.5px] text-muted-foreground">
+                    Based on {result.citations.length} journal{" "}
+                    {result.citations.length === 1 ? "entry" : "entries"}.
+                  </p>
+                )}
               </div>
             </div>
+          </div>
+        ) : (
+          <div className="rounded-[20px] bg-secondary px-5.5 py-5">
+            <p className="font-serif text-[19px] leading-[1.2] font-medium text-foreground">
+              Ask about your own record
+            </p>
+            <p className="mt-1.5 text-[13px] leading-[1.5] text-foreground/80">
+              Which treatments helped, how a month went, what you told the last
+              doctor. Every answer cites the entries behind it.
+            </p>
+          </div>
+        )}
+
+        {/* Kept from before, not in the design: the assistant answers per
+            injury, and without this there is no way to say which one. */}
+        <div className="mt-4.5 flex flex-wrap items-center gap-3">
+          <Select value={injuryId} onValueChange={setInjuryId}>
+            <SelectTrigger
+              id="injury"
+              aria-label="Injury to ask about"
+              className="h-12 w-full rounded-full bg-popover px-5 text-[13.5px] ring-1 ring-border sm:w-auto sm:min-w-[240px]"
+            >
+              <SelectValue>{selectedLabel}</SelectValue>
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value={ALL_INJURIES}>All injuries</SelectItem>
+
+              {injuries.map((injury) => (
+                <SelectItem key={injury.id} value={String(injury.id)}>
+                  {formatInjuryLabel(injury)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {injuriesError && (
+            <p className="text-sm text-destructive">{injuriesError}</p>
           )}
         </div>
-      )}
-    </>
+
+        <form
+          onSubmit={handleSubmit}
+          className="mt-3.5 flex items-center gap-3"
+        >
+          <div className="flex h-14 min-w-0 flex-1 items-center rounded-full bg-popover px-5.5 ring-1 ring-border focus-within:ring-2 focus-within:ring-ring">
+            <input
+              id="question"
+              value={question}
+              onChange={(event) => setQuestion(event.currentTarget.value)}
+              maxLength={10000}
+              placeholder="Ask anything about your injury…"
+              aria-label="Your question"
+              className="min-w-0 flex-1 bg-transparent text-[14.5px] text-foreground outline-none placeholder:text-muted-foreground-subtle"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            aria-label={loading ? "Asking" : "Ask"}
+            className="flex size-14 flex-none items-center justify-center rounded-full bg-accent-foreground text-background transition-[filter] hover:brightness-[0.93] disabled:opacity-50"
+          >
+            <SendHorizonal className="size-[21px]" aria-hidden="true" />
+          </button>
+        </form>
+
+        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      </div>
+
+      <div className="w-full flex-none rounded-3xl bg-card p-5.5 ring-1 ring-border lg:w-[380px]">
+        <p className="text-[11px] leading-none font-medium tracking-[0.14em] text-muted-foreground-subtle uppercase">
+          Sources
+        </p>
+
+        <div className="mt-4 flex flex-col gap-3">
+          {result?.citations && result.citations.length > 0 ? (
+            result.citations.map((citation, index) => (
+              <div
+                key={`${citation.sourceType ?? "source"}-${citation.sourceId}-${index}`}
+                className="flex items-center gap-3 rounded-[18px] bg-popover p-3.5 ring-1 ring-border"
+              >
+                <EntryIcon icon={citation.icon} size={52} />
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-serif text-[15px] leading-[1.2] font-medium text-foreground">
+                    {citation.label}
+                  </p>
+                  <p className="mt-0.5 truncate text-[11.5px] leading-[1.3] text-muted-foreground">
+                    {[citation.sourceType, citation.date]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+
+                <span className="flex-none text-[11.5px] text-muted-foreground-subtle">
+                  #{citation.sourceId}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              {loading
+                ? "Looking through your entries…"
+                : "The entries behind an answer are listed here once you ask something."}
+            </p>
+          )}
+        </div>
+
+        <p className="mt-4 text-[11.5px] leading-[1.6] text-muted-foreground-subtle">
+          Always review with your healthcare professional.
+        </p>
+      </div>
+    </div>
   );
 }

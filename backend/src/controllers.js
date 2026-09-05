@@ -1,14 +1,17 @@
 import crypto from 'node:crypto';
+import { iconFor } from './entryIcons.js';
 import {
   register as registerUser,
   login as loginUser,
   getUserById,
   refreshSession,
   revokeRefreshTokenFamily,
+  deleteAccount,
 } from './services/authService.js';
 import { authCookieOptions, csrfCookieOptions } from './utils.js';
 import { askAssistant } from './services/assistantService.js';
 import { extractInjury, getInjuryHistory } from './services/extractorService.js';
+import { acceptExtraction } from './services/extractionService.js';
 import {
   createInjury,
   getInjuries,
@@ -19,18 +22,21 @@ import {
 import {
   createTimelineEvent,
   getTimelineEvents,
+  getAllEventsForUser,
   updateTimelineEvent,
   deleteTimelineEvent,
 } from './services/timelineService.js';
 import {
   createSymptom,
   getSymptoms,
+  getAllSymptomsForUser,
   updateSymptom,
   deleteSymptom,
 } from './services/symptomService.js';
 import {
   createTreatment,
   getTreatments,
+  getAllTreatmentsForUser,
   updateTreatment,
   deleteTreatment,
 } from './services/treatmentService.js';
@@ -143,6 +149,44 @@ export const logout = async (req, res, next) => {
   }
 };
 
+// DELETE /api/auth/me — removes the account and every record under it.
+// The session cookies go too: the token would otherwise stay valid until it
+// expires, pointing at a user row that no longer exists.
+export const deleteAccountController = async (req, res, next) => {
+  try {
+    const deleted = await deleteAccount(req.userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'User not found',
+      });
+    }
+
+    res.clearCookie('token', authCookieOptions);
+    res.clearCookie('csrfToken', csrfCookieOptions);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extractions/accept — files an AI extraction into the journal.
+export const acceptExtractionController = async (req, res, next) => {
+  try {
+    const result = await acceptExtraction(req.userId, req.body);
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // POST /api/injuries
 export const createInjuryController = async (req, res, next) => {
   try {
@@ -242,6 +286,16 @@ export const createTimelineEventController = async (req, res, next) => {
 };
 
 // GET /api/injuries/:injuryId/events
+// GET /api/events — every timeline event the user has. See the note on
+// getAllSymptomsController for why there is no 404 branch.
+export const getAllEventsController = async (req, res, next) => {
+  try {
+    res.json(await getAllEventsForUser(req.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getTimelineEventsController = async (req, res, next) => {
   try {
     const events = await getTimelineEvents(
@@ -321,6 +375,17 @@ export const createSymptomController = async (req, res, next) => {
 };
 
 // GET /api/injuries/:injuryId/symptoms
+// GET /api/symptoms — every symptom the user has, across all their injuries.
+// No 404 branch: unlike the per-injury reads there is no parent to miss, and
+// a user with nothing logged legitimately gets an empty array.
+export const getAllSymptomsController = async (req, res, next) => {
+  try {
+    res.json(await getAllSymptomsForUser(req.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getSymptomsController = async (req, res, next) => {
   try {
     const symptoms = await getSymptoms(Number(req.params.injuryId), req.userId);
@@ -397,6 +462,16 @@ export const createTreatmentController = async (req, res, next) => {
 };
 
 // GET /api/injuries/:injuryId/treatments
+// GET /api/treatments — every treatment the user has, with its outcome
+// check-ins attached. See the note on getAllSymptomsController.
+export const getAllTreatmentsController = async (req, res, next) => {
+  try {
+    res.json(await getAllTreatmentsForUser(req.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getTreatmentsController = async (req, res, next) => {
   try {
     const treatments = await getTreatments(
@@ -595,6 +670,17 @@ export const deleteTreatmentOutcomeController = async (req, res, next) => {
 export const askAssistantController = async (req, res, next) => {
   try {
     const { status, data } = await askAssistant(req.token, req.body);
+
+    // The assistant is a separate service and knows nothing about icons, so
+    // its citations are stamped here on the way through. Same table as every
+    // other entry: a cited "Physiotherapy" draws what the timeline's
+    // "Physiotherapy" draws.
+    if (Array.isArray(data?.citations)) {
+      data.citations = data.citations.map((citation) => ({
+        ...citation,
+        icon: iconFor(citation?.label ?? citation?.sourceType),
+      }));
+    }
 
     res.status(status).json(data);
   } catch (error) {

@@ -8,6 +8,14 @@ import { PrismaClient } from '@prisma/client';
 
 export const prisma = new PrismaClient();
 
+// The user-scoped collection endpoints include the parent injury only to name
+// it. Callers want a flat record with `injuryName` on it, not a nested object,
+// so the join column is folded in and the relation dropped.
+export const flattenInjuryName = ({ injury, ...record }) => ({
+  ...record,
+  injuryName: injury.name,
+});
+
 export const createToken = (userId) => {
   return jwt.sign(
     {

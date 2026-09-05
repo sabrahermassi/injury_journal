@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { ChevronRight, PlusCircle } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
@@ -12,9 +11,12 @@ import { useDueFollowUps } from "@/hooks/use-due-followups";
 import { CreateInjuryDialog } from "@/components/dashboard/create-injury-dialog";
 import { PainChart } from "@/components/dashboard/pain-chart";
 import { TodayPainCard } from "@/components/dashboard/today-pain-card";
+import { EntryIcon } from "@/components/dashboard/entry-icon";
+import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArtIcon } from "@/components/ui/art-icon";
 
 function greeting(hour: number | null) {
   if (hour === null) return "Welcome back";
@@ -25,15 +27,20 @@ function greeting(hour: number | null) {
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
+  const { openNewEntry } = useNewEntry();
   const { injuries, loading: injuriesLoading, refresh } = useInjuries();
-  const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
+  const {
+    events,
+    loading: eventsLoading,
+    error: eventsError,
+  } = useAllTimelineEvents();
   const {
     symptoms,
     loading: symptomsLoading,
     error: symptomsError,
     refresh: refreshSymptoms,
-  } = useAllSymptoms(injuries);
-  const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
+  } = useAllSymptoms();
+  const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps();
   const [createOpen, setCreateOpen] = useState(false);
 
   // Rendered as null on both server and client so hydration matches, then
@@ -80,7 +87,7 @@ export default function DashboardOverviewPage() {
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
               Set up a profile for what you&apos;re tracking, and everything
-              after — symptoms, treatments, visits — gets kept in one place
+              after - symptoms, treatments, visits - gets kept in one place
               against it. The first week is just about building the record;
               there&apos;s no catching up to do.
             </p>
@@ -105,13 +112,10 @@ export default function DashboardOverviewPage() {
       {/* Decorative sprig from the reference design, bleeding off the right
           edge. Clipped by the section so it can never widen the page. */}
       <section className="relative overflow-hidden pb-6">
-        <Image
+        <ArtIcon
           src="/sprig-ref.png"
-          alt=""
-          width={326}
-          height={236}
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-8 right-0 w-[326px] max-w-[42%] select-none"
+          size={326}
+          className="pointer-events-none absolute -top-8 right-0"
         />
 
         <div className="relative max-w-xl">
@@ -132,14 +136,7 @@ export default function DashboardOverviewPage() {
           <Card className="gap-0 rounded-3xl py-0">
             <CardHeader className="flex flex-wrap items-start justify-between gap-4 px-6 pt-5.5 pb-0">
               <div className="flex items-start gap-3">
-                <Image
-                  src="/art-leaf-sm.png"
-                  alt=""
-                  width={30}
-                  height={30}
-                  aria-hidden="true"
-                  className="mt-1 size-[30px] flex-none select-none"
-                />
+                <ArtIcon src="/art-leaf-sm.png" size={30} className="mt-1" />
                 <div>
                   <CardTitle className="font-serif text-2xl leading-tight font-medium">
                     How you&apos;ve been feeling
@@ -161,7 +158,7 @@ export default function DashboardOverviewPage() {
             <CardContent className="px-6 pt-3.5 pb-5">
               {symptomsError ? (
                 <p className="py-8 text-sm text-muted-foreground">
-                  Couldn&apos;t load pain levels — try refreshing.
+                  Couldn&apos;t load pain levels - try refreshing.
                 </p>
               ) : symptomsLoading ? (
                 <Skeleton className="h-44 w-full rounded-xl" />
@@ -194,15 +191,15 @@ export default function DashboardOverviewPage() {
               </div>
             ) : eventsError ? (
               <p className="p-5 text-muted-foreground">
-                Couldn&apos;t load recent activity — try refreshing.
+                Couldn&apos;t load recent activity - try refreshing.
               </p>
             ) : recent.length === 0 ? (
               <div className="flex flex-col items-start gap-2 p-5">
                 <p className="text-muted-foreground">
-                  Nothing logged yet — a note today is worth more than a
-                  perfect one later.
+                  Nothing logged yet - a note today is worth more than a perfect
+                  one later.
                 </p>
-                <Button size="sm" onClick={() => router.push("/dashboard/log")}>
+                <Button size="sm" onClick={() => openNewEntry()}>
                   Log your first entry
                 </Button>
               </div>
@@ -216,6 +213,8 @@ export default function DashboardOverviewPage() {
                   }
                   className="flex w-full items-center gap-4 border-t border-border px-5.5 py-4.5 text-left transition-colors first:border-t-0 hover:bg-accent/40"
                 >
+                  <EntryIcon icon={event.icon} size={60} />
+
                   <div className="min-w-0 sm:w-[190px] sm:flex-none">
                     <p className="truncate font-serif text-[19px] leading-tight font-medium text-foreground capitalize">
                       {event.type}
@@ -249,14 +248,7 @@ export default function DashboardOverviewPage() {
         <div className="flex w-full flex-none flex-col gap-4.5 lg:w-[364px]">
           <div className="flex items-center gap-4 rounded-3xl bg-card p-5 ring-1 ring-border">
             <span className="flex size-[66px] flex-none items-center justify-center rounded-full bg-accent">
-              <Image
-                src="/art-leaf-lg.png"
-                alt=""
-                width={40}
-                height={40}
-                aria-hidden="true"
-                className="size-10 select-none"
-              />
+              <ArtIcon src="/art-leaf-lg.png" size={40} />
             </span>
             <div className="min-w-0">
               <p className="font-serif text-[19px] leading-tight font-medium text-foreground">
@@ -285,7 +277,7 @@ export default function DashboardOverviewPage() {
                 Worth a check-in
               </p>
               <p className="mt-2 text-[12.5px] text-muted-foreground">
-                Couldn&apos;t check for due follow-ups — try refreshing.
+                Couldn&apos;t check for due follow-ups - try refreshing.
               </p>
             </div>
           )}

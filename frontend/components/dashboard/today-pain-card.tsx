@@ -91,7 +91,7 @@ export function TodayPainCard({
             color: today === null ? "var(--muted-foreground)" : painVar(today),
           }}
         >
-          {today === null ? "—" : today.toFixed(1)}
+          {today === null ? "-" : today.toFixed(1)}
         </span>
         <span className="pb-1.5 text-[12.5px] leading-snug text-foreground/80">
           {today === null ? (
@@ -147,7 +147,7 @@ export function TodayPainCard({
 
       <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
         {error
-          ? "Couldn't save that — try again."
+          ? "Couldn't save that - try again."
           : "Tap a number to log today. The scale never turns red."}
       </p>
     </div>

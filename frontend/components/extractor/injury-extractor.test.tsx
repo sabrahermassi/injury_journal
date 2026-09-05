@@ -3,12 +3,27 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InjuryExtractor } from "./injury-extractor";
 import { extractInjury } from "@/services/extractor-api";
+import { InjuriesProvider } from "@/components/dashboard/injuries-provider";
 
 vi.mock("@/services/extractor-api", () => ({
   extractInjury: vi.fn(),
 }));
 
+// The result panel now offers "save to my journal", which reads the injury
+// list from the dashboard provider. Stubbed rather than removed: without it
+// the component under test renders half of what the user sees.
+vi.mock("@/services/api", () => ({
+  getInjuries: vi.fn().mockResolvedValue([]),
+  acceptExtraction: vi.fn(),
+}));
+
 const mockedExtractInjury = vi.mocked(extractInjury);
+
+// InjuryExtractor is only ever rendered inside the dashboard shell, which
+// supplies this provider.
+function renderExtractor(ui: React.ReactNode = <InjuryExtractor />) {
+  return render(<InjuriesProvider>{ui}</InjuriesProvider>);
+}
 
 describe("InjuryExtractor", () => {
   beforeEach(() => {
@@ -25,7 +40,7 @@ describe("InjuryExtractor", () => {
     });
 
     const user = userEvent.setup();
-    render(<InjuryExtractor />);
+    renderExtractor();
 
     await user.type(
       screen.getByLabelText(/paste the note/i),
@@ -43,7 +58,7 @@ describe("InjuryExtractor", () => {
     mockedExtractInjury.mockRejectedValue(new Error("Failed to extract injury"));
 
     const user = userEvent.setup();
-    render(<InjuryExtractor />);
+    renderExtractor();
 
     await user.type(
       screen.getByLabelText(/paste the note/i),
@@ -56,7 +71,7 @@ describe("InjuryExtractor", () => {
   });
 
   it("disables the analyze button until enough text is entered", async () => {
-    render(<InjuryExtractor />);
+    renderExtractor();
 
     expect(screen.getByRole("button", { name: /analyze injury/i })).toBeDisabled();
 

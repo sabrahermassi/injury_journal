@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ArtIcon } from "@/components/ui/art-icon";
 
 /**
  * The "Web · sign in" frame from the botanical design: a fixed 640px panel of
@@ -25,25 +25,15 @@ export function AuthLayout({
   return (
     <main className="flex min-h-screen">
       <aside className="relative hidden w-[640px] flex-none flex-col overflow-hidden bg-secondary p-14 lg:flex">
-        <Image
+        <ArtIcon
           src="/sprig-ref.png"
-          alt=""
-          width={422}
-          height={306}
-          aria-hidden="true"
+          size={422}
           priority
-          className="pointer-events-none absolute -top-10 right-0 w-[422px] max-w-[70%] select-none"
+          className="pointer-events-none absolute -top-10 right-0"
         />
 
         <div className="relative flex items-center gap-3">
-          <Image
-            src="/art-leaf-sm.png"
-            alt=""
-            width={32}
-            height={32}
-            aria-hidden="true"
-            className="size-8 select-none"
-          />
+          <ArtIcon src="/art-leaf-sm.png" size={32} />
           <span className="font-serif text-[19px] font-medium text-foreground">
             Injury Journal
           </span>
@@ -64,14 +54,7 @@ export function AuthLayout({
         <div className="w-full max-w-[404px]">
           {/* The brand only appears here when the left panel is gone. */}
           <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <Image
-              src="/art-leaf-sm.png"
-              alt=""
-              width={30}
-              height={30}
-              aria-hidden="true"
-              className="size-[30px] select-none"
-            />
+            <ArtIcon src="/art-leaf-sm.png" size={30} />
             <span className="font-serif text-lg font-medium text-foreground">
               Injury Journal
             </span>

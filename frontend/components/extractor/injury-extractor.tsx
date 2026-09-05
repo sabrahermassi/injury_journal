@@ -8,14 +8,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { extractInjury } from "@/services/extractor-api";
 import { ExtractionResult } from "./extraction-result";
+import { AcceptExtraction } from "./accept-extraction";
 import type { InjuryExtraction } from "@/lib/injury-schema";
 
 const EXAMPLE = "My left knee hurts after squats. Pain is 7 out of 10.";
 
 // Numbered steps mirror the reference design ("1. Paste the note",
-// "2. Extracted summary"). `children` is the page heading, which the design
-// places at the top of the left column rather than above both columns.
-export function InjuryExtractor({ children }: { children?: React.ReactNode }) {
+// "2. Extracted summary"). The page heading sits above this component, not
+// inside the left column, so both columns start at the same height -- see the
+// note in app/dashboard/extractor/page.tsx.
+export function InjuryExtractor() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,13 +57,14 @@ export function InjuryExtractor({ children }: { children?: React.ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col items-start gap-8 lg:flex-row lg:gap-7">
-      <div className="w-full min-w-0 flex-1">
-        {children}
-
-        <div className="mt-8 flex items-center gap-3">
+    <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-7">
+      <div className="flex w-full min-w-0 flex-1 flex-col">
+        <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-foreground">1.</span>
-          <label htmlFor="injury-description" className="text-sm text-muted-foreground">
+          <label
+            htmlFor="injury-description"
+            className="text-sm text-muted-foreground"
+          >
             Paste the note
           </label>
         </div>
@@ -97,6 +100,7 @@ export function InjuryExtractor({ children }: { children?: React.ReactNode }) {
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button
+            className="flex-1"
             onClick={analyze}
             disabled={loading || description.trim().length < 3}
           >
@@ -128,8 +132,8 @@ export function InjuryExtractor({ children }: { children?: React.ReactNode }) {
         )}
       </div>
 
-      <div className="w-full flex-none lg:w-[430px]">
-        <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-border">
+      <div className="flex w-full flex-none flex-col lg:w-[430px]">
+        <div className="flex min-h-full flex-col overflow-hidden rounded-3xl bg-card ring-1 ring-border">
           <div className="flex items-center gap-3 px-[22px] pt-5 pb-3.5">
             <span className="text-sm font-semibold text-foreground">2.</span>
             <h2 className="font-serif text-xl text-foreground">
@@ -140,7 +144,10 @@ export function InjuryExtractor({ children }: { children?: React.ReactNode }) {
           {loading ? (
             <ResultSkeleton />
           ) : result ? (
-            <ExtractionResult result={result} />
+            <>
+              <ExtractionResult result={result} />
+              <AcceptExtraction result={result} note={description} />
+            </>
           ) : (
             <p className="px-[22px] pb-6 text-sm text-muted-foreground text-pretty">
               Nothing extracted yet. Paste a note and run it to see the

@@ -2,13 +2,14 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { LogEntryForm } from "@/components/dashboard/log-entry-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AiBadge } from "@/components/ui/ai-badge";
+import { ToolIcon } from "@/components/ui/tool-icon";
 
 function LogPageContent() {
   const { injuries, loading } = useInjuries();
@@ -22,7 +23,9 @@ function LogPageContent() {
   }
 
   const parsedInjuryId = injuryIdParam ? Number(injuryIdParam) : NaN;
-  const defaultInjuryId = injuries.some((injury) => injury.id === parsedInjuryId)
+  const defaultInjuryId = injuries.some(
+    (injury) => injury.id === parsedInjuryId,
+  )
     ? parsedInjuryId
     : undefined;
 
@@ -31,7 +34,9 @@ function LogPageContent() {
       injuries={injuries}
       defaultInjuryId={defaultInjuryId}
       defaultType={
-        typeParam === "treatment" || typeParam === "visit" || typeParam === "symptom"
+        typeParam === "treatment" ||
+        typeParam === "visit" ||
+        typeParam === "symptom"
           ? typeParam
           : undefined
       }
@@ -47,7 +52,7 @@ export default function LogEntryPage() {
           New entry
         </h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-          A symptom, a treatment you tried, or a visit — whatever happened,
+          A symptom, a treatment you tried, or a visit - whatever happened,
           it&apos;s worth putting down while it&apos;s fresh.
         </p>
       </div>
@@ -60,23 +65,14 @@ export default function LogEntryPage() {
         href="/dashboard/extractor"
         className="flex max-w-2xl items-center gap-3.5 rounded-[18px] bg-secondary p-4 transition-colors hover:bg-accent"
       >
-        <Image
-          src="/art-sparkle.png"
-          alt=""
-          width={28}
-          height={28}
-          aria-hidden="true"
-          className="size-7 flex-none select-none"
-        />
+        <ToolIcon tool="extractor" size={36} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="font-serif text-[17px] leading-tight font-medium text-foreground">
               Have a clinical note?
             </span>
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium tracking-wide text-accent-foreground uppercase">
-              AI
-            </span>
+            <AiBadge />
           </div>
           <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
             Run it through the Injury Extractor to pull out the structure

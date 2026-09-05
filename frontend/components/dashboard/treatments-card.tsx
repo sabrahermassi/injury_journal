@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { getTreatments, type Treatment } from "@/services/api";
 import {
@@ -14,9 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreatmentOutcomes } from "@/components/dashboard/treatment-outcomes";
+import { useNewEntry } from "@/components/dashboard/new-entry-provider";
 
 export function TreatmentsCard({ injuryId }: { injuryId: number }) {
-  const router = useRouter();
+  const { openNewEntry } = useNewEntry();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,14 +54,13 @@ export function TreatmentsCard({ injuryId }: { injuryId: number }) {
     };
   }, [injuryId]);
 
-  const logHref = `/dashboard/log?injuryId=${injuryId}&type=treatment`;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Treatments</CardTitle>
         <CardAction>
-          <Button size="sm" variant="outline" onClick={() => router.push(logHref)}>
+          <Button size="sm" variant="outline" onClick={() => openNewEntry({ injuryId, kind: "Treatment" })}>
             Log treatment
           </Button>
         </CardAction>
@@ -78,10 +77,10 @@ export function TreatmentsCard({ injuryId }: { injuryId: number }) {
         ) : treatments.length === 0 ? (
           <div className="flex flex-col items-start gap-2">
             <p className="text-muted-foreground">
-              Nothing logged yet — treatments you try are what this app is
+              Nothing logged yet - treatments you try are what this app is
               for.
             </p>
-            <Button size="sm" onClick={() => router.push(logHref)}>
+            <Button size="sm" onClick={() => openNewEntry({ injuryId, kind: "Treatment" })}>
               Log your first treatment
             </Button>
           </div>

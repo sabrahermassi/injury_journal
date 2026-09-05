@@ -5,6 +5,8 @@ import {
   logout,
   me,
   refresh,
+  deleteAccountController,
+  acceptExtractionController,
   createInjuryController,
   getInjuriesController,
   getInjuryController,
@@ -12,14 +14,17 @@ import {
   deleteInjuryController,
   createTimelineEventController,
   getTimelineEventsController,
+  getAllEventsController,
   updateTimelineEventController,
   deleteTimelineEventController,
   createSymptomController,
   getSymptomsController,
+  getAllSymptomsController,
   updateSymptomController,
   deleteSymptomController,
   createTreatmentController,
   getTreatmentsController,
+  getAllTreatmentsController,
   updateTreatmentController,
   deleteTreatmentController,
   createMedicalVisitController,
@@ -57,6 +62,7 @@ import {
   treatmentOutcomeSchema,
   assistantAskSchema,
   extractSchema,
+  acceptExtractionSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -95,6 +101,17 @@ router.post('/auth/refresh', validate(refreshSchema), refresh);
 
 // POST /api/auth/logout
 router.post('/auth/logout', logout);
+
+// DELETE /api/auth/me
+router.delete('/auth/me', authenticate, deleteAccountController);
+
+// POST /api/extractions/accept — turn an AI extraction into journal records
+router.post(
+  '/extractions/accept',
+  authenticate,
+  validate(acceptExtractionSchema),
+  acceptExtractionController
+);
 
 // POST /api/injuries
 router.post(
@@ -142,6 +159,9 @@ router.post(
 );
 
 // GET /api/injuries/:injuryId/events
+// GET /api/events — all of the user's events in one request
+router.get('/events', authenticate, getAllEventsController);
+
 router.get(
   '/injuries/:injuryId/events',
   authenticate,
@@ -176,6 +196,9 @@ router.post(
 );
 
 // GET /api/injuries/:injuryId/symptoms
+// GET /api/symptoms — all of the user's symptoms in one request
+router.get('/symptoms', authenticate, getAllSymptomsController);
+
 router.get(
   '/injuries/:injuryId/symptoms',
   authenticate,
@@ -210,6 +233,9 @@ router.post(
 );
 
 // GET /api/injuries/:injuryId/treatments
+// GET /api/treatments — all of the user's treatments, outcomes included
+router.get('/treatments', authenticate, getAllTreatmentsController);
+
 router.get(
   '/injuries/:injuryId/treatments',
   authenticate,
