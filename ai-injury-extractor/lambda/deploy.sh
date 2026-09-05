@@ -52,9 +52,13 @@ terraform apply -auto-approve
 # to fill it.
 GROQ_SECRET_ID="injury-extractor/groq-api-key"
 
-if ! aws secretsmanager get-secret-value \
+if ! secret_string="$(aws secretsmanager get-secret-value \
   --secret-id "$GROQ_SECRET_ID" \
-  --query SecretString --output text >/dev/null 2>&1; then
+  --query SecretString --output text 2>/dev/null)"; then
+  secret_string=""
+fi
+
+if [[ -z "$secret_string" || "$secret_string" == "None" ]]; then
 
   echo
   echo "WARNING: no value stored for the Groq API key. The Lambda will fail to"

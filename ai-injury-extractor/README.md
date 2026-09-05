@@ -148,11 +148,14 @@ run the secret exists with no value, the Lambda fails at initialization, and
 every request errors (see Troubleshooting).
 
 If you deployed this stack before the key moved into Secrets Manager, delete the
-old plaintext copies once rotation is done: `infrastructure/terraform.tfvars`,
-any `TF_VAR_groq_api_key` export in your shell profile, and any retained
-`terraform.tfstate` / `terraform.tfstate.backup`. A stale `groq_api_key` entry in
-`terraform.tfvars` also refers to a variable this module no longer declares, and
-Terraform will flag it on the next apply.
+old plaintext copies once rotation is done: `infrastructure/terraform.tfvars`
+and any `TF_VAR_groq_api_key` export in your shell profile. Do **not** delete
+`infrastructure/terraform.tfstate` or `terraform.tfstate.backup` to do this —
+that's Terraform's live record of every resource this stack actually deployed,
+and removing it would make the next `apply` try to recreate real
+infrastructure from scratch. A stale `groq_api_key` entry in `terraform.tfvars`
+also refers to a variable this module no longer declares, and Terraform will
+flag it on the next apply.
 
 The allowed CORS origin is also a Terraform variable, `allowed_origin`
 (default `http://localhost:3000`) — set it (e.g. via `TF_VAR_allowed_origin`)
@@ -322,8 +325,9 @@ Upload a new `function.zip` and verify the `LastModified` timestamp in the Lambd
 
 ### Groq returns 401
 
-- Check the stored key:
-  `aws secretsmanager get-secret-value --secret-id injury-extractor/groq-api-key`
+- Confirm a key is stored, without printing it (the plain
+  `get-secret-value` response includes the key in plaintext):
+  `aws secretsmanager get-secret-value --secret-id injury-extractor/groq-api-key --query SecretString --output text | wc -c`
 - Test the API directly with `curl`
 - Confirm the key is active in the Groq console
 - After storing a new value, the running Lambda container keeps using the old
