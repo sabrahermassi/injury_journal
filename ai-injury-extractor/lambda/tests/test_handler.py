@@ -3,11 +3,14 @@ from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from conftest import TEST_USER_ID, OTHER_USER_ID, auth_header, make_token
 
-def make_event(body):
+
+def make_event(body, method="POST", headers=None):
     return {
-        "httpMethod": "POST",
+        "httpMethod": method,
         "body": json.dumps(body) if body is not None else None,
+        "headers": auth_header() if headers is None else headers,
     }
 
 
@@ -28,17 +31,21 @@ VALID_EXTRACTION = {
 
 class TestExtractInjuryValidation:
     def test_missing_text_returns_400(self, handler_module):
-        result = handler_module.extract_injury(make_event({}))
+        result = handler_module.extract_injury(make_event({}), TEST_USER_ID)
         assert result["statusCode"] == 400
 
     def test_non_dict_body_returns_400(self, handler_module):
-        event = {"httpMethod": "POST", "body": json.dumps(["not", "a", "dict"])}
-        result = handler_module.extract_injury(event)
+        event = {
+            "httpMethod": "POST",
+            "body": json.dumps(["not", "a", "dict"]),
+            "headers": auth_header(),
+        }
+        result = handler_module.extract_injury(event, TEST_USER_ID)
         assert result["statusCode"] == 400
 
     def test_text_too_long_returns_400(self, handler_module):
         event = make_event({"text": "x" * (handler_module.MAX_TEXT_LENGTH + 1)})
-        result = handler_module.extract_injury(event)
+        result = handler_module.extract_injury(event, TEST_USER_ID)
         assert result["statusCode"] == 400
 
 
@@ -48,7 +55,7 @@ class TestExtractInjurySuccess:
         monkeypatch.setattr(handler_module.client.chat.completions, "create", mock_create)
 
         result = handler_module.extract_injury(
-            make_event({"text": "I twisted my ankle running."})
+            make_event({"text": "I twisted my ankle running."}), TEST_USER_ID
         )
 
         assert result["statusCode"] == 200
@@ -58,7 +65,7 @@ class TestExtractInjurySuccess:
         saved = handler_module.table.scan()["Items"]
         assert len(saved) == 1
         assert saved[0]["extractedData"] == VALID_EXTRACTION
-        assert saved[0]["userId"] == "test-user-001"
+        assert saved[0]["userId"] == TEST_USER_ID
 
     def test_fractional_pain_level_saved_and_returned(self, handler_module, monkeypatch):
         fractional = dict(VALID_EXTRACTION, pain_level=6.5)
@@ -68,7 +75,7 @@ class TestExtractInjurySuccess:
         )
 
         result = handler_module.extract_injury(
-            make_event({"text": "I twisted my ankle running."})
+            make_event({"text": "I twisted my ankle running."}), TEST_USER_ID
         )
 
         assert result["statusCode"] == 200
@@ -88,7 +95,7 @@ class TestExtractInjuryMalformedAiResponse:
             MagicMock(return_value=make_groq_response(bad)),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
         assert json.loads(result["body"]) == {"error": "Invalid AI response format"}
@@ -99,7 +106,7 @@ class TestExtractInjuryMalformedAiResponse:
             MagicMock(return_value=make_groq_response(list(VALID_EXTRACTION.keys()))),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
         assert json.loads(result["body"]) == {"error": "Invalid AI response format"}
@@ -111,7 +118,7 @@ class TestExtractInjuryMalformedAiResponse:
             MagicMock(return_value=make_groq_response(bad)),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
 
@@ -122,7 +129,7 @@ class TestExtractInjuryMalformedAiResponse:
             MagicMock(return_value=make_groq_response(bad)),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
 
@@ -131,7 +138,7 @@ class TestGetInjuryHistory:
     def test_returns_saved_items(self, handler_module):
         handler_module.table.put_item(
             Item={
-                "userId": "test-user-001",
+                "userId": TEST_USER_ID,
                 "timestamp": "2026-08-30T00:00:00+00:00",
                 "entryId": "abc-123",
                 "rawText": "knee hurts",
@@ -139,7 +146,7 @@ class TestGetInjuryHistory:
             }
         )
 
-        result = handler_module.get_injury_history()
+        result = handler_module.get_injury_history(TEST_USER_ID)
 
         assert result["statusCode"] == 200
         items = json.loads(result["body"])
@@ -147,7 +154,7 @@ class TestGetInjuryHistory:
         assert items[0]["entryId"] == "abc-123"
 
     def test_returns_empty_list_when_no_items(self, handler_module):
-        result = handler_module.get_injury_history()
+        result = handler_module.get_injury_history(TEST_USER_ID)
 
         assert result["statusCode"] == 200
         assert json.loads(result["body"]) == []
@@ -155,7 +162,9 @@ class TestGetInjuryHistory:
 
 class TestLambdaHandlerDispatch:
     def test_unsupported_method_returns_405(self, handler_module):
-        result = handler_module.lambda_handler({"httpMethod": "DELETE"}, None)
+        result = handler_module.lambda_handler(
+            {"httpMethod": "DELETE", "headers": auth_header()}, None
+        )
         assert result["statusCode"] == 405
 
     def test_post_dispatches_to_extract_injury(self, handler_module, monkeypatch):
@@ -172,7 +181,7 @@ class TestLambdaHandlerDispatch:
     def test_get_dispatches_to_get_injury_history(self, handler_module):
         handler_module.table.put_item(
             Item={
-                "userId": "test-user-001",
+                "userId": TEST_USER_ID,
                 "timestamp": "2026-08-30T00:00:00+00:00",
                 "entryId": "abc-123",
                 "rawText": "knee hurts",
@@ -180,7 +189,9 @@ class TestLambdaHandlerDispatch:
             }
         )
 
-        result = handler_module.lambda_handler({"httpMethod": "GET"}, None)
+        result = handler_module.lambda_handler(
+            {"httpMethod": "GET", "headers": auth_header()}, None
+        )
 
         assert result["statusCode"] == 200
         items = json.loads(result["body"])
@@ -195,7 +206,7 @@ class TestErrorBranches:
             MagicMock(side_effect=RuntimeError("groq unavailable")),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 500
         assert json.loads(result["body"]) == {"error": "Internal server error"}
@@ -208,7 +219,7 @@ class TestErrorBranches:
             MagicMock(side_effect=APIConnectionError(request=MagicMock())),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
         assert json.loads(result["body"]) == {"error": "AI service unavailable"}
@@ -223,7 +234,7 @@ class TestErrorBranches:
             )),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
         assert json.loads(result["body"]) == {"error": "Invalid AI response format"}
@@ -238,7 +249,7 @@ class TestErrorBranches:
             )),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
         assert json.loads(result["body"]) == {"error": "Invalid AI response format"}
@@ -251,7 +262,7 @@ class TestErrorBranches:
             MagicMock(return_value=SimpleNamespace(choices=[])),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 502
         assert json.loads(result["body"]) == {"error": "Invalid AI response format"}
@@ -266,7 +277,7 @@ class TestErrorBranches:
             MagicMock(side_effect=RuntimeError("dynamodb unavailable")),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 500
         assert json.loads(result["body"]) == {"error": "Internal server error"}
@@ -286,7 +297,7 @@ class TestErrorBranches:
             )),
         )
 
-        result = handler_module.extract_injury(make_event({"text": "hurts"}))
+        result = handler_module.extract_injury(make_event({"text": "hurts"}), TEST_USER_ID)
 
         assert result["statusCode"] == 500
         assert json.loads(result["body"]) == {"error": "Failed to save injury data"}
@@ -297,7 +308,7 @@ class TestErrorBranches:
             MagicMock(side_effect=RuntimeError("dynamodb unavailable")),
         )
 
-        result = handler_module.get_injury_history()
+        result = handler_module.get_injury_history(TEST_USER_ID)
 
         assert result["statusCode"] == 500
         assert json.loads(result["body"]) == {"error": "Failed to retrieve injury history"}
@@ -312,3 +323,93 @@ class TestErrorBranches:
 
         assert result["statusCode"] == 500
         assert json.loads(result["body"]) == {"error": "Internal server error"}
+
+
+class TestAuthentication:
+    def test_missing_authorization_header_returns_401(self, handler_module):
+        result = handler_module.lambda_handler(
+            {"httpMethod": "GET", "headers": {}}, None
+        )
+        assert result["statusCode"] == 401
+        assert json.loads(result["body"]) == {"error": "Unauthorized"}
+
+    def test_missing_headers_key_returns_401(self, handler_module):
+        result = handler_module.lambda_handler({"httpMethod": "GET"}, None)
+        assert result["statusCode"] == 401
+
+    def test_non_bearer_scheme_returns_401(self, handler_module):
+        result = handler_module.lambda_handler(
+            {"httpMethod": "GET", "headers": {"Authorization": make_token()}}, None
+        )
+        assert result["statusCode"] == 401
+
+    def test_malformed_token_returns_401(self, handler_module):
+        result = handler_module.lambda_handler(
+            {"httpMethod": "GET", "headers": {"Authorization": "Bearer not-a-jwt"}}, None
+        )
+        assert result["statusCode"] == 401
+
+    def test_wrong_secret_returns_401(self, handler_module):
+        bad_token = make_token(secret="wrong-secret")
+        result = handler_module.lambda_handler(
+            {"httpMethod": "GET", "headers": {"Authorization": f"Bearer {bad_token}"}}, None
+        )
+        assert result["statusCode"] == 401
+
+    def test_non_positive_user_id_claim_returns_401(self, handler_module):
+        token = make_token(userId=0)
+        result = handler_module.lambda_handler(
+            {"httpMethod": "GET", "headers": {"Authorization": f"Bearer {token}"}}, None
+        )
+        assert result["statusCode"] == 401
+
+    def test_header_lookup_is_case_insensitive(self, handler_module):
+        # API Gateway v1 does not normalize header casing.
+        event = {
+            "httpMethod": "GET",
+            "headers": {"authorization": f"Bearer {make_token()}"},
+        }
+        result = handler_module.lambda_handler(event, None)
+        assert result["statusCode"] == 200
+
+    def test_write_stores_the_authenticated_users_id(self, handler_module, monkeypatch):
+        monkeypatch.setattr(
+            handler_module.client.chat.completions, "create",
+            MagicMock(return_value=make_groq_response(VALID_EXTRACTION)),
+        )
+
+        event = make_event({"text": "hurts"}, headers=auth_header(OTHER_USER_ID))
+        result = handler_module.lambda_handler(event, None)
+
+        assert result["statusCode"] == 200
+        saved = handler_module.table.scan()["Items"]
+        assert saved[0]["userId"] == OTHER_USER_ID
+
+    def test_read_is_scoped_to_the_authenticated_user_not_other_users_rows(
+        self, handler_module
+    ):
+        handler_module.table.put_item(
+            Item={
+                "userId": OTHER_USER_ID,
+                "timestamp": "2026-08-30T00:00:00+00:00",
+                "entryId": "other-users-entry",
+                "rawText": "someone else's knee hurts",
+                "extractedData": VALID_EXTRACTION,
+            }
+        )
+        handler_module.table.put_item(
+            Item={
+                "userId": TEST_USER_ID,
+                "timestamp": "2026-08-30T00:00:00+00:00",
+                "entryId": "my-entry",
+                "rawText": "my ankle hurts",
+                "extractedData": VALID_EXTRACTION,
+            }
+        )
+
+        event = {"httpMethod": "GET", "headers": auth_header(TEST_USER_ID)}
+        result = handler_module.lambda_handler(event, None)
+
+        assert result["statusCode"] == 200
+        items = json.loads(result["body"])
+        assert [item["entryId"] for item in items] == ["my-entry"]

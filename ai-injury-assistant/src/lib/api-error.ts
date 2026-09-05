@@ -10,6 +10,7 @@ export type ApiErrorCode =
   | 'embedding_service_error'
   | 'database_error'
   | 'llm_service_error'
+  | 'llm_rate_limited'
   | 'internal_error';
 
 export function sendError(

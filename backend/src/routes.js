@@ -3,6 +3,8 @@ import {
   register,
   login,
   logout,
+  me,
+  refresh,
   createInjuryController,
   getInjuriesController,
   getInjuryController,
@@ -28,6 +30,8 @@ import {
   getTreatmentOutcomesController,
   deleteTreatmentOutcomeController,
   askAssistantController,
+  extractInjuryController,
+  getInjuryHistoryController,
 } from './controllers.js';
 import {
   authenticate,
@@ -39,6 +43,7 @@ import {
 import {
   registerSchema,
   loginSchema,
+  refreshSchema,
   injurySchema,
   updateInjurySchema,
   timelineSchema,
@@ -51,6 +56,7 @@ import {
   updateMedicalVisitSchema,
   treatmentOutcomeSchema,
   assistantAskSchema,
+  extractSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -76,6 +82,16 @@ if (process.env.NODE_ENV !== 'test') {
   // POST /api/auth/login
   router.post('/auth/login', validate(loginSchema), login);
 }
+
+// GET /api/auth/me
+router.get('/auth/me', authenticate, me);
+
+// POST /api/auth/refresh
+// Deliberately not behind authLimiter: the token is 256 bits of CSPRNG output,
+// so there is nothing to brute-force, and sharing login's ten-request bucket
+// would let ordinary session upkeep lock a user out of logging in -- which is
+// a real risk on mobile, where carrier NAT puts many users on one address.
+router.post('/auth/refresh', validate(refreshSchema), refresh);
 
 // POST /api/auth/logout
 router.post('/auth/logout', logout);
@@ -287,5 +303,19 @@ router.post(
   validate(assistantAskSchema),
   askAssistantController
 );
+
+// POST /api/extract
+// GET /api/extract/injuries
+// Proxies to the AI extractor Lambda, forwarding the caller's own token so
+// it can scope DynamoDB reads/writes to the authenticated user instead of a
+// hardcoded demo user (issue #59). See src/services/extractorService.js.
+router.post(
+  '/extract',
+  authenticate,
+  validate(extractSchema),
+  extractInjuryController
+);
+
+router.get('/extract/injuries', authenticate, getInjuryHistoryController);
 
 export default router;

@@ -12,7 +12,12 @@ The Lambda function receives injury descriptions from the frontend, uses the Gro
 
 This repository focuses on the AI extraction service and serverless infrastructure.
 
-Authentication, user management, and full injury tracking workflows are handled by the consuming application.
+User management and full injury tracking workflows are handled by the
+consuming application (`backend/` + `frontend/` at the repo root).
+Authentication is now wired end to end: `backend/` proxies requests here,
+forwarding the caller's own JWT, and this Lambda verifies it and derives
+`userId` from its claim (`lambda/handler.py` `get_user_id`) — see
+`CLAUDE.md` §3.
 
 ---
 
@@ -177,20 +182,22 @@ dynamodb:Query
 Purpose:
 
 - Store extracted injury entries
-- Retrieve injury history, scoped to the hardcoded `userId`
+- Retrieve injury history, scoped to the authenticated `userId`
 
 Note:
 
-The `/injuries` endpoint already scopes reads to a single `userId` via Query
-rather than a table-wide Scan. `userId` is still hardcoded (no auth exists
-yet — see `CLAUDE.md` §3), so this scoping doesn't provide real user
-isolation until authentication is added.
+The `/injuries` endpoint scopes reads to a single `userId` via Query rather
+than a table-wide Scan. `userId` now comes from the caller's verified JWT
+(`get_user_id` in `lambda/handler.py`), not a hardcoded constant, so this
+scoping provides real per-user isolation — see `CLAUDE.md` §3. Entries
+written before this change are stored under the old hardcoded
+`"test-user-001"` and are unreachable through the authenticated path.
 
-Before production use:
+Remaining before wider production use:
 
-- Add authentication and authorization
-- Extract user identity from JWT claims instead of the hardcoded userId
-- Apply least-privilege IAM permissions
+- Apply least-privilege IAM permissions beyond the two actions above
+- Add throttling/usage-plan quotas beyond the flat stage-level throttle in
+  `infrastructure/api_gateway.tf` (issue #60)
 
 ---
 

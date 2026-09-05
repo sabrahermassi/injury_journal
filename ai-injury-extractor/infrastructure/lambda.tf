@@ -18,6 +18,7 @@ resource "aws_lambda_function" "injury_extractor" {
       GROQ_MODEL = var.groq_model
       DYNAMODB_TABLE = aws_dynamodb_table.injury_entries.name
       ALLOWED_ORIGIN = var.allowed_origin
+      JWT_SECRET = var.jwt_secret
     }
   }
 }

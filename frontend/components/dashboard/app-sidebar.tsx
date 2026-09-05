@@ -46,7 +46,7 @@ const trackingNav = [
 
 const toolsNav = [
   { title: "AI Extractor", href: "/dashboard/extractor", icon: Sparkles },
-  { title: "Ask your journal", href: "/dashboard/assistant", icon: MessageCircleQuestion },
+  { title: "AI Assistant", href: "/dashboard/assistant", icon: MessageCircleQuestion },
 ];
 
 const secondaryNav = [
