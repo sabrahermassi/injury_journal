@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 import { createInjury } from "@/services/api";
+import { localDateToIso } from "@/lib/dates";
 
 export function CreateInjuryDialog({
   open,
@@ -56,7 +57,7 @@ export function CreateInjuryDialog({
         name,
         bodyArea,
         side: side || null,
-        startDate: new Date(startDate).toISOString(),
+        startDate: localDateToIso(startDate),
         cause: cause || null,
         description: description || null,
         status: "Active",

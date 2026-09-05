@@ -13,15 +13,6 @@ import { TreatmentsCard } from "@/components/dashboard/treatments-card";
 import { MedicalVisitsCard } from "@/components/dashboard/medical-visits-card";
 import { TimelineCard } from "@/components/dashboard/timeline-card";
 
-// injury.startDate is a date-only value stored as UTC midnight of the intended
-// calendar day (see create-injury-dialog.tsx). Formatting it with the browser's
-// local timezone shifts the displayed day for anyone west of UTC — read the UTC
-// date components directly instead, since those are the ones that carry the
-// actual intended day.
-function formatStoredDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { timeZone: "UTC" });
-}
-
 export default function InjuryDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -123,7 +114,7 @@ export default function InjuryDetailsPage() {
             />
             <p className="text-sm text-foreground/80">
               {injury.status ? `${injury.status} · ` : ""}since{" "}
-              {formatStoredDate(injury.startDate)}
+              {new Date(injury.startDate).toLocaleDateString()}
             </p>
           </div>
         </div>

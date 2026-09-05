@@ -1,0 +1,88 @@
+### Template for manual API testing with the VS Code REST Client extension.
+###
+### Copy this to a working file before filling anything in:
+###   cp requests.http.example requests.http
+###
+### Every *.http file is gitignored (see .gitignore) precisely so the token
+### you paste below never reaches git. This .example file is the exception —
+### it IS tracked, so never paste a real token or password into it.
+
+@host = http://localhost:3001
+
+
+### ============================================================
+### AUTH
+### ============================================================
+
+### Register
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "REPLACE_ME"
+}
+
+### Login — run this, then copy `token` from the response body
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "REPLACE_ME"
+}
+
+###
+
+### Paste the token from the login response above.
+### Tokens expire after 1h, so expect to redo this between sessions.
+@token = PASTE_TOKEN_HERE
+
+
+### ============================================================
+### AUTHENTICATED REQUESTS
+### ============================================================
+
+### No X-CSRF-Token header is needed on writes here. `authenticate`
+### (src/middleware.js) accepts an Authorization: Bearer header when no auth
+### cookie is present, and `verifyCsrf` returns early in that same
+### no-cookie case. A browser, which does send the cookie, gets the full
+### double-submit check instead.
+
+### List injuries
+GET {{host}}/api/injuries
+Authorization: Bearer {{token}}
+
+### Create an injury
+POST {{host}}/api/injuries
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Lower back pain",
+  "bodyArea": "Lower back",
+  "side": "Left",
+  "startDate": "2025-01-01T00:00:00.000Z",
+  "cause": "Deadlift",
+  "description": "Started after heavy lifting at the gym",
+  "status": "Active"
+}
+
+###
+
+### Set this from the id the create returned, then use it in nested routes.
+@injuryId = 1
+
+### Add a symptom to that injury
+POST {{host}}/api/injuries/{{injuryId}}/symptoms
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "date": "2025-01-02T00:00:00.000Z",
+  "painLevel": 4,
+  "location": "Lower back",
+  "trigger": "Sitting too long",
+  "duration": "2 hours",
+  "notes": "Worse in the morning"
+}

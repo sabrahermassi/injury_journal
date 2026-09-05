@@ -68,7 +68,11 @@ docs/                    Planning docs written before/during implementation (pro
 ai-injury-extractor/     Self-contained AWS Lambda service that extracts structured injury data
                          from free text (lambda/ handler + tests, infrastructure/ Terraform). Its
                          UI is NOT here — it lives in frontend/components/extractor/ and is served
-                         at /dashboard/extractor. Own CLAUDE.md and README.md.
+                         at /dashboard/extractor. Own CLAUDE.md and README.md. Not reachable from
+                         the browser directly (issue #32): backend/ authenticates the caller and
+                         proxies both routes (backend/src/services/extractorService.js), the same
+                         pattern as the assistant proxy below, presenting a shared secret the
+                         Lambda checks and the userId resolved from the caller's JWT.
 
 ai-injury-assistant/     Self-contained AI/RAG companion app, brought in from its own repository
                          (sabrahermassi/injury-journal-ai) via git subtree with full history
@@ -129,6 +133,9 @@ Two things deliberately stay out of the root file. `DATABASE_ENV` and
 And `frontend/` does not read `.env` at all: `NEXT_PUBLIC_*` values are compiled
 into the browser bundle, so they stay well away from secrets.
 `ai-injury-extractor/` is an AWS Lambda and takes its environment from Terraform.
+`backend/` does need two extractor-related values from the root file though —
+`EXTRACTOR_API_URL` and `EXTRACTOR_SHARED_SECRET` — to reach that Lambda; see
+`.env.example`.
 
 `ai-injury-assistant/prisma.config.ts` also deliberately reads only its own
 `.env.test`, never the root `.env`, so its Prisma CLI cannot reach the shared
@@ -187,7 +194,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 
 - Numeric route params (`:id`, `:injuryId`) are coerced with `Number()` and not validated — a non-numeric id crashes into a `500` instead of a clean `400` (Prisma throws a validation error that isn't specifically caught).
 - The JWT lives in an httpOnly cookie (`authenticate` in `backend/src/middleware.js` also falls back to an `Authorization: Bearer` header for `.http` files and tests). Mutating requests are additionally checked by `verifyCsrf` (double-submit cookie) — see `backend/src/middleware.js`. The CSRF cookie set by the backend is not readable via `document.cookie` on the frontend's origin in production (frontend on Vercel, backend on Render, different domains), so the login response also returns `csrfToken` in its JSON body; the frontend stores that value in `sessionStorage` (see `frontend/services/api.ts`) instead of reading it off the cookie (issue #25).
-- `backend/.gitignore` excludes `requests.http` but not `requests_USER_*.http` — those files (used for manual multi-user testing) contain real JWTs and are currently untracked; don't `git add -A` them.
+- `backend/.gitignore` excludes `*.http`, so the REST Client scratch files used for manual multi-user testing (`requests.http`, `requests_USER_*.http`) cannot be committed by an accidental `git add -A`. Their token variables hold `PASTE_TOKEN_HERE` placeholders, not real JWTs. `backend/requests.http.example` is the tracked template — it ends in `.example` so the ignore pattern misses it, which also means never pasting a real token into it.
 - `docs/` reflects planning-stage decisions and may lag the actual implementation (e.g. deployment target, frontend stack) — check current code/config rather than trusting docs at face value.
 - `docs/14-deployment.md` is the deployment doc. An earlier `docs/09-deployment.md` overlapped it and is gone, which is why `docs/` jumps from 08 to 14.
 

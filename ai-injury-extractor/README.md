@@ -45,15 +45,13 @@ Previously extracted injuries can be retrieved from DynamoDB through the history
 
 ## Integration
 
-Although this project is fully functional as a standalone serverless application, it was designed so that the AI extraction component can also be integrated into a larger healthcare application.
+This was designed as a standalone serverless demo, then integrated into the injury_journal monorepo. That integration is now real (issue #32), not just intended:
 
-That integration is now built: the main app's `backend/` proxies to this Lambda
-(`POST /api/extract`, `GET /api/extract/injuries`), forwarding the caller's own
-JWT as a bearer token. The Lambda verifies that token (`lambda/handler.py`
-`get_user_id`) and scopes every DynamoDB read/write to the userId it contains
-— see "Test injury data extractor API" below. Extracted injury data still
-lives in DynamoDB rather than the host app's PostgreSQL database; that part of
-the original integration sketch hasn't happened.
+- User authentication is handled by the host application (`backend/`), which verifies the caller's JWT.
+- This API receives requests only from that host application's backend, proven by a shared secret (`X-Extractor-Secret`) it checks before doing anything else — the browser no longer calls it directly.
+- Extracted injury data is scoped per user (the `userId` the host app resolved), not a single hardcoded id.
+
+Extraction records still live in this repository's own DynamoDB table, separate from the host app's primary PostgreSQL database.
 
 DynamoDB is used in this repository to demonstrate a complete serverless AWS architecture and end-to-end data flow.
 
@@ -68,10 +66,10 @@ sequenceDiagram
   participant Groq API
   participant InjuryEntries DynamoDB
 
-  Client->>Journal Backend: POST /api/extract with injury text (cookie auth)
-  Journal Backend->>API Gateway: POST /extract, Bearer <caller's JWT>
+  Client->>Journal Backend: POST /api/extractions/extract with injury text (cookie auth)
+  Journal Backend->>API Gateway: POST /extract, X-Extractor-Secret + userId
   API Gateway->>Injury Extractor Lambda: Proxy request
-  Injury Extractor Lambda->>Injury Extractor Lambda: Verify JWT, extract userId
+  Injury Extractor Lambda->>Injury Extractor Lambda: Verify shared secret
   Injury Extractor Lambda->>Groq API: Extract structured injury data
   Groq API-->>Injury Extractor Lambda: Injury JSON
   Injury Extractor Lambda->>InjuryEntries DynamoDB: Store injury entry (keyed by userId)
@@ -79,10 +77,10 @@ sequenceDiagram
   API Gateway-->>Journal Backend: Extraction result
   Journal Backend-->>Client: Extraction result
 
-  Client->>Journal Backend: GET /api/extract/injuries (cookie auth)
-  Journal Backend->>API Gateway: GET /injuries, Bearer <caller's JWT>
+  Client->>Journal Backend: GET /api/extractions/history (cookie auth)
+  Journal Backend->>API Gateway: GET /injuries?userId, X-Extractor-Secret
   API Gateway->>Injury Extractor Lambda: Proxy request
-  Injury Extractor Lambda->>Injury Extractor Lambda: Verify JWT, extract userId
+  Injury Extractor Lambda->>Injury Extractor Lambda: Verify shared secret
   Injury Extractor Lambda->>InjuryEntries DynamoDB: Query entries for userId
   InjuryEntries DynamoDB-->>Injury Extractor Lambda: Injury history
   Injury Extractor Lambda-->>API Gateway: HTTP 200 response
@@ -107,11 +105,13 @@ The frontend that calls this API now lives in the main app's `frontend/`
 main `frontend/` app's own README/CLAUDE.md.
 
 It does not call this Lambda directly — the browser has no way to attach the
-user's JWT (it lives in an httpOnly cookie). It calls the main app's own
+shared secret this Lambda now requires, and never had a way to reach it
+without going through an authenticated caller. It calls the main app's own
 `backend/` (`NEXT_PUBLIC_API_URL`), which proxies to this Lambda with the
-caller's token attached; see `backend/src/services/extractorService.js`. Set
-`EXTRACTOR_API_URL` in the repo-root `.env` to your deployed API Gateway
-invoke URL for that proxy to work (see root `.env.example`).
+shared secret and the caller's resolved userId; see
+`backend/src/services/extractorService.js`. Set `EXTRACTOR_API_URL` and
+`EXTRACTOR_SHARED_SECRET` in the repo-root `.env` for that proxy to work (see
+root `.env.example`).
 
 There is currently no local/mocked backend for the Lambda itself — the proxy
 always calls a real deployed API Gateway + Lambda stack.
@@ -128,18 +128,51 @@ cd lambda
 
 This installs Lambda dependencies into `package/`, zips `function.zip`, and
 runs `terraform apply` in `../infrastructure`. It requires AWS CLI
-credentials, Terraform, and `groq_api_key` and `jwt_secret` Terraform
-variables (e.g. via `TF_VAR_groq_api_key`/`TF_VAR_jwt_secret` or a gitignored
-`terraform.tfvars`). `jwt_secret` must be byte-identical to the main app's
-`JWT_SECRET` (root `.env`) — it's how the Lambda verifies who's calling.
+credentials, Terraform, and an `extractor_shared_secret` Terraform variable
+(e.g. via `TF_VAR_extractor_shared_secret` or a gitignored `terraform.tfvars`).
+`extractor_shared_secret` must match the main app's `EXTRACTOR_SHARED_SECRET`
+(root `.env`) — it's how the Lambda verifies who's calling; generate one with
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 
-The allowed CORS origin is also a Terraform variable, `allowed_origin`
-(default `http://localhost:3000`) — set it (e.g. via `TF_VAR_allowed_origin`)
-to your deployed frontend's origin when deploying anywhere other than local
-dev.
+### Storing the Groq API key
+
+The key is **not** a Terraform variable and **not** a Lambda environment
+variable — Terraform writes environment variable values into its state file in
+plaintext, which would leak the key to anyone who can read the state. Terraform
+instead creates an empty AWS Secrets Manager secret, and you write the value
+into it out of band:
+
+```bash
+aws secretsmanager put-secret-value \
+--secret-id injury-extractor/groq-api-key \
+--secret-string 'YOUR_GROQ_KEY'
+```
+
+Store the key as **plaintext**, exactly as above — not as a key/value pair. The
+Lambda uses the whole `SecretString` as the key, so a JSON object (what the AWS
+console's "Other type of secret" flow produces by default) is read literally and
+Groq rejects it with a 401.
+
+Run this straight after `terraform apply` on a stack that has no value stored
+yet — the first deploy, and again after any `terraform destroy`, since the
+secret is configured for immediate deletion with no recovery window. Until it is
+run the secret exists with no value, the Lambda fails at initialization, and
+every request errors (see Troubleshooting).
+
+If you deployed this stack before the key moved into Secrets Manager, delete the
+old plaintext copies once rotation is done: `infrastructure/terraform.tfvars`
+and any `TF_VAR_groq_api_key` export in your shell profile. Do **not** delete
+`infrastructure/terraform.tfstate` or `terraform.tfstate.backup` to do this —
+that's Terraform's live record of every resource this stack actually deployed,
+and removing it would make the next `apply` try to recreate real
+infrastructure from scratch. A stale `groq_api_key` entry in `terraform.tfvars`
+also refers to a variable this module no longer declares, and Terraform will
+flag it on the next apply.
+
+There is no CORS variable any more — this API has no browser caller.
 
 The Groq model id is configurable via the `groq_model` Terraform variable
-(default `llama-3.1-8b-instant`, e.g. via `TF_VAR_groq_model`) so it can be
+(default `openai/gpt-oss-20b`, e.g. via `TF_VAR_groq_model`) so it can be
 swapped without a code change if the model is deprecated.
 
 ## Testing
@@ -160,27 +193,23 @@ API.
 
 ## Test injury data extractor API
 
-> Requires a Bearer JWT signed with the same secret as `jwt_secret` /
-> `JWT_SECRET` above, with a `userId` claim — e.g. one minted by logging into
-> the main app. A request with no token, an invalid one, or one signed with
-> the wrong secret gets a 401.
+> Requires the shared secret and a userId — see "Integration" above. A request without a matching `X-Extractor-Secret` gets a 403 regardless of body content.
 
 ```bash
 curl -X POST \
 https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/extract \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer YOUR_JWT" \
--d '{"text":"I have had left hip pain for four years after gym training."}'
+-H "X-Extractor-Secret: YOUR_SHARED_SECRET" \
+-d '{"userId":"1","text":"I have had left hip pain for four years after gym training."}'
 ```
 
 ## Test injury history API
 
-> Same auth requirement as above. Returns only the rows written by the
-> caller's own userId.
+> Also requires the shared secret; `userId` is a query parameter since GET has no body.
 
 ```bash
-curl https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/injuries \
--H "Authorization: Bearer YOUR_JWT"
+curl "https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/injuries?userId=1" \
+-H "X-Extractor-Secret: YOUR_SHARED_SECRET"
 ```
 
 # Useful Commands
@@ -214,12 +243,29 @@ aws lambda update-function-code \
 
 ---
 
-## Update Lambda environment variable
+## Rotate or change the Groq API key
+
+The key lives in Secrets Manager, so changing it needs no deploy — just a new
+secret value. The Lambda picks it up on its next cold start; force one sooner by
+re-deploying or touching the function configuration.
+
+```bash
+aws secretsmanager put-secret-value \
+--secret-id injury-extractor/groq-api-key \
+--secret-string 'YOUR_NEW_GROQ_KEY'
+```
+
+---
+
+## Update Lambda environment variables
+
+Note `GROQ_SECRET_ARN` — the ARN of the secret, not the key. All four must be
+passed: this command replaces the whole environment rather than merging into it.
 
 ```bash
 aws lambda update-function-configuration \
 --function-name injury-extractor \
---environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=llama-3.1-8b-instant,DYNAMODB_TABLE=InjuryEntries,ALLOWED_ORIGIN=http://localhost:3000,JWT_SECRET=YOUR_SECRET}"
+--environment "Variables={GROQ_SECRET_ARN=arn:aws:secretsmanager:eu-north-1:ACCOUNT_ID:secret:injury-extractor/groq-api-key-SUFFIX,GROQ_MODEL=openai/gpt-oss-20b,DYNAMODB_TABLE=InjuryEntries,EXTRACTOR_SHARED_SECRET=YOUR_SECRET}"
 ```
 
 ---
@@ -247,7 +293,7 @@ aws logs tail /aws/lambda/injury-extractor --follow
 aws lambda invoke \
 --function-name injury-extractor \
 --cli-binary-format raw-in-base64-out \
---payload '{"httpMethod":"POST","headers":{"Authorization":"Bearer YOUR_JWT"},"body":"{\"text\":\"I have hip pain\"}"}' \
+--payload '{"httpMethod":"POST","headers":{"X-Extractor-Secret":"YOUR_SHARED_SECRET"},"body":"{\"userId\":\"1\",\"text\":\"I have hip pain\"}"}' \
 response.json
 
 cat response.json
@@ -288,9 +334,27 @@ Upload a new `function.zip` and verify the `LastModified` timestamp in the Lambd
 
 ### Groq returns 401
 
-- Verify `GROQ_API_KEY`
+- Confirm a key is stored, without printing it (the plain
+  `get-secret-value` response includes the key in plaintext):
+  `aws secretsmanager get-secret-value --secret-id injury-extractor/groq-api-key --query SecretString --output text | wc -c`
 - Test the API directly with `curl`
-- Confirm the key is active
+- Confirm the key is active in the Groq console
+- After storing a new value, the running Lambda container keeps using the old
+  key until its next cold start
+
+### API Gateway returns 502 and the browser reports a CORS error
+
+An initialization failure, not a request failure. The handler builds its
+`Access-Control-Allow-Origin` header per response, so when the module fails to
+import, API Gateway returns a bare 502 with no CORS headers and the browser
+surfaces it as a CORS error rather than the real cause.
+
+The usual reason is that the secret exists but has no value yet — run the
+`put-secret-value` command from "Storing the Groq API key" above. Confirm with:
+
+```bash
+aws logs tail /aws/lambda/injury-extractor --follow
+```
 
 ### API Gateway returns 500
 

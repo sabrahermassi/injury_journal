@@ -1,28 +1,17 @@
-variable "groq_api_key" {
-  type      = string
-  sensitive = true
+variable "groq_model" {
+  type    = string
+  default = "openai/gpt-oss-20b"
 }
 
-# Must be byte-identical to the main app's JWT_SECRET (backend/ issues the
-# token, this Lambda verifies it -- see lambda/handler.py get_user_id and
-# root CLAUDE.md). Not read from the repo-root .env: this Lambda is fed by
-# Terraform, not that file.
-variable "jwt_secret" {
+# Proves the caller is the journal backend. Nothing else may reach this API.
+# Set via TF_VAR_extractor_shared_secret; the same value goes in the backend's
+# EXTRACTOR_SHARED_SECRET.
+variable "extractor_shared_secret" {
   type      = string
   sensitive = true
 
   validation {
-    condition     = length(trimspace(var.jwt_secret)) > 0
-    error_message = "jwt_secret must not be empty or whitespace-only."
+    condition     = length(trimspace(var.extractor_shared_secret)) > 0
+    error_message = "extractor_shared_secret must not be empty or whitespace-only."
   }
-}
-
-variable "allowed_origin" {
-  type    = string
-  default = "http://localhost:3000"
-}
-
-variable "groq_model" {
-  type    = string
-  default = "openai/gpt-oss-20b"
 }

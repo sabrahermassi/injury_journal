@@ -23,7 +23,11 @@ resource "aws_api_gateway_method" "extract_post" {
   resource_id = aws_api_gateway_resource.extract.id
 
   http_method = "POST"
-  # See the comment on injuries_get: the Lambda verifies auth itself.
+
+  # "NONE" is API Gateway's own authorizer, not the absence of auth: the Lambda
+  # itself rejects any request without a matching X-Extractor-Secret (403). A
+  # gateway authorizer would have to be an IAM/Cognito/custom one, none of which
+  # fits a single trusted server-to-server caller.
   authorization = "NONE"
 }
 
@@ -32,10 +36,11 @@ resource "aws_api_gateway_method" "injuries_get" {
   resource_id = aws_api_gateway_resource.injuries.id
 
   http_method = "GET"
-  # Authorization stays "NONE" at the gateway; the Lambda itself verifies the
-  # caller's JWT and scopes DynamoDB reads to it (see lambda/handler.py
-  # get_user_id). This matches how ai-injury-assistant is fronted and avoids
-  # a separate Lambda authorizer for a single-function API.
+
+  # "NONE" is API Gateway's own authorizer, not the absence of auth: the Lambda
+  # itself rejects any request without a matching X-Extractor-Secret (403). A
+  # gateway authorizer would have to be an IAM/Cognito/custom one, none of which
+  # fits a single trusted server-to-server caller.
   authorization = "NONE"
 }
 
@@ -77,11 +82,7 @@ resource "aws_api_gateway_deployment" "deployment" {
     redeployment = sha1(jsonencode([
       aws_api_gateway_resource.extract.id,
       aws_api_gateway_method.extract_post.id,
-      aws_api_gateway_method.extract_options.id,
       aws_api_gateway_integration.lambda.id,
-      aws_api_gateway_integration.extract_options.id,
-      aws_api_gateway_integration_response.extract_options.id,
-      var.allowed_origin,
 
       aws_api_gateway_resource.injuries.id,
       aws_api_gateway_method.injuries_get.id,
@@ -91,7 +92,7 @@ resource "aws_api_gateway_deployment" "deployment" {
 
   depends_on = [
     aws_api_gateway_integration.lambda,
-    aws_api_gateway_integration.extract_options
+    aws_api_gateway_integration.injuries_lambda
   ]
 
   lifecycle {
@@ -105,9 +106,9 @@ resource "aws_api_gateway_stage" "dev" {
   stage_name    = "dev"
 }
 
-# Basic per-account throttle so a scripted retry loop can't run up Groq
-# costs or flood DynamoDB with junk writes (issue #60). Not per-user quotas
-# -- this stage has no API keys/usage plan -- just a sane ceiling.
+# Throttling. The backend's own extractorLimiter is the primary control, but
+# that only binds callers who come through the backend; this is the ceiling on
+# the API itself, so a leaked shared secret cannot mean unbounded Groq spend.
 resource "aws_api_gateway_method_settings" "throttle" {
   rest_api_id = aws_api_gateway_rest_api.injury_api.id
   stage_name  = aws_api_gateway_stage.dev.stage_name
@@ -117,53 +118,4 @@ resource "aws_api_gateway_method_settings" "throttle" {
     throttling_rate_limit  = 5
     throttling_burst_limit = 10
   }
-}
-
-resource "aws_api_gateway_method" "extract_options" {
-  rest_api_id   = aws_api_gateway_rest_api.injury_api.id
-  resource_id   = aws_api_gateway_resource.extract.id
-  http_method   = "OPTIONS"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "extract_options" {
-  rest_api_id = aws_api_gateway_rest_api.injury_api.id
-  resource_id = aws_api_gateway_resource.extract.id
-  http_method = aws_api_gateway_method.extract_options.http_method
-
-  type = "MOCK"
-
-  request_templates = {
-    "application/json" = "{\"statusCode\": 200}"
-  }
-}
-
-resource "aws_api_gateway_method_response" "extract_options" {
-  rest_api_id = aws_api_gateway_rest_api.injury_api.id
-  resource_id = aws_api_gateway_resource.extract.id
-  http_method = aws_api_gateway_method.extract_options.http_method
-  status_code = "200"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
-  }
-}
-
-resource "aws_api_gateway_integration_response" "extract_options" {
-  rest_api_id = aws_api_gateway_rest_api.injury_api.id
-  resource_id = aws_api_gateway_resource.extract.id
-  http_method = aws_api_gateway_method.extract_options.http_method
-  status_code = aws_api_gateway_method_response.extract_options.status_code
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
-    "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,POST,GET'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'${var.allowed_origin}'"
-  }
-
-  depends_on = [
-    aws_api_gateway_integration.extract_options
-  ]
 }

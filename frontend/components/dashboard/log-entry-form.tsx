@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Injury } from "@/services/api";
 import { createSymptom, createTreatment, createMedicalVisit } from "@/services/api";
+import { todayLocalDate, localDateToIso, addLocalDays } from "@/lib/dates";
 
 type EntryType = "symptom" | "treatment" | "visit";
 
@@ -22,37 +23,6 @@ const ENTRY_LABELS: Record<EntryType, string> = {
 
 const selectClassName =
   "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
-
-// `<input type="date">` and `Date.toISOString()` both operate in UTC — naive
-// use of either shifts the date by a day for anyone west of UTC. These two
-// helpers keep every date on this form anchored to the browser's local
-// calendar day instead.
-function todayLocalDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-// Turns a "YYYY-MM-DD" value from a date input into an ISO instant at *local*
-// midnight for that day, rather than `new Date(dateStr).toISOString()`, which
-// the JS spec parses as UTC midnight — off by a day for negative UTC offsets.
-function localDateToIso(dateStr: string) {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day).toISOString();
-}
-
-// Adds a whole number of calendar days to a "YYYY-MM-DD" value and returns the
-// resulting local midnight as an ISO instant. Uses `setDate()` rather than
-// adding `days * 24h` in milliseconds, which drifts by the DST offset for any
-// span that crosses a daylight-saving transition.
-function addLocalDays(dateStr: string, days: number) {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const result = new Date(year, month - 1, day);
-  result.setDate(result.getDate() + days);
-  return result.toISOString();
-}
 
 export function LogEntryForm({
   injuries,
