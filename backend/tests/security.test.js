@@ -6,12 +6,22 @@ import {
   disconnectDatabase,
   createTestUser,
   createTestInjury,
+  createTestSymptom,
+  createTestTreatment,
+  createTestMedicalVisit,
+  createTestTimelineEvent,
+  createTestTreatmentOutcome,
 } from './setup.js';
 
 let userAToken;
 let userBToken;
 
 let injuryB;
+let symptomB;
+let treatmentB;
+let visitB;
+let eventB;
+let outcomeB;
 
 beforeEach(async () => {
   await cleanDatabase();
@@ -22,8 +32,17 @@ beforeEach(async () => {
   // User B
   userBToken = await createTestUser();
 
-  // Create injury owned by User B
+  // Create injury owned by User B, plus one of each nested resource under it,
+  // so every ownership-check shape gets a real User B-owned record to probe:
+  // direct userId (injury) and the relation-based checks the nested resources
+  // use (injury: { userId }, and for outcomes the two-hop
+  // treatment: { injury: { userId } }).
   injuryB = await createTestInjury(userBToken);
+  symptomB = await createTestSymptom(userBToken, injuryB.id);
+  treatmentB = await createTestTreatment(userBToken, injuryB.id);
+  visitB = await createTestMedicalVisit(userBToken, injuryB.id);
+  eventB = await createTestTimelineEvent(userBToken, injuryB.id);
+  outcomeB = await createTestTreatmentOutcome(userBToken, treatmentB.id);
 });
 
 afterAll(async () => {
@@ -68,6 +87,140 @@ describe('Authorization security', () => {
   test('User A cannot delete User B injury', async () => {
     const response = await request(app)
       .delete(`/api/injuries/${injuryB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+// The nested resources below use a different, more complex ownership check
+// than Injury: instead of a direct userId column, updates/deletes filter on
+// `injury: { userId }` (a Prisma relation), and TreatmentOutcome goes one hop
+// further with `treatment: { injury: { userId } }`. Each block below probes
+// that specific check with a resource actually owned by User B, so a future
+// refactor that silently breaks the relation filter fails a test here.
+
+describe('Cross-user: symptoms', () => {
+  test('User A cannot list User B injury symptoms', async () => {
+    const response = await request(app)
+      .get(`/api/injuries/${injuryB.id}/symptoms`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot update User B symptom', async () => {
+    const response = await request(app)
+      .put(`/api/symptoms/${symptomB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({ notes: 'Changed' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot delete User B symptom', async () => {
+    const response = await request(app)
+      .delete(`/api/symptoms/${symptomB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('Cross-user: treatments', () => {
+  test('User A cannot list User B injury treatments', async () => {
+    const response = await request(app)
+      .get(`/api/injuries/${injuryB.id}/treatments`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot update User B treatment', async () => {
+    const response = await request(app)
+      .put(`/api/treatments/${treatmentB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({ outcome: 'Changed' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot delete User B treatment', async () => {
+    const response = await request(app)
+      .delete(`/api/treatments/${treatmentB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('Cross-user: medical visits', () => {
+  test('User A cannot list User B injury visits', async () => {
+    const response = await request(app)
+      .get(`/api/injuries/${injuryB.id}/visits`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot update User B visit', async () => {
+    const response = await request(app)
+      .put(`/api/visits/${visitB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({ notes: 'Changed' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot delete User B visit', async () => {
+    const response = await request(app)
+      .delete(`/api/visits/${visitB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('Cross-user: timeline events', () => {
+  test('User A cannot list User B injury events', async () => {
+    const response = await request(app)
+      .get(`/api/injuries/${injuryB.id}/events`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot update User B event', async () => {
+    const response = await request(app)
+      .put(`/api/events/${eventB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({ description: 'Changed' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot delete User B event', async () => {
+    const response = await request(app)
+      .delete(`/api/events/${eventB.id}`)
+      .set('Authorization', `Bearer ${userAToken}`);
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('Cross-user: treatment outcomes', () => {
+  test('User A cannot create an outcome on User B treatment', async () => {
+    const response = await request(app)
+      .post(`/api/treatments/${treatmentB.id}/outcomes`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({ status: 'improved' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot delete User B treatment outcome', async () => {
+    const response = await request(app)
+      .delete(`/api/treatment-outcomes/${outcomeB.id}`)
       .set('Authorization', `Bearer ${userAToken}`);
 
     expect(response.statusCode).toBe(404);
