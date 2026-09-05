@@ -70,16 +70,45 @@ model TimelineEvent {
 }
 
 model Treatment {
-  id       Int      @id @default(autoincrement())
-  name     String
-  provider String?
-  date     DateTime
-  cost     Float?
-  outcome  String?
-  injuryId Int
-  Injury   Injury   @relation(fields: [injuryId], references: [id])
+  id            Int      @id @default(autoincrement())
+  name          String
+  provider      String?
+  date          DateTime
+  cost          Float?
+  outcome       String?
+  followUpDueAt DateTime?
+  courseId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  injuryId      Int
+  Injury        Injury   @relation(fields: [injuryId], references: [id])
+
+  TreatmentOutcome TreatmentOutcome[]
 
    @@index([injuryId])
+}
+
+// One recorded observation of how a treatment worked out, logged after the
+// fact. A treatment accrues several over time and none overwrite each other,
+// which is what makes a course of repeated attempts comparable.
+//
+// backend/prisma/ owns this table; it is declared here only so this service's
+// Prisma Client can read it. Without it, check-ins are invisible to the
+// assistant and treatment effectiveness can only be inferred from the older
+// free-text Treatment.outcome or from a doctor's note.
+model TreatmentOutcome {
+  id          Int      @id @default(autoincrement())
+  recordedAt  DateTime @default(now())
+  status      String
+  reliefDays  Int?
+  painLevel   Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+  treatmentId Int
+
+  Treatment Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  @@index([treatmentId])
 }
 
 model User {

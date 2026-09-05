@@ -19,7 +19,32 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  injuries Injury[]
+  injuries      Injury[]
+  refreshTokens RefreshToken[]
+}
+
+// Long-lived session tokens for native clients, which have no cookie jar and
+// can't sit behind an hourly re-login. Deliberately stateful: the access JWT
+// stays short-lived and stateless, and revocation happens here instead of
+// being impossible, which is what a 30-day JWT over health data would mean.
+//
+// Only the SHA-256 of the token is stored, so a database leak doesn't hand
+// over usable sessions. `familyId` groups every rotation of one login: if a
+// token is presented twice, the older copy was stolen, and the whole family
+// is revoked rather than just the replayed row.
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
 }
 
 model Injury {

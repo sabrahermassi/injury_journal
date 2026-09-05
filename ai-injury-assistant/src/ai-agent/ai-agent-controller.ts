@@ -85,6 +85,24 @@ export async function askAgent(req: Request, res: Response) {
       return sendError(res, 500, 'database_error', 'Failed to process request');
     }
 
+    // Separated from the generic LLM failure below because the cause and the
+    // remedy are different, and the caller can only tell them apart if we say
+    // so. 429 is the account's tokens-per-minute bucket; 413 is one request
+    // larger than that whole bucket, which Groq rejects outright rather than
+    // queueing. Neither means the service is down, and both clear on their own
+    // -- so this is a 503 with a wait-and-retry message, not a 500.
+    if (
+      error instanceof Groq.APIError &&
+      (error.status === 429 || error.status === 413)
+    ) {
+      return sendError(
+        res,
+        503,
+        'llm_rate_limited',
+        'The assistant is temporarily over its request limit. Wait a moment and ask again, or select a single injury to ask about less at once.',
+      );
+    }
+
     if (error instanceof Groq.APIError) {
       return sendError(res, 500, 'llm_service_error', 'Failed to process request');
     }

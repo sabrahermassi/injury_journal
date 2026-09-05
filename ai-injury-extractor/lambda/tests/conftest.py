@@ -8,7 +8,9 @@ from moto import mock_aws
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 os.environ.setdefault("DYNAMODB_TABLE", "InjuryEntries")
-os.environ.setdefault("ALLOWED_ORIGIN", "http://localhost:3000")
+# handler.py reads this at import time and 403s anything that does not
+# present it, so it must exist before the module is imported.
+os.environ.setdefault("EXTRACTOR_SHARED_SECRET", "test-shared-secret")
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 
 GROQ_SECRET_NAME = "injury-extractor/groq-api-key"

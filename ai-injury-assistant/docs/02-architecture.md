@@ -720,24 +720,25 @@ quoted), what else was considered, whether it still holds, and whether it should
 
 ### D6 — Hand-written deterministic intent router instead of an agent framework (LangGraph deferred)
 
-- **DECISION:** `ai-agent-intent-router.ts` picks a fixed tool (`rag`, `journal`, or `safety`) via
-  keyword matching on the question text, rather than using an LLM planner or a framework like
-  LangGraph to decide dynamically.
+- **DECISION:** tool selection is deterministic and hand-written, rather than an LLM planner or a
+  framework like LangGraph deciding dynamically. It was originally keyword matching on the question
+  text in `routeIntent()`; since the whole-record change it is a rule over request *scope and size*
+  (see D13). Only the diagnosis check (`isDiagnosisRequest`) still reads the question text.
 - **RATIONALE:** `CLAUDE.md` lists "an agent framework (LangGraph or otherwise)" under "Do NOT
   introduce." With exactly two real tools and no multi-step tool chaining today, a framework's
   overhead (graph state, dynamic planning, framework-specific abstractions) wouldn't be earning
   its cost yet — this doc's own §5.5 calls it "an intentional MVP simplification, deferred until
   multi-step workflows justify" the change.
 - **ALTERNATIVES CONSIDERED:** An LLM-driven planner (function-calling / tool-use loop) — more
-  flexible and would remove the keyword-matching brittleness (`routeIntent()`'s narrower
-  `'safety'` keyword list overlaps with, but isn't identical to, `checkSafety`'s more thorough
-  regex set — see `docs/05-api-contract.md` §3/§5), at the cost of nondeterminism, added
-  latency/cost per request, and a harder-to-evaluate routing step.
-- **CURRENT STATUS:** Still valid for "should we adopt a framework." The `routeIntent()` /
-  `'safety'` dead-branch defect noted here previously (issue #86) is fixed: the orchestrator's
-  `switch` now has a `case 'safety'` returning the same diagnosis-refusal message the earlier
-  `checkSafety` gate produces, so a `'safety'`-routed question no longer falls into the generic
-  "unable to determine" response.
+  flexible and would remove the keyword-matching brittleness (`isDiagnosisRequest`'s narrow keyword
+  list overlaps with, but isn't identical to, `checkSafety`'s more thorough regex set — see
+  `docs/05-api-contract.md` §3/§5), at the cost of nondeterminism, added latency/cost per request,
+  and a harder-to-evaluate routing step.
+- **CURRENT STATUS:** Still valid for "should we adopt a framework," and the case is now stronger
+  rather than weaker: D13 removed the journal/rag keyword decision entirely, leaving one boolean
+  question-text check. The `routeIntent()` / `'safety'` dead-branch defect noted here previously
+  (issue #86) is fixed and then superseded — there is no longer a `switch` to fall through, and a
+  diagnosis-matched question returns the same refusal the earlier `checkSafety` gate produces.
 - **SHOULD THIS BE REVISITED:** No.
 
 ### D7 — `POST /rag/ask` retired; `POST /ai-agent` is the sole public entrypoint (resolved)
@@ -949,3 +950,44 @@ quoted), what else was considered, whether it still holds, and whether it should
 - **SHOULD THIS BE REVISITED:** No — revisit only alongside an actual embedding-model change, at
   which point the migration's "assume current model" backfill fallback (safe today because only one
   model has ever been used) should not be reused as-is for backfilling genuinely mixed-model data.
+
+### D13 — Whole-record context is the default; retrieval is the overflow path (#122)
+
+- **DECISION:** `runAgent` no longer picks between the journal and retrieval paths by keyword. It
+  loads whole injury records — the selected one (`journalTool`) or all of the user's
+  (`journalToolAll`) — prepends a computed `Summary figures:` block
+  (`ai-agent/tools/journal-stats-tool.ts`), and only falls back to `ragTool` when the assembled
+  context exceeds `CONTEXT_TOKEN_BUDGET`. Nothing was deleted: `semanticSearch`, `injury-router.ts`,
+  ingestion and pgvector all remain, serving the overflow case.
+- **RATIONALE:** RAG solves *corpus >> context*. That premise does not hold per injury here. The
+  largest measured injury (#552, 38 records) is ~1,835 tokens and the average record ~46, so
+  selecting a subset of one injury's records buys nothing and costs recall. It was also actively
+  wrong: with D5's `0.7` threshold, a contentless question ("give me a summary") sits a near-uniform
+  distance from every record, and which injury answered at all was decided by a 0.044 spread —
+  injury 551 answered at 0.6827 while 550 (0.7267) and 559 (0.7134) returned "no information". D5
+  already conceded that default is not evaluation-backed, and D11 already found record text is
+  "template-y ... topic isn't well separated at that granularity". This is that concern, quantified.
+- **THE BUDGET IS SET BY THE ACCOUNT, NOT THE MODEL:** `gpt-oss-20b` advertises a 131k context
+  window, but the deployed Groq account is rate limited to 8,000 tokens/minute
+  (`x-ratelimit-limit-tokens`), and a request larger than that bucket is rejected with HTTP 413
+  rather than queued — verified by reproducing it against the API. `CONTEXT_TOKEN_BUDGET` is
+  therefore 5,000, and `src/config/retrieval.ts` documents that it must be re-derived from
+  `x-ratelimit-limit-tokens` if the account tier changes, not from the model's window. The budget
+  measures the assembled context only; the system prompt, question, and completion (which for a
+  reasoning model includes tokens the answer never shows) share the same bucket, which is why the
+  remaining headroom is deliberately large. `ai-agent-controller.ts` maps 429/413 to a distinct
+  `llm_rate_limited` 503 so this is distinguishable from the service being down.
+- **NOT AN LLM PLANNER:** the routing rule is scope and size, both known before any model call, so
+  D6's reasons for deferring a planner (nondeterminism, latency, evaluability) are untouched.
+- **KNOWN ASYMMETRY:** ingestion (`document-builder.ts`) still chunks only the legacy free-text
+  `Treatment.outcome`, not `TreatmentOutcome` check-ins. So the whole-record path can read the
+  relief-day series and the overflow path cannot — the same question can be answered from different
+  facts depending on journal size, with nothing in the response saying so.
+- **KNOWN COST:** citations currently list every record placed in the prompt (38 for injury #552).
+  That is honest about what the model could see but not useful as a pointer to what it used, and the
+  frontend renders the list uncapped.
+- **SHOULD THIS BE REVISITED:** Yes, on two triggers. If ingestion learns to chunk `TreatmentOutcome`
+  the asymmetry above closes. If journals routinely exceed the budget, the fallback stops being an
+  edge case and the citation/faithfulness behaviour of the retrieval path needs re-measuring — the
+  evaluation harness's `evaluateRetrieval` is pure recall and cannot detect this, since the
+  whole-record path supplies every expected source by construction.

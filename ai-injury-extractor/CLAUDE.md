@@ -15,13 +15,14 @@ Priorities:
 
 1. Correct extraction/storage of the fixed schema (`injury_name`,
    `body_area`, `pain_level`, `symptoms`, `possible_causes`)
-2. Don't regress the documented dev-only security posture without flagging it
+2. Don't regress the security posture (shared-secret auth, per-user scoping,
+   throttling — issue #32) without flagging it
 3. Keep docs (`README.md`, `docs/*.md`) truthful to actual behavior
 
 ## 2. Tech Stack
 
 - Backend: Python 3.12 on AWS Lambda (single function, no framework),
-  `groq` SDK (`llama-3.1-8b-instant`)
+  `groq` SDK (`openai/gpt-oss-20b`)
 - Infra: Terraform, API Gateway (REST, AWS_PROXY), DynamoDB (pay-per-request)
 - Frontend that calls this API lives outside this directory now, in the
   main app's `frontend/` (Next.js 16, React 19, TypeScript, Tailwind v4,
@@ -34,17 +35,22 @@ Design Decision" for why it's currently one function.
 ## 3. Architecture
 
 ```
-frontend/app/dashboard/extractor → API Gateway → Lambda (routes on event.httpMethod)
-                                                     ├── Groq API (extraction)
-                                                     └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
+frontend/app/dashboard/extractor → backend/ (cookie auth) → API Gateway (shared secret) → Lambda
+                                                                                             ├── Groq API (extraction)
+                                                                                             └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
 ```
 
 - Code is authoritative over docs; verify claims against `lambda/handler.py`
   and `infrastructure/*.tf` before trusting a doc.
-- `userId` is hardcoded to `"test-user-001"` everywhere — no auth exists yet.
-- `/injuries` (GET) and `/extract` (POST) are both unauthenticated by design
-  for this dev/demo repo (see README "Integration"). Do not assume this is
-  safe for a real deployment with real user data.
+- No caller reaches this API directly any more. `backend/` authenticates the
+  user and proxies both routes (`backend/src/services/extractorService.js`),
+  presenting a shared secret (`X-Extractor-Secret`) the Lambda checks before
+  doing anything else, and the real `userId` the backend resolved from the
+  caller's JWT. `authorization = "NONE"` in `infrastructure/api_gateway.tf`
+  is API Gateway's own authorizer setting, not the absence of auth — see the
+  comment there. This closes issue #32 (previously: a hardcoded
+  `"test-user-001"`, no auth, no throttling, reachable straight from the
+  browser).
 
 See `docs/lambda-design.md` and `docs/dynamodb-design.md` for full design
 rationale; `docs/ROADMAP.md` for known gaps and planned work.
@@ -84,13 +90,16 @@ rationale; `docs/ROADMAP.md` for known gaps and planned work.
 
 ## 7. Safe-Change Rules
 
-- Do not assume authentication or user isolation exists anywhere in this
-  repo — verify in code. There isn't any yet.
+- Auth and user isolation now exist (issue #32): the Lambda 403s any request
+  without the shared secret, and every read/write is scoped to the `userId`
+  the backend sends. Do not add a code path that reads/writes DynamoDB
+  without that `userId` — verify in `lambda/handler.py` before assuming
+  otherwise.
 - DynamoDB key/schema changes (`userId`/`timestamp` composite key) must
   account for the existing item shape and any already-stored data.
-- CORS origin is hardcoded in **two** places that must stay in sync:
-  `lambda/handler.py` `CORS_HEADERS` and `infrastructure/api_gateway.tf`
-  (OPTIONS mock integration response).
+- There is no CORS handling any more — this API has no browser caller, so
+  don't reintroduce `CORS_HEADERS`/OPTIONS resources without first checking
+  whether that assumption changed.
 - The Groq API key lives in AWS Secrets Manager and is fetched at cold start by
   `load_groq_api_key()` in `lambda/handler.py`. Never reintroduce it as a Lambda
   environment variable or any other Terraform-managed value — Terraform writes

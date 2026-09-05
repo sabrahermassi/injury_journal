@@ -17,10 +17,10 @@ resource "aws_lambda_function" "injury_extractor" {
   # handler.py resolves it via Secrets Manager at cold start.
   environment {
     variables = {
-      GROQ_SECRET_ARN = aws_secretsmanager_secret.groq_api_key.arn
-      GROQ_MODEL      = var.groq_model
-      DYNAMODB_TABLE  = aws_dynamodb_table.injury_entries.name
-      ALLOWED_ORIGIN  = var.allowed_origin
+      GROQ_SECRET_ARN         = aws_secretsmanager_secret.groq_api_key.arn
+      GROQ_MODEL              = var.groq_model
+      DYNAMODB_TABLE          = aws_dynamodb_table.injury_entries.name
+      EXTRACTOR_SHARED_SECRET = var.extractor_shared_secret
     }
   }
 }
