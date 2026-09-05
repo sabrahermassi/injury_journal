@@ -213,7 +213,16 @@ describe('AI agent route integration', () => {
     expect(mockGenerateAnswer).toHaveBeenCalledTimes(1);
   });
 
-  it('requires an injuryId for journal questions', async () => {
+  // injuryId is no longer required for journal questions: omitting it answers
+  // across the caller's whole journal (journalToolAll) instead of rejecting.
+  // This user owns exactly one injury, so the result is identical in shape to
+  // the "cites the whole record" test above -- just reached by omission
+  // rather than an explicit injuryId. The genuinely-empty-journal case (zero
+  // owned injuries) is a different message and isn't exercised by this
+  // shared fixture.
+  it('answers using the whole journal when no injuryId is provided', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+
     const response = await request(app)
       .post('/ai-agent')
       .set('Authorization', authHeader)
@@ -224,16 +233,36 @@ describe('AI agent route integration', () => {
     expect(response.status).toBe(200);
 
     expect(response.body).toEqual({
-      answer: 'An injury must be selected for journal questions.',
-      citations: [],
+      answer: 'mocked agent answer',
+      citations: [
+        {
+          sourceType: 'injury',
+          sourceId: injuryId,
+          label: `Injury #${injuryId}`,
+          injuryId,
+          injuryName: 'AI Agent Route Test',
+          date: today,
+        },
+        {
+          sourceType: 'treatment',
+          sourceId: treatmentId,
+          label: `Treatment #${treatmentId}`,
+          injuryId,
+          injuryName: 'AI Agent Route Test',
+          date: today,
+        },
+      ],
       intent: 'journal',
       metadata: {
-        retrievedChunks: [],
+        retrievedChunks: [
+          { sourceType: 'injury', sourceId: injuryId, injuryId },
+          { sourceType: 'treatment', sourceId: treatmentId, injuryId },
+        ],
       },
     });
 
     expect(mockEmbedQuery).not.toHaveBeenCalled();
-    expect(mockGenerateAnswer).not.toHaveBeenCalled();
+    expect(mockGenerateAnswer).toHaveBeenCalledTimes(1);
   });
 
   it('returns 400 when question is empty', async () => {
