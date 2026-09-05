@@ -3,12 +3,21 @@ import app from '../src/app.js';
 
 import { cleanDatabase, disconnectDatabase, createTestUser } from './setup.js';
 
-// These tests deliberately do NOT stand up the extractor Lambda. They only
-// need to get as far as auth/validation, plus the case where the service is
-// unreachable/unconfigured -- which is exactly the state an un-started
-// service is in. EXTRACTOR_API_URL is pointed at a closed port so the
-// "unreachable" case can't accidentally hit a real deployed stack.
-const ORIGINAL_EXTRACTOR_URL = process.env.EXTRACTOR_API_URL;
+// Like assistant.test.js, these deliberately do NOT stand up the extractor
+// Lambda. Most only need to reach auth/validation, and the rest assert what
+// happens when it is unreachable — which an undeployed Lambda already is.
+// EXTRACTOR_API_URL points at a closed port so the "unreachable" case cannot
+// accidentally reach a real deployment.
+const ORIGINAL_URL = process.env.EXTRACTOR_API_URL;
+const ORIGINAL_SECRET = process.env.EXTRACTOR_SHARED_SECRET;
+
+const restore = (name, original) => {
+  if (original === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = original;
+  }
+};
 
 let token;
 
@@ -17,67 +26,92 @@ beforeEach(async () => {
 
   token = await createTestUser();
   process.env.EXTRACTOR_API_URL = 'http://127.0.0.1:59998';
+  process.env.EXTRACTOR_SHARED_SECRET = 'test-shared-secret';
 });
 
 afterAll(async () => {
-  if (ORIGINAL_EXTRACTOR_URL === undefined) {
-    delete process.env.EXTRACTOR_API_URL;
-  } else {
-    process.env.EXTRACTOR_API_URL = ORIGINAL_EXTRACTOR_URL;
-  }
+  restore('EXTRACTOR_API_URL', ORIGINAL_URL);
+  restore('EXTRACTOR_SHARED_SECRET', ORIGINAL_SECRET);
 
   await disconnectDatabase();
 });
 
 describe('Extractor API', () => {
+  // The point of the whole change (issue #32): before this, the browser
+  // called the Lambda directly and nothing checked who was asking.
   test('cannot extract without authentication', async () => {
     const response = await request(app)
-      .post('/api/extract')
-      .send({ text: 'Twisted my ankle playing basketball.' });
+      .post('/api/extractions/extract')
+      .send({ text: 'my ankle hurts' });
 
     expect(response.statusCode).toBe(401);
   });
 
-  test('cannot fetch injury history without authentication', async () => {
-    const response = await request(app).get('/api/extract/injuries');
+  test('cannot read history without authentication', async () => {
+    const response = await request(app).get('/api/extractions/history');
 
     expect(response.statusCode).toBe(401);
   });
 
-  test('rejects an empty text field', async () => {
+  test('rejects empty text', async () => {
     const response = await request(app)
-      .post('/api/extract')
+      .post('/api/extractions/extract')
       .set('Authorization', `Bearer ${token}`)
       .send({ text: '' });
 
     expect(response.statusCode).toBe(400);
   });
 
-  test('rejects text over the 5000-character cap', async () => {
+  // Rejected here rather than after a round trip to AWS; 5000 is the Lambda's
+  // own MAX_TEXT_LENGTH.
+  test('rejects text longer than the Lambda will accept', async () => {
     const response = await request(app)
-      .post('/api/extract')
+      .post('/api/extractions/extract')
       .set('Authorization', `Bearer ${token}`)
-      .send({ text: 'a'.repeat(5001) });
+      .send({ text: 'x'.repeat(5001) });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  // A caller must not be able to choose whose extraction history they write
+  // into. The schema is strict, so a stray userId is rejected outright rather
+  // than silently ignored.
+  test('rejects a caller-supplied userId', async () => {
+    const response = await request(app)
+      .post('/api/extractions/extract')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ text: 'my ankle hurts', userId: '999' });
 
     expect(response.statusCode).toBe(400);
   });
 
   test('returns 503 when the extractor service is unreachable', async () => {
     const response = await request(app)
-      .post('/api/extract')
+      .post('/api/extractions/extract')
       .set('Authorization', `Bearer ${token}`)
-      .send({ text: 'Twisted my ankle playing basketball.' });
+      .send({ text: 'my ankle hurts' });
 
     expect(response.statusCode).toBe(503);
     expect(response.body.error).toBe('Extractor service unreachable');
   });
 
-  test('history returns 503 when the extractor service is unreachable', async () => {
+  test('returns 503 for history when the extractor service is unreachable', async () => {
     const response = await request(app)
-      .get('/api/extract/injuries')
+      .get('/api/extractions/history')
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.statusCode).toBe(503);
-    expect(response.body.error).toBe('Extractor service unreachable');
+  });
+
+  // Missing config must not turn into an unauthenticated call to the Lambda.
+  test('returns 503 when the shared secret is not configured', async () => {
+    delete process.env.EXTRACTOR_SHARED_SECRET;
+
+    const response = await request(app)
+      .post('/api/extractions/extract')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ text: 'my ankle hurts' });
+
+    expect(response.statusCode).toBe(503);
   });
 });

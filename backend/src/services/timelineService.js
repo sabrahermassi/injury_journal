@@ -1,9 +1,41 @@
-import { prisma, nullOnRecordNotFound } from '../utils.js';
+import { prisma, nullOnRecordNotFound, flattenInjuryName } from '../utils.js';
+import { iconFor, categoryFor } from '../entryIcons.js';
 
 // Every function here carries the ownership predicate inside the statement that
 // reads or writes, rather than proving it in a separate findFirst first (issue
 // #21). The two-step version was correct only for as long as nothing reassigns
 // an injury's owner; this version does not depend on that.
+
+// Every timeline event the user has, newest first. See the note on
+// getAllSymptomsForUser for why the per-injury fan-out was replaced.
+export const getAllEventsForUser = async (userId) => {
+  const events = await prisma.timelineEvent.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'desc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  // Matched on `type` alone. Including the description is what made this
+  // inconsistent before: two `doctor_visit` rows drew different icons because
+  // one of them happened to mention physical therapy.
+  return events.map((event) => ({
+    ...flattenInjuryName(event),
+    icon: iconFor(event.type),
+    category: categoryFor(event.type),
+  }));
+};
 
 // Create timeline event
 //

@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// extractor-api.ts imports services/api.ts, which reads NEXT_PUBLIC_API_URL
-// into a module-level const at import time (and throws if unset), so the
-// env var must be set before either module is evaluated — a dynamic import
-// after setting it, rather than a static import + vi.stubEnv, which runs
-// too late relative to the hoisted static import.
+// extractor-api.ts reads NEXT_PUBLIC_API_URL into a module-level const at
+// import time (and services/api.ts, which it now imports, throws outright
+// without it), so the env var must be set before the module is evaluated — a
+// dynamic import after setting it, rather than a static import + vi.stubEnv,
+// which runs too late relative to the hoisted static import.
 process.env.NEXT_PUBLIC_API_URL = "https://api.example.invalid";
 const { extractInjury, getInjuryHistory } = await import("./extractor-api");
 
@@ -26,13 +26,14 @@ const VALID_HISTORY_PAYLOAD = [
 ];
 
 function mockFetchOnce(body: unknown, ok = true) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn().mockResolvedValue({
-      ok,
-      json: async () => body,
-    }),
-  );
+  const mock = vi.fn().mockResolvedValue({
+    ok,
+    json: async () => body,
+  });
+
+  vi.stubGlobal("fetch", mock);
+
+  return mock;
 }
 
 describe("api", () => {
@@ -53,6 +54,20 @@ describe("api", () => {
         symptoms: ["swelling"],
         possibleCauses: ["twisted while running"],
       });
+    });
+
+    it("posts to the backend proxy with the session credentials", async () => {
+      const fetchMock = mockFetchOnce(VALID_EXTRACTION_PAYLOAD);
+
+      await extractInjury("my ankle hurts");
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.example.invalid/api/extractions/extract",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "include",
+        }),
+      );
     });
 
     it("throws when the response shape is unexpected", async () => {
@@ -93,6 +108,17 @@ describe("api", () => {
       const result = await getInjuryHistory();
 
       expect(result).toEqual(VALID_HISTORY_PAYLOAD);
+    });
+
+    it("reads from the backend proxy with the session credentials", async () => {
+      const fetchMock = mockFetchOnce(VALID_HISTORY_PAYLOAD);
+
+      await getInjuryHistory();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.example.invalid/api/extractions/history",
+        expect.objectContaining({ credentials: "include" }),
+      );
     });
 
     it("throws when an entry is malformed", async () => {

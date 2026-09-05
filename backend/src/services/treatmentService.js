@@ -1,9 +1,49 @@
-import { prisma, nullOnRecordNotFound } from '../utils.js';
+import { prisma, nullOnRecordNotFound, flattenInjuryName } from '../utils.js';
+import { iconFor, CATEGORIES } from '../entryIcons.js';
 
 // Every function here carries the ownership predicate inside the statement that
 // reads or writes, rather than proving it in a separate findFirst first (issue
 // #21). The two-step version was correct only for as long as nothing reassigns
 // an injury's owner; this version does not depend on that.
+
+// Every treatment the user has, each with its outcome check-ins attached.
+//
+// The outcomes come along deliberately: the insights page needs them, and
+// fetching them separately cost one request per treatment on top of one per
+// injury -- 37 requests for this account before the page could render. See the
+// note on getAllSymptomsForUser.
+export const getAllTreatmentsForUser = async (userId) => {
+  const treatments = await prisma.treatment.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'asc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
+      outcomes: {
+        orderBy: {
+          recordedAt: 'asc',
+        },
+      },
+    },
+  });
+
+  // Matched on the name alone: two courses of "Physiotherapy" must draw the
+  // same picture whatever their provider, cost or notes say.
+  return treatments.map((treatment) => ({
+    ...flattenInjuryName(treatment),
+    icon: iconFor(treatment.name),
+    category: CATEGORIES.TREATMENT,
+  }));
+};
 
 // Create treatment
 // `connect` on the @@unique([id, userId]) rather than a bare injuryId: an

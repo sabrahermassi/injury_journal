@@ -16,19 +16,22 @@ as four deployable pieces in one repository.
                        |         + CSRF double-submit
                        v
               Express REST API (3001)  ── Prisma ──> PostgreSQL
-                       |                              ^
-                       |  proxies POST /api/assistant/ask
-                       |  forwarding the caller's JWT
-                       v                              |
-              AI assistant (3002)  ────────────────────
-              RAG over the user's own journal          reads the SAME database;
-                       |                               backend/prisma/ owns the schema
+                       |          |                   ^
+                       |          |  proxies POST /api/assistant/ask
+                       |          |  forwarding the caller's JWT
+                       |          v                   |
+                       |  AI assistant (3002)  ─────────
+                       |  RAG over the user's own journal   reads the SAME database;
+                       |          |                         backend/prisma/ owns the schema
+                       |          v
+                       |  Embedding service (8000)
+                       |  Python/FastAPI, Qwen3-Embedding-0.6B
+                       |
+                       |  proxies POST /api/extractions/extract,
+                       |  GET /api/extractions/history — a shared
+                       |  secret + the caller's own userId, not the JWT
                        v
-              Embedding service (8000)
-              Python/FastAPI, Qwen3-Embedding-0.6B
-
-              AI extractor — AWS Lambda, reached directly
-              from the frontend; own DynamoDB table
+              AI extractor — AWS Lambda; own DynamoDB table
 ```
 
 ## Why the assistant is proxied rather than called directly
@@ -37,6 +40,15 @@ The JWT lives in an httpOnly cookie, so browser JavaScript cannot read it. Rathe
 than storing the token somewhere readable — which would undo the protection — the
 backend forwards the caller's own token to the assistant. See
 `backend/src/services/assistantService.js`.
+
+## Why the extractor is proxied too
+
+The extractor Lambda used to be called straight from the browser with no auth of
+any kind, filing every extraction under one hardcoded user (issue #32). It is now
+reached only through the backend, the same way as the assistant, but by a
+different mechanism: the Lambda doesn't verify JWTs itself, so the backend
+presents a shared secret instead and sends the `userId` it already resolved. See
+`backend/src/services/extractorService.js`.
 
 ## The central invariant
 
