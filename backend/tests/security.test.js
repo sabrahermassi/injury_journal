@@ -6,11 +6,6 @@ import {
   disconnectDatabase,
   createTestUser,
   createTestInjury,
-  createTestSymptom,
-  createTestTreatment,
-  createTestMedicalVisit,
-  createTestTimelineEvent,
-  createTestTreatmentOutcome,
 } from './setup.js';
 
 let userAToken;
@@ -32,17 +27,61 @@ beforeEach(async () => {
   // User B
   userBToken = await createTestUser();
 
-  // Create injury owned by User B, plus one of each nested resource under it,
-  // so every ownership-check shape gets a real User B-owned record to probe:
-  // direct userId (injury) and the relation-based checks the nested resources
-  // use (injury: { userId }, and for outcomes the two-hop
-  // treatment: { injury: { userId } }).
+  // Create injury owned by User B, plus one child of each nested type, so
+  // User A has something concrete to be denied access to below.
   injuryB = await createTestInjury(userBToken);
-  symptomB = await createTestSymptom(userBToken, injuryB.id);
-  treatmentB = await createTestTreatment(userBToken, injuryB.id);
-  visitB = await createTestMedicalVisit(userBToken, injuryB.id);
-  eventB = await createTestTimelineEvent(userBToken, injuryB.id);
-  outcomeB = await createTestTreatmentOutcome(userBToken, treatmentB.id);
+
+  const symptomResponse = await request(app)
+    .post(`/api/injuries/${injuryB.id}/symptoms`)
+    .set('Authorization', `Bearer ${userBToken}`)
+    .send({
+      location: 'Left hip',
+      painLevel: 7,
+      date: '2025-02-01T00:00:00.000Z',
+      notes: 'Pain after walking',
+    });
+  symptomB = symptomResponse.body;
+
+  const treatmentResponse = await request(app)
+    .post(`/api/injuries/${injuryB.id}/treatments`)
+    .set('Authorization', `Bearer ${userBToken}`)
+    .send({
+      name: 'Physiotherapy',
+      provider: 'Clinic',
+      date: '2025-02-01T00:00:00.000Z',
+      cost: 100,
+      outcome: 'Improved mobility',
+    });
+  treatmentB = treatmentResponse.body;
+
+  const visitResponse = await request(app)
+    .post(`/api/injuries/${injuryB.id}/visits`)
+    .set('Authorization', `Bearer ${userBToken}`)
+    .send({
+      doctor: 'Dr Smith',
+      clinic: 'Orthopedic Clinic',
+      date: '2025-02-07T00:00:00.000Z',
+      notes: 'Recommended MRI and physiotherapy',
+    });
+  visitB = visitResponse.body;
+
+  const eventResponse = await request(app)
+    .post(`/api/injuries/${injuryB.id}/events`)
+    .set('Authorization', `Bearer ${userBToken}`)
+    .send({
+      type: 'Doctor visit',
+      description: 'MRI appointment',
+      date: '2025-02-01T00:00:00.000Z',
+    });
+  eventB = eventResponse.body;
+
+  const outcomeResponse = await request(app)
+    .post(`/api/treatments/${treatmentB.id}/outcomes`)
+    .set('Authorization', `Bearer ${userBToken}`)
+    .send({
+      status: 'Still helping',
+    });
+  outcomeB = outcomeResponse.body;
 });
 
 afterAll(async () => {
@@ -91,16 +130,20 @@ describe('Authorization security', () => {
 
     expect(response.statusCode).toBe(404);
   });
-});
 
-// The nested resources below use a different, more complex ownership check
-// than Injury: instead of a direct userId column, updates/deletes filter on
-// `injury: { userId }` (a Prisma relation), and TreatmentOutcome goes one hop
-// further with `treatment: { injury: { userId } }`. Each block below probes
-// that specific check with a resource actually owned by User B, so a future
-// refactor that silently breaks the relation filter fails a test here.
+  test('User A cannot create a symptom on User B injury', async () => {
+    const response = await request(app)
+      .post(`/api/injuries/${injuryB.id}/symptoms`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        location: 'Right knee',
+        painLevel: 5,
+        date: '2025-02-01T00:00:00.000Z',
+      });
 
-describe('Cross-user: symptoms', () => {
+    expect(response.statusCode).toBe(404);
+  });
+
   test('User A cannot list User B injury symptoms', async () => {
     const response = await request(app)
       .get(`/api/injuries/${injuryB.id}/symptoms`)
@@ -113,7 +156,7 @@ describe('Cross-user: symptoms', () => {
     const response = await request(app)
       .put(`/api/symptoms/${symptomB.id}`)
       .set('Authorization', `Bearer ${userAToken}`)
-      .send({ notes: 'Changed' });
+      .send({ painLevel: 9 });
 
     expect(response.statusCode).toBe(404);
   });
@@ -125,9 +168,19 @@ describe('Cross-user: symptoms', () => {
 
     expect(response.statusCode).toBe(404);
   });
-});
 
-describe('Cross-user: treatments', () => {
+  test('User A cannot create a treatment on User B injury', async () => {
+    const response = await request(app)
+      .post(`/api/injuries/${injuryB.id}/treatments`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        name: 'Massage',
+        date: '2025-02-01T00:00:00.000Z',
+      });
+
+    expect(response.statusCode).toBe(404);
+  });
+
   test('User A cannot list User B injury treatments', async () => {
     const response = await request(app)
       .get(`/api/injuries/${injuryB.id}/treatments`)
@@ -140,7 +193,7 @@ describe('Cross-user: treatments', () => {
     const response = await request(app)
       .put(`/api/treatments/${treatmentB.id}`)
       .set('Authorization', `Bearer ${userAToken}`)
-      .send({ outcome: 'Changed' });
+      .send({ name: 'Changed treatment' });
 
     expect(response.statusCode).toBe(404);
   });
@@ -152,9 +205,19 @@ describe('Cross-user: treatments', () => {
 
     expect(response.statusCode).toBe(404);
   });
-});
 
-describe('Cross-user: medical visits', () => {
+  test('User A cannot create a medical visit on User B injury', async () => {
+    const response = await request(app)
+      .post(`/api/injuries/${injuryB.id}/visits`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        doctor: 'Dr Jones',
+        date: '2025-02-07T00:00:00.000Z',
+      });
+
+    expect(response.statusCode).toBe(404);
+  });
+
   test('User A cannot list User B injury visits', async () => {
     const response = await request(app)
       .get(`/api/injuries/${injuryB.id}/visits`)
@@ -163,26 +226,37 @@ describe('Cross-user: medical visits', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  test('User A cannot update User B visit', async () => {
+  test('User A cannot update User B medical visit', async () => {
     const response = await request(app)
       .put(`/api/visits/${visitB.id}`)
       .set('Authorization', `Bearer ${userAToken}`)
-      .send({ notes: 'Changed' });
+      .send({ doctor: 'Changed doctor' });
 
     expect(response.statusCode).toBe(404);
   });
 
-  test('User A cannot delete User B visit', async () => {
+  test('User A cannot delete User B medical visit', async () => {
     const response = await request(app)
       .delete(`/api/visits/${visitB.id}`)
       .set('Authorization', `Bearer ${userAToken}`);
 
     expect(response.statusCode).toBe(404);
   });
-});
 
-describe('Cross-user: timeline events', () => {
-  test('User A cannot list User B injury events', async () => {
+  test('User A cannot create a timeline event on User B injury', async () => {
+    const response = await request(app)
+      .post(`/api/injuries/${injuryB.id}/events`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        type: 'Note',
+        description: 'Should not be created',
+        date: '2025-02-01T00:00:00.000Z',
+      });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot list User B injury timeline events', async () => {
     const response = await request(app)
       .get(`/api/injuries/${injuryB.id}/events`)
       .set('Authorization', `Bearer ${userAToken}`);
@@ -190,30 +264,36 @@ describe('Cross-user: timeline events', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  test('User A cannot update User B event', async () => {
+  test('User A cannot update User B timeline event', async () => {
     const response = await request(app)
       .put(`/api/events/${eventB.id}`)
       .set('Authorization', `Bearer ${userAToken}`)
-      .send({ description: 'Changed' });
+      .send({ description: 'Changed description' });
 
     expect(response.statusCode).toBe(404);
   });
 
-  test('User A cannot delete User B event', async () => {
+  test('User A cannot delete User B timeline event', async () => {
     const response = await request(app)
       .delete(`/api/events/${eventB.id}`)
       .set('Authorization', `Bearer ${userAToken}`);
 
     expect(response.statusCode).toBe(404);
   });
-});
 
-describe('Cross-user: treatment outcomes', () => {
-  test('User A cannot create an outcome on User B treatment', async () => {
+  test('User A cannot create a treatment outcome on User B treatment', async () => {
     const response = await request(app)
       .post(`/api/treatments/${treatmentB.id}/outcomes`)
       .set('Authorization', `Bearer ${userAToken}`)
-      .send({ status: 'improved' });
+      .send({ status: 'Should not be created' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('User A cannot list User B treatment outcomes', async () => {
+    const response = await request(app)
+      .get(`/api/treatments/${treatmentB.id}/outcomes`)
+      .set('Authorization', `Bearer ${userAToken}`);
 
     expect(response.statusCode).toBe(404);
   });

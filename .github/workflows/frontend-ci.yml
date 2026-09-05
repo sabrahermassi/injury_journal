@@ -44,4 +44,3 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_API_URL: https://example.invalid
-          NEXT_PUBLIC_EXTRACTOR_API_URL: https://example.invalid

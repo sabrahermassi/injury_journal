@@ -187,10 +187,25 @@ All endpoints are prefixed with:
 
 ## Authentication
 
-| Method | Endpoint         | Description                 |
-| ------ | ---------------- | --------------------------- |
-| POST   | `/auth/register` | Register a new user         |
-| POST   | `/auth/login`    | Login and receive JWT token |
+| Method | Endpoint         | Description                                      |
+| ------ | ---------------- | ------------------------------------------------ |
+| POST   | `/auth/register` | Register a new user, and sign them in            |
+| POST   | `/auth/login`    | Login and receive a JWT                          |
+| GET    | `/auth/me`       | The current user, from the token on the request  |
+| POST   | `/auth/refresh`  | Exchange a refresh token for a new JWT           |
+| POST   | `/auth/logout`   | Clear the auth cookies, revoke the refresh token |
+
+The JWT arrives two ways. Browsers get it in an httpOnly cookie, alongside a
+readable CSRF token that mutating requests must echo back in `X-CSRF-Token`.
+Non-browser clients send `Authorization: Bearer <token>` instead and skip CSRF
+entirely, since without the cookie there is nothing to forge against.
+
+Access tokens last an hour. A client that sends `X-Client: native` also receives
+a `refreshToken` in the login/register response, which `/auth/refresh` exchanges
+for a fresh pair — each refresh token works exactly once, and presenting a used
+one revokes every token descended from that login. Browsers do not get one: a
+long-lived credential sitting in a JSON body is the thing the httpOnly cookie
+exists to avoid.
 
 ---
 

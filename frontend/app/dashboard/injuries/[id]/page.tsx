@@ -5,28 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 
 import { getInjury, type Injury } from "@/services/api";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardAction,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SymptomsCard } from "@/components/dashboard/symptoms-card";
 import { TreatmentsCard } from "@/components/dashboard/treatments-card";
 import { MedicalVisitsCard } from "@/components/dashboard/medical-visits-card";
 import { TimelineCard } from "@/components/dashboard/timeline-card";
-
-// injury.startDate is a date-only value stored as UTC midnight of the intended
-// calendar day (see create-injury-dialog.tsx). Formatting it with the browser's
-// local timezone shifts the displayed day for anyone west of UTC — read the UTC
-// date components directly instead, since those are the ones that carry the
-// actual intended day.
-function formatStoredDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { timeZone: "UTC" });
-}
 
 export default function InjuryDetailsPage() {
   const params = useParams();
@@ -78,7 +63,7 @@ export default function InjuryDetailsPage() {
 
   if (loading) {
     return (
-      <main className="flex flex-col gap-6 p-4 md:p-6">
+      <main className="flex flex-col gap-6 p-4 md:p-11">
         <Skeleton className="h-32 rounded-xl" />
         <Skeleton className="h-48 rounded-xl" />
       </main>
@@ -87,7 +72,7 @@ export default function InjuryDetailsPage() {
 
   if (loadError) {
     return (
-      <main className="flex flex-col items-start gap-3 p-4 md:p-6">
+      <main className="flex flex-col items-start gap-3 p-4 md:p-11">
         <p className="text-muted-foreground">
           Couldn&apos;t load this injury — try again.
         </p>
@@ -100,7 +85,7 @@ export default function InjuryDetailsPage() {
 
   if (notFound || !injury) {
     return (
-      <main className="flex flex-col items-start gap-3 p-4 md:p-6">
+      <main className="flex flex-col items-start gap-3 p-4 md:p-11">
         <p className="text-muted-foreground">
           This injury profile couldn&apos;t be found.
         </p>
@@ -112,22 +97,38 @@ export default function InjuryDetailsPage() {
   }
 
   return (
-    <main className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">{injury.name}</CardTitle>
-          <CardAction>
-            <Button
-              size="sm"
-              onClick={() => router.push(`/dashboard/log?injuryId=${injury.id}`)}
-            >
-              Log entry
-            </Button>
-          </CardAction>
-        </CardHeader>
+    <main className="flex flex-col gap-6 p-4 md:p-11">
+      {/* The design's per-injury header: the name at display size, then a
+          single status line. It also shows an entry count there -- left out,
+          because the counts live in the cards below and nothing on this page
+          knows the total before they have each loaded. */}
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="min-w-0">
+          <h2 className="font-serif text-4xl leading-tight font-light tracking-tight text-foreground md:text-[42px]">
+            {injury.name}
+          </h2>
+          <div className="mt-3 flex items-center gap-2.5">
+            <span
+              className="size-[7px] flex-none rounded-full bg-accent-foreground"
+              aria-hidden="true"
+            />
+            <p className="text-sm text-foreground/80">
+              {injury.status ? `${injury.status} · ` : ""}since{" "}
+              {new Date(injury.startDate).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
 
+        <Button
+          onClick={() => router.push(`/dashboard/log?injuryId=${injury.id}`)}
+        >
+          Log entry
+        </Button>
+      </div>
+
+      <Card className="rounded-3xl">
         <CardContent>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
             <div>
               <dt className="text-muted-foreground">Area</dt>
               <dd>{injury.bodyArea}</dd>
@@ -140,17 +141,8 @@ export default function InjuryDetailsPage() {
               </div>
             )}
 
-            {injury.status && (
-              <div>
-                <dt className="text-muted-foreground">Status</dt>
-                <dd>{injury.status}</dd>
-              </div>
-            )}
-
-            <div>
-              <dt className="text-muted-foreground">Started</dt>
-              <dd>{formatStoredDate(injury.startDate)}</dd>
-            </div>
+            {/* Status and start date moved up into the header line above --
+                repeating them here would just be the same two facts twice. */}
 
             {injury.cause && (
               <div className="col-span-2">
