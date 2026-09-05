@@ -164,10 +164,12 @@ limit of `5` for the `rag` intent path.
   `src/ai-assistant/ai-assistant-api.ts` (a thin, otherwise-unused wrapper around `runAgent`). It is
   not reachable from any route. (`src/ai-agent/ai-agent-service.ts`, a dead duplicate of
   `ai-agent-orchestrator.ts`, was removed — issue #46.)
-- **`citation-formatter.ts` is unwired.** It reshapes a `Citation[]` into a display-friendly
-  `{ title, type, date? }`, but nothing calls it — see issue #237. `citation-source-mapper.ts`, a
-  second overlapping module with no ownership check, was retired as part of #124 rather than
-  extended, since `citation-verifier.ts` now covers the same ground more safely.
+- **`citation-formatter.ts` was retired (issue #75).** It reshaped a `Citation[]` into a
+  display-friendly `{ title, type, date? }`, but nothing called it — the API contract already
+  returns the raw `Citation` shape (`label`/`sourceType`/`date`), and the frontend
+  (`ask-form.tsx`) already formats it for display itself. `citation-source-mapper.ts`, a
+  separate overlapping module with no ownership check, was retired earlier as part of #124,
+  since `citation-verifier.ts` now covers the same ground more safely.
 - **500 responses distinguish the failing dependency where the thrown error type allows it (issue
   #172)**, but not further than that: `embedding_service_error` covers every embedding-client
   failure (missing key, network failure, non-OK response, invalid shape) without distinguishing
