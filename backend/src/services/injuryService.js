@@ -1,4 +1,4 @@
-import { prisma, createToken, nullOnRecordNotFound } from '../utils.js';
+import { prisma, nullOnRecordNotFound } from '../utils.js';
 
 export const createInjury = async (userId, injuryData) => {
   const injury = await prisma.injury.create({
