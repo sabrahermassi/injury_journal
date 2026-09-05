@@ -201,7 +201,7 @@ npm start      # runs dist/index.js
 
 ## Usage
 
-The API exposes two endpoints, both requiring a bearer token. The main one answers questions:
+The API exposes one endpoint, requiring a bearer token:
 
 ```bash
 curl -X POST http://localhost:3000/ai-agent \
@@ -213,18 +213,6 @@ curl -X POST http://localhost:3000/ai-agent \
 `injuryId` is optional. The `Authorization` header is required (a `Bearer` JWT with a numeric
 `sub` claim, signed with `JWT_SECRET`) — see the Project Status section above for what
 authentication does and doesn't cover yet.
-
-The second lists the authenticated user's injuries, so a frontend can offer a picker for that
-`injuryId` instead of asking for a raw database id:
-
-```bash
-curl http://localhost:3000/injuries \
-  -H "Authorization: Bearer <JWT signed with JWT_SECRET>"
-```
-
-> `GET /injuries` is temporary and a deliberate deviation from `docs/02-architecture.md` D10. The
-> main journal application's own endpoint supersedes it once the two applications merge, at which
-> point it is deleted — tracked in `#195`. See `docs/05-api-contract.md` §3.
 
 ### Frontend
 
@@ -240,12 +228,9 @@ To run the whole thing locally, from the repo root: `backend` on 3001, `frontend
 service on 3002 (`npm run dev` in this directory). The frontend talks to the backend, and the
 backend talks to this service via `AI_ASSISTANT_URL`.
 
-Because the picker now reads the journal app's own injury list, the stopgap `GET /injuries` in this
-repo has no consumer left (see `#195`).
-
-> `GET /injuries` is temporary. It exists only to populate this dropdown and is superseded by the
-> main journal application's own endpoint once the two applications merge — see `#195` and
-> `docs/02-architecture.md` D10.
+The injury picker in that form reads the journal app's own injury list — this repo's former
+stopgap `GET /injuries` had no consumer left once that was true, and has since been deleted
+(`#74`/`#195`).
 
 This repo verifies but does not issue JWTs (a separate journal application is expected to own login,
 see `docs/02-architecture.md` D10), so for local testing you need to mint your own token with

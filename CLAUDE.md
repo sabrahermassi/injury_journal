@@ -279,9 +279,9 @@ Do not fold its tooling into the root or into `backend`'s/`frontend`'s configs, 
 - **Relationship to this app** (its own `docs/02-architecture.md`, decision D10): it does **not**
   own Injury CRUD or authentication — this app (`backend/`) does. It verifies JWTs issued by this
   repo's backend, so both apps must share the exact same `JWT_SECRET` (see `docs/14-deployment.md`).
-  It has one deliberate exception: a minimal read-only `GET /injuries` for its own frontend's
-  injury picker (four fields, scoped to the authenticated user, no pagination/CRUD) — its own docs
-  mark that endpoint for deletion once the two apps genuinely merge (its issue #195).
+  It briefly had a stopgap read-only `GET /injuries` for its own frontend's injury picker, from
+  before the two apps merged. That merge gave the picker a real data source — this app's own
+  `GET /injuries` — so the stopgap has since been deleted (issue #74/#195).
 - **Ports**: `backend/` 3001, `frontend/` 3000, AI service 3002, AI frontend 3003. All four can run
   at once.
 - **CI**: `.github/workflows/ai-ci.yml` (path-filtered to `ai-injury-assistant/**`). It needs a
