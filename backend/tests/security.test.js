@@ -75,46 +75,49 @@ describe('Authorization security', () => {
 });
 
 describe('Numeric id param validation', () => {
-  test('GET /injuries/:id with a non-numeric id returns 400, not 500', async () => {
-    const response = await request(app)
-      .get('/api/injuries/abc')
-      .set('Authorization', `Bearer ${userAToken}`);
+  // Every route wired through `validateNumericParam` in routes.js, one row
+  // per (method, path, param name). A non-numeric value for that param must
+  // be rejected with 400 before it ever reaches Prisma -- this is the exact
+  // gap that let #7 (non-numeric id crashing with 500) go unnoticed, and the
+  // regression test for it (issue #14).
+  const numericParamRoutes = [
+    ['get', '/api/injuries/:id', 'id'],
+    ['put', '/api/injuries/:id', 'id'],
+    ['delete', '/api/injuries/:id', 'id'],
+    ['post', '/api/injuries/:injuryId/events', 'injuryId'],
+    ['get', '/api/injuries/:injuryId/events', 'injuryId'],
+    ['put', '/api/events/:id', 'id'],
+    ['delete', '/api/events/:id', 'id'],
+    ['post', '/api/injuries/:injuryId/symptoms', 'injuryId'],
+    ['get', '/api/injuries/:injuryId/symptoms', 'injuryId'],
+    ['put', '/api/symptoms/:id', 'id'],
+    ['delete', '/api/symptoms/:id', 'id'],
+    ['post', '/api/injuries/:injuryId/treatments', 'injuryId'],
+    ['get', '/api/injuries/:injuryId/treatments', 'injuryId'],
+    ['put', '/api/treatments/:id', 'id'],
+    ['delete', '/api/treatments/:id', 'id'],
+    ['post', '/api/injuries/:injuryId/visits', 'injuryId'],
+    ['get', '/api/injuries/:injuryId/visits', 'injuryId'],
+    ['put', '/api/visits/:id', 'id'],
+    ['delete', '/api/visits/:id', 'id'],
+    ['post', '/api/treatments/:treatmentId/outcomes', 'treatmentId'],
+    ['get', '/api/treatments/:treatmentId/outcomes', 'treatmentId'],
+    ['delete', '/api/treatment-outcomes/:id', 'id'],
+  ];
 
-    expect(response.statusCode).toBe(400);
-  });
+  test.each(numericParamRoutes)(
+    '%s %s rejects a non-numeric %s with 400, not 500',
+    async (method, pathTemplate, paramName) => {
+      const path = pathTemplate.replace(`:${paramName}`, 'abc');
 
-  test('PUT /injuries/:id with a non-numeric id returns 400', async () => {
-    const response = await request(app)
-      .put('/api/injuries/abc')
-      .set('Authorization', `Bearer ${userAToken}`)
-      .send({ name: 'x' });
+      const response = await request(app)[method](path)
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({});
 
-    expect(response.statusCode).toBe(400);
-  });
-
-  test('DELETE /injuries/:id with a non-numeric id returns 400', async () => {
-    const response = await request(app)
-      .delete('/api/injuries/abc')
-      .set('Authorization', `Bearer ${userAToken}`);
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  test('GET /injuries/:injuryId/symptoms with a non-numeric injuryId returns 400', async () => {
-    const response = await request(app)
-      .get('/api/injuries/abc/symptoms')
-      .set('Authorization', `Bearer ${userAToken}`);
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  test('DELETE /events/:id with a non-numeric id returns 400', async () => {
-    const response = await request(app)
-      .delete('/api/events/abc')
-      .set('Authorization', `Bearer ${userAToken}`);
-
-    expect(response.statusCode).toBe(400);
-  });
+      expect(response.statusCode).toBe(400);
+      expect(response.body.error).toBe(`${paramName} must be a positive integer`);
+    }
+  );
 
   test('a decimal or negative id is also rejected as 400', async () => {
     const decimal = await request(app)
