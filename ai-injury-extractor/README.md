@@ -47,11 +47,13 @@ Previously extracted injuries can be retrieved from DynamoDB through the history
 
 Although this project is fully functional as a standalone serverless application, it was designed so that the AI extraction component can also be integrated into a larger healthcare application.
 
-In that scenario:
-
-- User authentication would be handled by the host application.
-- The AI extraction service would receive authenticated requests.
-- Extracted injury data could be persisted in the host application's primary database (for example, PostgreSQL) instead of DynamoDB.
+That integration is now built: the main app's `backend/` proxies to this Lambda
+(`POST /api/extract`, `GET /api/extract/injuries`), forwarding the caller's own
+JWT as a bearer token. The Lambda verifies that token (`lambda/handler.py`
+`get_user_id`) and scopes every DynamoDB read/write to the userId it contains
+— see "Test injury data extractor API" below. Extracted injury data still
+lives in DynamoDB rather than the host app's PostgreSQL database; that part of
+the original integration sketch hasn't happened.
 
 DynamoDB is used in this repository to demonstrate a complete serverless AWS architecture and end-to-end data flow.
 
@@ -60,25 +62,32 @@ DynamoDB is used in this repository to demonstrate a complete serverless AWS arc
 ```mermaid
 sequenceDiagram
   participant Client
+  participant Journal Backend
   participant API Gateway
   participant Injury Extractor Lambda
   participant Groq API
   participant InjuryEntries DynamoDB
 
-  Client->>API Gateway: POST /extract with injury text
+  Client->>Journal Backend: POST /api/extract with injury text (cookie auth)
+  Journal Backend->>API Gateway: POST /extract, Bearer <caller's JWT>
   API Gateway->>Injury Extractor Lambda: Proxy request
+  Injury Extractor Lambda->>Injury Extractor Lambda: Verify JWT, extract userId
   Injury Extractor Lambda->>Groq API: Extract structured injury data
   Groq API-->>Injury Extractor Lambda: Injury JSON
-  Injury Extractor Lambda->>InjuryEntries DynamoDB: Store injury entry
+  Injury Extractor Lambda->>InjuryEntries DynamoDB: Store injury entry (keyed by userId)
   Injury Extractor Lambda-->>API Gateway: HTTP 200 response
-  API Gateway-->>Client: Extraction result
+  API Gateway-->>Journal Backend: Extraction result
+  Journal Backend-->>Client: Extraction result
 
-  Client->>API Gateway: GET /injuries
+  Client->>Journal Backend: GET /api/extract/injuries (cookie auth)
+  Journal Backend->>API Gateway: GET /injuries, Bearer <caller's JWT>
   API Gateway->>Injury Extractor Lambda: Proxy request
-  Injury Extractor Lambda->>InjuryEntries DynamoDB: Retrieve injury entries
+  Injury Extractor Lambda->>Injury Extractor Lambda: Verify JWT, extract userId
+  Injury Extractor Lambda->>InjuryEntries DynamoDB: Query entries for userId
   InjuryEntries DynamoDB-->>Injury Extractor Lambda: Injury history
   Injury Extractor Lambda-->>API Gateway: HTTP 200 response
-  API Gateway-->>Client: Injury history list
+  API Gateway-->>Journal Backend: Injury history list
+  Journal Backend-->>Client: Injury history list
 ```
 
 ## Prerequisites
@@ -97,16 +106,15 @@ The frontend that calls this API now lives in the main app's `frontend/`
 `frontend/components/extractor/`), not in this directory. Run it via the
 main `frontend/` app's own README/CLAUDE.md.
 
-It requires `NEXT_PUBLIC_EXTRACTOR_API_URL` to be set to your deployed API
-Gateway invoke URL (no trailing slash, no `/extract` or `/injuries` suffix —
-the app appends those itself), for example in `frontend/.env.local`:
+It does not call this Lambda directly — the browser has no way to attach the
+user's JWT (it lives in an httpOnly cookie). It calls the main app's own
+`backend/` (`NEXT_PUBLIC_API_URL`), which proxies to this Lambda with the
+caller's token attached; see `backend/src/services/extractorService.js`. Set
+`EXTRACTOR_API_URL` in the repo-root `.env` to your deployed API Gateway
+invoke URL for that proxy to work (see root `.env.example`).
 
-```
-NEXT_PUBLIC_EXTRACTOR_API_URL=https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev
-```
-
-There is currently no local/mocked backend — the frontend always calls a
-real deployed API Gateway + Lambda stack.
+There is currently no local/mocked backend for the Lambda itself — the proxy
+always calls a real deployed API Gateway + Lambda stack.
 
 ## Deploy Lambda and Infrastructure
 
@@ -120,8 +128,10 @@ cd lambda
 
 This installs Lambda dependencies into `package/`, zips `function.zip`, and
 runs `terraform apply` in `../infrastructure`. It requires AWS CLI
-credentials, Terraform, and a `groq_api_key` Terraform variable (e.g. via
-`TF_VAR_groq_api_key` or a gitignored `terraform.tfvars`).
+credentials, Terraform, and `groq_api_key` and `jwt_secret` Terraform
+variables (e.g. via `TF_VAR_groq_api_key`/`TF_VAR_jwt_secret` or a gitignored
+`terraform.tfvars`). `jwt_secret` must be byte-identical to the main app's
+`JWT_SECRET` (root `.env`) — it's how the Lambda verifies who's calling.
 
 The allowed CORS origin is also a Terraform variable, `allowed_origin`
 (default `http://localhost:3000`) — set it (e.g. via `TF_VAR_allowed_origin`)
@@ -148,25 +158,29 @@ request/response behavior should still be verified manually using the
 `curl` examples below and by running the frontend against a real deployed
 API.
 
-## Test injury data extractor API (Development only)
+## Test injury data extractor API
 
-> This endpoint is currently unauthenticated and intended for development/testing.
-> Authentication and authorization are handled by the consuming application and are not implemented in this standalone serverless demo.
+> Requires a Bearer JWT signed with the same secret as `jwt_secret` /
+> `JWT_SECRET` above, with a `userId` claim — e.g. one minted by logging into
+> the main app. A request with no token, an invalid one, or one signed with
+> the wrong secret gets a 401.
 
 ```bash
 curl -X POST \
 https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/extract \
 -H "Content-Type: application/json" \
+-H "Authorization: Bearer YOUR_JWT" \
 -d '{"text":"I have had left hip pain for four years after gym training."}'
 ```
 
-## Test injury history API (Development only)
+## Test injury history API
 
-> This endpoint retrieves saved injury entries from DynamoDB.
-> Authentication is not implemented yet and the endpoint is intended for development/testing.
+> Same auth requirement as above. Returns only the rows written by the
+> caller's own userId.
 
 ```bash
-curl https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/injuries
+curl https://YOUR_API_ID.execute-api.eu-north-1.amazonaws.com/dev/injuries \
+-H "Authorization: Bearer YOUR_JWT"
 ```
 
 # Useful Commands
@@ -205,7 +219,7 @@ aws lambda update-function-code \
 ```bash
 aws lambda update-function-configuration \
 --function-name injury-extractor \
---environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=llama-3.1-8b-instant,DYNAMODB_TABLE=InjuryEntries,ALLOWED_ORIGIN=http://localhost:3000}"
+--environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=llama-3.1-8b-instant,DYNAMODB_TABLE=InjuryEntries,ALLOWED_ORIGIN=http://localhost:3000,JWT_SECRET=YOUR_SECRET}"
 ```
 
 ---
@@ -233,7 +247,7 @@ aws logs tail /aws/lambda/injury-extractor --follow
 aws lambda invoke \
 --function-name injury-extractor \
 --cli-binary-format raw-in-base64-out \
---payload '{"body":"{\"text\":\"I have hip pain\"}"}' \
+--payload '{"httpMethod":"POST","headers":{"Authorization":"Bearer YOUR_JWT"},"body":"{\"text\":\"I have hip pain\"}"}' \
 response.json
 
 cat response.json

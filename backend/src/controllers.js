@@ -8,6 +8,7 @@ import {
 } from './services/authService.js';
 import { authCookieOptions, csrfCookieOptions } from './utils.js';
 import { askAssistant } from './services/assistantService.js';
+import { extractInjury, getInjuryHistory } from './services/extractorService.js';
 import {
   createInjury,
   getInjuries,
@@ -594,6 +595,28 @@ export const deleteTreatmentOutcomeController = async (req, res, next) => {
 export const askAssistantController = async (req, res, next) => {
   try {
     const { status, data } = await askAssistant(req.token, req.body);
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extract
+export const extractInjuryController = async (req, res, next) => {
+  try {
+    const { status, data } = await extractInjury(req.token, req.body);
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/extract/injuries
+export const getInjuryHistoryController = async (req, res, next) => {
+  try {
+    const { status, data } = await getInjuryHistory(req.token);
 
     res.status(status).json(data);
   } catch (error) {

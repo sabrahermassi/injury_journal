@@ -34,17 +34,23 @@ Design Decision" for why it's currently one function.
 ## 3. Architecture
 
 ```
-frontend/app/dashboard/extractor → API Gateway → Lambda (routes on event.httpMethod)
-                                                     ├── Groq API (extraction)
-                                                     └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
+frontend/app/dashboard/extractor → backend/ (cookie auth) → API Gateway (Bearer JWT) → Lambda
+                                                                                          ├── Groq API (extraction)
+                                                                                          └── DynamoDB "InjuryEntries" (PK userId, SK timestamp)
 ```
 
 - Code is authoritative over docs; verify claims against `lambda/handler.py`
   and `infrastructure/*.tf` before trusting a doc.
-- `userId` is hardcoded to `"test-user-001"` everywhere — no auth exists yet.
-- `/injuries` (GET) and `/extract` (POST) are both unauthenticated by design
-  for this dev/demo repo (see README "Integration"). Do not assume this is
-  safe for a real deployment with real user data.
+- The browser never calls this Lambda directly. `backend/` proxies
+  `POST /api/extract` and `GET /api/extract/injuries`, forwarding the
+  caller's own JWT — see `backend/src/services/extractorService.js` (same
+  pattern as `assistantService.js`). API Gateway authorization stays `NONE`;
+  the Lambda verifies the token itself (`get_user_id` in `handler.py`) and
+  scopes every DynamoDB read/write to the userId it contains. A request with
+  no token, a bad signature, or a non-positive userId claim gets a 401.
+- `JWT_SECRET` must be byte-identical to the main app's (`root .env`
+  `JWT_SECRET`, this Lambda's `jwt_secret` Terraform variable) or every
+  request fails as 401 with nothing in the logs explaining why.
 
 See `docs/lambda-design.md` and `docs/dynamodb-design.md` for full design
 rationale; `docs/ROADMAP.md` for known gaps and planned work.
@@ -84,8 +90,8 @@ rationale; `docs/ROADMAP.md` for known gaps and planned work.
 
 ## 7. Safe-Change Rules
 
-- Do not assume authentication or user isolation exists anywhere in this
-  repo — verify in code. There isn't any yet.
+- Auth exists now (see §3) — verify its actual behavior in `handler.py`
+  `get_user_id` rather than assuming either "none" or "fully hardened."
 - DynamoDB key/schema changes (`userId`/`timestamp` composite key) must
   account for the existing item shape and any already-stored data.
 - CORS origin is hardcoded in **two** places that must stay in sync:

@@ -120,3 +120,9 @@ export const assistantAskSchema = z.object({
 
   injuryId: z.number().int().positive().optional(),
 });
+
+// AI EXTRACTOR
+export const extractSchema = z.object({
+  // Matches the Lambda's own MAX_TEXT_LENGTH cap (ai-injury-extractor/lambda/handler.py).
+  text: z.string().min(1).max(5000),
+});
