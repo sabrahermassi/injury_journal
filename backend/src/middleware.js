@@ -123,10 +123,17 @@ export const validate = (schema) => {
   };
 };
 
-// General API limiter
+// General API limiter.
+//
+// 300 rather than 100 because a mobile cold start is not one request: opening
+// the app with a handful of injuries fans out to roughly twenty, since each
+// injury detail pulls symptoms, treatments, visits and timeline separately.
+// Carrier NAT then puts many phones behind one address. `/health` is skipped
+// so an uptime probe can't consume a real user's budget.
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 300,
+  skip: (req) => req.path === '/health',
   message: {
     error: 'Too many requests, please try again later',
   },

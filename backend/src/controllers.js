@@ -1,11 +1,16 @@
 import crypto from 'node:crypto';
+import { iconFor } from './entryIcons.js';
 import {
   register as registerUser,
   login as loginUser,
+  getUserById,
+  refreshSession,
+  revokeRefreshTokenFamily,
   deleteAccount,
 } from './services/authService.js';
 import { authCookieOptions, csrfCookieOptions } from './utils.js';
 import { askAssistant } from './services/assistantService.js';
+import { extractInjury, getInjuryHistory } from './services/extractorService.js';
 import { acceptExtraction } from './services/extractionService.js';
 import {
   createInjury,
@@ -47,14 +52,36 @@ import {
   deleteTreatmentOutcome,
 } from './services/treatmentOutcomeService.js';
 
+// Native clients opt in to a refresh token with a header. The gate is the
+// point: without it the browser's login response would grow a `refreshToken`
+// field, and a long-lived credential sitting in a JSON body is exactly the
+// thing someone eventually parks in localStorage -- which is the mistake
+// issue #8 moved the access token into an httpOnly cookie to avoid. A native
+// bundle has no DOM and stores it in the Keychain/Keystore instead, so the
+// two clients get two different, individually correct answers.
+const isNativeClient = (req) => req.get('x-client') === 'native';
+
 // POST /api/auth/register
 export const register = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await registerUser(email, password);
+    const result = await registerUser(email, password, {
+      withRefreshToken: isNativeClient(req),
+    });
+    const csrfToken = crypto.randomBytes(32).toString('hex');
 
-    res.status(201).json(user);
+    res.cookie('token', result.token, authCookieOptions);
+    res.cookie('csrfToken', csrfToken, csrfCookieOptions);
+
+    // `id` and `email` stay at the top level: that was the entire previous
+    // response body, and existing callers read `email` straight off it.
+    res.status(201).json({
+      ...result.user,
+      token: result.token,
+      csrfToken,
+      ...(result.refreshToken ? { refreshToken: result.refreshToken } : {}),
+    });
   } catch (error) {
     next(error);
   }
@@ -65,7 +92,9 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const result = await loginUser(email, password);
+    const result = await loginUser(email, password, {
+      withRefreshToken: isNativeClient(req),
+    });
     const csrfToken = crypto.randomBytes(32).toString('hex');
 
     res.cookie('token', result.token, authCookieOptions);
@@ -76,11 +105,48 @@ export const login = async (req, res, next) => {
   }
 };
 
+// GET /api/auth/me
+export const me = async (req, res, next) => {
+  try {
+    const user = await getUserById(req.userId);
+
+    // The token verified but its subject is gone. That is a dead session, not
+    // a missing resource, so it gets the same answer as a bad token.
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/refresh
+export const refresh = async (req, res, next) => {
+  try {
+    res.json(await refreshSession(req.body.refreshToken));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // POST /api/auth/logout
-export const logout = async (req, res) => {
-  res.clearCookie('token', authCookieOptions);
-  res.clearCookie('csrfToken', csrfCookieOptions);
-  res.status(204).send();
+export const logout = async (req, res, next) => {
+  try {
+    // Native clients send the refresh token back so the server can actually
+    // end the session. Cookie clients have nothing to send and don't need to:
+    // clearing the cookie is the whole of their logout.
+    if (req.body?.refreshToken) {
+      await revokeRefreshTokenFamily(req.body.refreshToken);
+    }
+
+    res.clearCookie('token', authCookieOptions);
+    res.clearCookie('csrfToken', csrfCookieOptions);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 };
 
 // DELETE /api/auth/me — removes the account and every record under it.
@@ -615,6 +681,28 @@ export const askAssistantController = async (req, res, next) => {
         icon: iconFor(citation?.label ?? citation?.sourceType),
       }));
     }
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extract
+export const extractInjuryController = async (req, res, next) => {
+  try {
+    const { status, data } = await extractInjury(req.token, req.body);
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/extract/injuries
+export const getInjuryHistoryController = async (req, res, next) => {
+  try {
+    const { status, data } = await getInjuryHistory(req.token);
 
     res.status(status).json(data);
   } catch (error) {

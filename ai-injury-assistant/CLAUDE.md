@@ -29,7 +29,13 @@ Do not introduce new retrieval infrastructure or an agent framework unless expli
 ## 3. Architecture
 
 Current path:
+`journal → whole record + computed summary figures → LLM → citations`
+
+Fallback when the journal exceeds `CONTEXT_TOKEN_BUDGET`:
 `journal → chunk → Python embeddings → pgvector → cosine retrieval → LLM → citations`
+
+The routing rule is request scope and size, not question keywords — see
+`docs/02-architecture.md` D13.
 
 - Safety checks MUST run before retrieval.
 - All LLM calls MUST go through `src/llm/llm-client.ts`.
@@ -156,9 +162,15 @@ dev:migrate:local` is the guarded entry point. `npm run dev:up` starts docker
 services and generates the client; it no longer migrates.
 
 `prisma/schema.prisma` still declares the journal models because Prisma Client
-needs them. They are a compatible subset of the real tables — notably
-`TreatmentOutcome` is not modelled, so treatment check-ins are invisible to
-ingestion and retrieval (the older `Treatment.outcome` string is not).
+needs them. They are a compatible subset of the real tables.
+
+`TreatmentOutcome` is now declared, so treatment check-ins (status, relief days,
+post-treatment pain) are readable by the whole-record path — that is what lets
+the assistant answer "did this course of injections keep working?" from the
+recorded series rather than from a doctor's note. **Ingestion still does not see
+them**: `document-builder.ts` chunks only the older free-text `Treatment.outcome`,
+so on the retrieval fallback path check-ins remain invisible. Worth closing if
+you touch ingestion.
 
 Both seed scripts refuse to touch the shared database. Do not weaken those
 guards; `seed-dev.ts` begins with a `TRUNCATE`.

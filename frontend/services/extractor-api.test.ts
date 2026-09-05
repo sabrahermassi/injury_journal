@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// extractor-api.ts reads NEXT_PUBLIC_EXTRACTOR_API_URL into a module-level
-// const at import time, so the env var must be set before the module is
-// evaluated — a dynamic import after setting it, rather than a static
-// import + vi.stubEnv, which runs too late relative to the hoisted static
-// import.
-process.env.NEXT_PUBLIC_EXTRACTOR_API_URL = "https://api.example.invalid";
+// extractor-api.ts imports services/api.ts, which reads NEXT_PUBLIC_API_URL
+// into a module-level const at import time (and throws if unset), so the
+// env var must be set before either module is evaluated — a dynamic import
+// after setting it, rather than a static import + vi.stubEnv, which runs
+// too late relative to the hoisted static import.
+process.env.NEXT_PUBLIC_API_URL = "https://api.example.invalid";
 const { extractInjury, getInjuryHistory } = await import("./extractor-api");
 
 const VALID_EXTRACTION_PAYLOAD = {

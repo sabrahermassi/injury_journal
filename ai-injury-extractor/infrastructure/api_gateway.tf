@@ -22,7 +22,8 @@ resource "aws_api_gateway_method" "extract_post" {
   rest_api_id = aws_api_gateway_rest_api.injury_api.id
   resource_id = aws_api_gateway_resource.extract.id
 
-  http_method   = "POST"
+  http_method = "POST"
+  # See the comment on injuries_get: the Lambda verifies auth itself.
   authorization = "NONE"
 }
 
@@ -30,9 +31,11 @@ resource "aws_api_gateway_method" "injuries_get" {
   rest_api_id = aws_api_gateway_rest_api.injury_api.id
   resource_id = aws_api_gateway_resource.injuries.id
 
-  http_method   = "GET"
-  # Development-only endpoint.
-  # Authentication and user-scoped access are handled by the consuming application.
+  http_method = "GET"
+  # Authorization stays "NONE" at the gateway; the Lambda itself verifies the
+  # caller's JWT and scopes DynamoDB reads to it (see lambda/handler.py
+  # get_user_id). This matches how ai-injury-assistant is fronted and avoids
+  # a separate Lambda authorizer for a single-function API.
   authorization = "NONE"
 }
 
@@ -100,6 +103,20 @@ resource "aws_api_gateway_stage" "dev" {
   deployment_id = aws_api_gateway_deployment.deployment.id
   rest_api_id   = aws_api_gateway_rest_api.injury_api.id
   stage_name    = "dev"
+}
+
+# Basic per-account throttle so a scripted retry loop can't run up Groq
+# costs or flood DynamoDB with junk writes (issue #60). Not per-user quotas
+# -- this stage has no API keys/usage plan -- just a sane ceiling.
+resource "aws_api_gateway_method_settings" "throttle" {
+  rest_api_id = aws_api_gateway_rest_api.injury_api.id
+  stage_name  = aws_api_gateway_stage.dev.stage_name
+  method_path = "*/*"
+
+  settings {
+    throttling_rate_limit  = 5
+    throttling_burst_limit = 10
+  }
 }
 
 resource "aws_api_gateway_method" "extract_options" {

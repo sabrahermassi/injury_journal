@@ -1,10 +1,31 @@
 import type { EntryCategory, EntryIconKey } from "@/lib/entry-art";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-if (!API_URL) {
+if (!CONFIGURED_API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined");
 }
+
+// In development the same dev server is reached two ways: as localhost from
+// this machine, and as a LAN IP from a phone on the same Wi-Fi. The API must be
+// called on whichever host served the page — the auth cookie is SameSite=Lax,
+// so a call from localhost:3000 to 192.168.x.x:3001 is cross-site and the
+// browser drops it, with nothing in the console explaining the 401. Only a
+// localhost host is rewritten, so a real deployed API URL is left alone.
+function resolveApiUrl(configured: string): string {
+  if (typeof window === "undefined") return configured;
+
+  const url = new URL(configured);
+
+  if (url.hostname === "localhost" && window.location.hostname !== "localhost") {
+    url.hostname = window.location.hostname;
+    return url.origin;
+  }
+
+  return configured;
+}
+
+const API_URL = resolveApiUrl(CONFIGURED_API_URL);
 
 export interface Injury {
   id: number;

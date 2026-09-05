@@ -1,0 +1,54 @@
+name: Mobile CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    name: Mobile (typecheck, lint, export)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+
+      - run: npx tsc --noEmit
+
+      - run: npx expo lint
+
+      # The real gate. A typecheck says nothing about Metro's resolver, so an
+      # import that TypeScript is happy with can still fail to bundle on a
+      # device. `export` runs the same bundling for both platforms.
+      #
+      # Deliberately NOT running EAS Build here: it compiles on hosted macOS /
+      # Linux runners and bills per build, so a PR-triggered one would burn
+      # credits on every push. Native builds stay manual.
+      - run: npx expo export --platform all --output-dir /tmp/mobile-export
+        env:
+          # Compiled into the bundle, so it must be set for the export to
+          # succeed -- src/api/client.ts throws at import time without it.
+          # Never a real address: CI only checks that the app builds.
+          EXPO_PUBLIC_API_URL: https://example.invalid

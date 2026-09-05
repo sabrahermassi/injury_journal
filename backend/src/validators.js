@@ -1,16 +1,23 @@
 import { z } from 'zod';
 
 // AUTH
+// Email is trimmed and lowercased so login isn't case- or whitespace-sensitive
+// against what register stored -- Postgres string equality is exact, and
+// nothing else in the stack normalizes this.
 export const registerSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
 
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
 
   password: z.string().min(1, 'Password is required'),
+});
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
 // INJURY
@@ -112,6 +119,12 @@ export const assistantAskSchema = z.object({
   question: z.string().min(1).max(10000),
 
   injuryId: z.number().int().positive().optional(),
+});
+
+// AI EXTRACTOR
+export const extractSchema = z.object({
+  // Matches the Lambda's own MAX_TEXT_LENGTH cap (ai-injury-extractor/lambda/handler.py).
+  text: z.string().min(1).max(5000),
 });
 
 // AI EXTRACTOR -> JOURNAL

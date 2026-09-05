@@ -139,7 +139,11 @@ export default function InsightsPage() {
   const { openNewEntry } = useNewEntry();
   const { injuries, loading: injuriesLoading } = useInjuries();
   const { treatments, loading, error } = useAllTreatmentOutcomes();
-  const { symptoms, error: symptomsError } = useAllSymptoms();
+  const {
+    symptoms,
+    loading: symptomsLoading,
+    error: symptomsError,
+  } = useAllSymptoms();
 
   const isLoading = injuriesLoading || loading;
 
@@ -222,7 +226,10 @@ export default function InsightsPage() {
               : "days since your first injury started"
           }
         />
-        <Stat value={String(symptoms.length)} label="pain check-ins logged" />
+        <Stat
+          value={symptomsLoading ? "—" : String(symptoms.length)}
+          label="pain check-ins logged"
+        />
         <Stat
           value={
             recentAveragePain === null ? "-" : recentAveragePain.toFixed(1)
@@ -251,6 +258,8 @@ export default function InsightsPage() {
                 <p className="py-8 text-sm text-muted-foreground">
                   Couldn&apos;t load pain levels - try refreshing.
                 </p>
+              ) : symptomsLoading ? (
+                <Skeleton className="h-44 w-full rounded-xl" />
               ) : (
                 <PainChart symptoms={symptoms} />
               )}
