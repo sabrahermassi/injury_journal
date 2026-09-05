@@ -177,6 +177,7 @@ Permissions:
 ```text
 dynamodb:PutItem
 dynamodb:Query
+secretsmanager:GetSecretValue
 ```
 
 Purpose:
@@ -224,15 +225,21 @@ Enable application logging and debugging.
 
 ## Groq API Access
 
-The Groq API key is provided through environment variables.
+The Groq API key is held in AWS Secrets Manager and read once per container,
+at cold start, by `load_groq_api_key()` in `handler.py`.
 
-Example:
+The Lambda's environment carries only the ARN of the secret:
 
 ```text
-GROQ_API_KEY
+GROQ_SECRET_ARN
 ```
 
-The key is never stored directly in source code.
+The key is never stored in source code, and deliberately never passed as an
+environment variable: Terraform records environment variable values in its state
+file in plaintext, so that route would expose the key to anyone able to read the
+state (issue #36). Terraform manages an empty secret — a container with no
+version — and the value is written into it out of band with the AWS CLI, so the
+value never enters a Terraform attribute.
 
 ---
 

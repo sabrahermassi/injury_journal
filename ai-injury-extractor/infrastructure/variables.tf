@@ -1,8 +1,3 @@
-variable "groq_api_key" {
-  type      = string
-  sensitive = true
-}
-
 variable "groq_model" {
   type    = string
   default = "openai/gpt-oss-20b"

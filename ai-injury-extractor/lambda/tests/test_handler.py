@@ -1,4 +1,5 @@
 import json
+import sys
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -52,6 +53,27 @@ VALID_EXTRACTION = {
     "symptoms": ["swelling", "bruising"],
     "possible_causes": ["twisted while running"],
 }
+
+
+class TestGroqCredentials:
+    def test_api_key_is_loaded_from_secrets_manager(self, handler_module):
+        """The key must come from Secrets Manager, not the environment —
+        Terraform stores env var values in its state in plaintext (issue #36)."""
+        assert handler_module.load_groq_api_key() == "test-groq-key"
+        assert handler_module.client.api_key == "test-groq-key"
+
+    def test_secrets_manager_wins_over_a_groq_api_key_env_var(
+        self, handler_module, monkeypatch
+    ):
+        """Re-import with GROQ_API_KEY set, which is what a revert to the old
+        os.environ["GROQ_API_KEY"] would look like. The Groq SDK also falls back
+        to that variable on its own when api_key is None, so this pins both."""
+        monkeypatch.setenv("GROQ_API_KEY", "env-key-that-must-be-ignored")
+
+        sys.modules.pop("handler", None)
+        import handler as reimported
+
+        assert reimported.client.api_key == "test-groq-key"
 
 
 class TestExtractInjuryValidation:

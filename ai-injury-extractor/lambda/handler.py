@@ -83,8 +83,23 @@ table = dynamodb.Table(
 # GROQ setup
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 
+
+def load_groq_api_key():
+    """Fetch the Groq key from Secrets Manager at cold start.
+
+    It is deliberately not a Lambda environment variable: Terraform records
+    environment variable values in its state file in plaintext, so passing the
+    key that way leaks it to anyone who can read the state (issue #36).
+    """
+    secrets = boto3.client("secretsmanager")
+
+    return secrets.get_secret_value(
+        SecretId=os.environ["GROQ_SECRET_ARN"]
+    )["SecretString"]
+
+
 client = Groq(
-    api_key=os.environ["GROQ_API_KEY"],
+    api_key=load_groq_api_key(),
     timeout=15.0,
     max_retries=0
 )

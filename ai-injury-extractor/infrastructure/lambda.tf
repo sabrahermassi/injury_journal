@@ -12,11 +12,14 @@ resource "aws_lambda_function" "injury_extractor" {
 
   role = aws_iam_role.lambda_role.arn
 
+  # GROQ_SECRET_ARN is the ARN, never the key itself: Terraform records
+  # environment variable values in its state file in plaintext (issue #36).
+  # handler.py resolves it via Secrets Manager at cold start.
   environment {
     variables = {
-      GROQ_API_KEY = var.groq_api_key
-      GROQ_MODEL = var.groq_model
-      DYNAMODB_TABLE = aws_dynamodb_table.injury_entries.name
+      GROQ_SECRET_ARN         = aws_secretsmanager_secret.groq_api_key.arn
+      GROQ_MODEL              = var.groq_model
+      DYNAMODB_TABLE          = aws_dynamodb_table.injury_entries.name
       EXTRACTOR_SHARED_SECRET = var.extractor_shared_secret
     }
   }

@@ -100,6 +100,11 @@ rationale; `docs/ROADMAP.md` for known gaps and planned work.
 - There is no CORS handling any more — this API has no browser caller, so
   don't reintroduce `CORS_HEADERS`/OPTIONS resources without first checking
   whether that assumption changed.
+- The Groq API key lives in AWS Secrets Manager and is fetched at cold start by
+  `load_groq_api_key()` in `lambda/handler.py`. Never reintroduce it as a Lambda
+  environment variable or any other Terraform-managed value — Terraform writes
+  those into its state file in plaintext (issue #36). `infrastructure/secrets.tf`
+  deliberately declares the secret with no `aws_secretsmanager_secret_version`.
 - Treat user-submitted injury text as untrusted input, not as trusted
   instructions to the LLM — it's currently interpolated directly into the
   Groq prompt with no delimiting/sanitization beyond a length check.

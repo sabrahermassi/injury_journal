@@ -128,12 +128,46 @@ cd lambda
 
 This installs Lambda dependencies into `package/`, zips `function.zip`, and
 runs `terraform apply` in `../infrastructure`. It requires AWS CLI
-credentials, Terraform, and `groq_api_key` and `extractor_shared_secret`
-Terraform variables (e.g. via `TF_VAR_groq_api_key`/`TF_VAR_extractor_shared_secret`
-or a gitignored `terraform.tfvars`). `extractor_shared_secret` must match the
-main app's `EXTRACTOR_SHARED_SECRET` (root `.env`) — it's how the Lambda
-verifies who's calling; generate one with
+credentials, Terraform, and an `extractor_shared_secret` Terraform variable
+(e.g. via `TF_VAR_extractor_shared_secret` or a gitignored `terraform.tfvars`).
+`extractor_shared_secret` must match the main app's `EXTRACTOR_SHARED_SECRET`
+(root `.env`) — it's how the Lambda verifies who's calling; generate one with
 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+
+### Storing the Groq API key
+
+The key is **not** a Terraform variable and **not** a Lambda environment
+variable — Terraform writes environment variable values into its state file in
+plaintext, which would leak the key to anyone who can read the state. Terraform
+instead creates an empty AWS Secrets Manager secret, and you write the value
+into it out of band:
+
+```bash
+aws secretsmanager put-secret-value \
+--secret-id injury-extractor/groq-api-key \
+--secret-string 'YOUR_GROQ_KEY'
+```
+
+Store the key as **plaintext**, exactly as above — not as a key/value pair. The
+Lambda uses the whole `SecretString` as the key, so a JSON object (what the AWS
+console's "Other type of secret" flow produces by default) is read literally and
+Groq rejects it with a 401.
+
+Run this straight after `terraform apply` on a stack that has no value stored
+yet — the first deploy, and again after any `terraform destroy`, since the
+secret is configured for immediate deletion with no recovery window. Until it is
+run the secret exists with no value, the Lambda fails at initialization, and
+every request errors (see Troubleshooting).
+
+If you deployed this stack before the key moved into Secrets Manager, delete the
+old plaintext copies once rotation is done: `infrastructure/terraform.tfvars`
+and any `TF_VAR_groq_api_key` export in your shell profile. Do **not** delete
+`infrastructure/terraform.tfstate` or `terraform.tfstate.backup` to do this —
+that's Terraform's live record of every resource this stack actually deployed,
+and removing it would make the next `apply` try to recreate real
+infrastructure from scratch. A stale `groq_api_key` entry in `terraform.tfvars`
+also refers to a variable this module no longer declares, and Terraform will
+flag it on the next apply.
 
 There is no CORS variable any more — this API has no browser caller.
 
@@ -209,12 +243,29 @@ aws lambda update-function-code \
 
 ---
 
-## Update Lambda environment variable
+## Rotate or change the Groq API key
+
+The key lives in Secrets Manager, so changing it needs no deploy — just a new
+secret value. The Lambda picks it up on its next cold start; force one sooner by
+re-deploying or touching the function configuration.
+
+```bash
+aws secretsmanager put-secret-value \
+--secret-id injury-extractor/groq-api-key \
+--secret-string 'YOUR_NEW_GROQ_KEY'
+```
+
+---
+
+## Update Lambda environment variables
+
+Note `GROQ_SECRET_ARN` — the ARN of the secret, not the key. All four must be
+passed: this command replaces the whole environment rather than merging into it.
 
 ```bash
 aws lambda update-function-configuration \
 --function-name injury-extractor \
---environment "Variables={GROQ_API_KEY=YOUR_KEY,GROQ_MODEL=openai/gpt-oss-20b,DYNAMODB_TABLE=InjuryEntries,EXTRACTOR_SHARED_SECRET=YOUR_SECRET}"
+--environment "Variables={GROQ_SECRET_ARN=arn:aws:secretsmanager:eu-north-1:ACCOUNT_ID:secret:injury-extractor/groq-api-key-SUFFIX,GROQ_MODEL=openai/gpt-oss-20b,DYNAMODB_TABLE=InjuryEntries,EXTRACTOR_SHARED_SECRET=YOUR_SECRET}"
 ```
 
 ---
@@ -242,7 +293,7 @@ aws logs tail /aws/lambda/injury-extractor --follow
 aws lambda invoke \
 --function-name injury-extractor \
 --cli-binary-format raw-in-base64-out \
---payload '{"httpMethod":"POST","headers":{"Authorization":"Bearer YOUR_JWT"},"body":"{\"text\":\"I have hip pain\"}"}' \
+--payload '{"httpMethod":"POST","headers":{"X-Extractor-Secret":"YOUR_SHARED_SECRET"},"body":"{\"userId\":\"1\",\"text\":\"I have hip pain\"}"}' \
 response.json
 
 cat response.json
@@ -283,9 +334,27 @@ Upload a new `function.zip` and verify the `LastModified` timestamp in the Lambd
 
 ### Groq returns 401
 
-- Verify `GROQ_API_KEY`
+- Confirm a key is stored, without printing it (the plain
+  `get-secret-value` response includes the key in plaintext):
+  `aws secretsmanager get-secret-value --secret-id injury-extractor/groq-api-key --query SecretString --output text | wc -c`
 - Test the API directly with `curl`
-- Confirm the key is active
+- Confirm the key is active in the Groq console
+- After storing a new value, the running Lambda container keeps using the old
+  key until its next cold start
+
+### API Gateway returns 502 and the browser reports a CORS error
+
+An initialization failure, not a request failure. The handler builds its
+`Access-Control-Allow-Origin` header per response, so when the module fails to
+import, API Gateway returns a bare 502 with no CORS headers and the browser
+surfaces it as a CORS error rather than the real cause.
+
+The usual reason is that the secret exists but has no value yet — run the
+`put-secret-value` command from "Storing the Groq API key" above. Confirm with:
+
+```bash
+aws logs tail /aws/lambda/injury-extractor --follow
+```
 
 ### API Gateway returns 500
 
