@@ -807,18 +807,6 @@ quoted), what else was considered, whether it still holds, and whether it should
 
 ### D10 — This backend does not own journal CRUD or authentication; a separate app does
 
-> **STATUS UPDATE (2026-08-31): the merge this decision anticipated has happened.**
-> The "separate journal application" is no longer separate — it is `backend/` in
-> this same repository, reached over HTTP. The decision itself still holds: this
-> service still does not own CRUD or auth, and still verifies JWTs that `backend/`
-> issues. Both now read the same database, and `backend/prisma/` owns the schema.
->
-> The consequence for the deviation below: it is now actionable. The journal app's
-> own injury list feeds the picker, so the stopgap `GET /injuries` here has no
-> consumer left and can be deleted (#195). Everything below describing the two apps
-> as separate deployments is still true; anything implying they are separate
-> *products* is not.
-
 - **DECISION:** This backend does not own `Injury` CRUD or authentication/session issuance; a
   separate existing Injury Journal application owns both. This repo remains AI/RAG/agent-only,
   consuming journal data as its source of truth and verifying identity via tokens issued by that
@@ -836,14 +824,17 @@ quoted), what else was considered, whether it still holds, and whether it should
   built). #50 (`[P10]` journal CRUD + auth endpoints) is closed as out-of-scope under this
   decision; #51 (`[P11]` conversation/thread concept) stays out of scope for now but remains open,
   deferred until frontend work actually starts.
-- **KNOWN TEMPORARY DEVIATION:** a read-only `GET /injuries` (`src/injuries/injuries-controller.ts`)
-  now exists, which this decision would otherwise place out of scope. It was added so the local
-  frontend could offer an injury picker rather than asking the user to type a raw database
-  `injuryId`. It is deliberately minimal — four fields, scoped to the authenticated `userId`, no
-  pagination, no CRUD — and is *not* a reversal of this decision: the separate journal
-  application's own `GET /injuries` supersedes it once the two applications merge, at which point
-  it is deleted. Tracked in #195; also flagged in `docs/05-api-contract.md` §1 and §6. Do not build
-  further endpoints on this precedent.
+
+  The "separate journal application" this decision names is no longer a separate product — it
+  merged into this same repository as `backend/`, reached over HTTP, with both apps reading the
+  same database (`backend/prisma/` owns the schema). The decision itself still holds: this service
+  still does not own CRUD or auth, and still verifies JWTs `backend/` issues.
+
+  That merge also resolved a temporary deviation this decision had allowed: a read-only
+  `GET /injuries` (`src/injuries/injuries-controller.ts`) existed for a while so the local frontend
+  could offer an injury picker without asking the user to type a raw database `injuryId`. Once the
+  merge landed, the journal app's own `GET /injuries` became the picker's real data source and the
+  stopgap had no consumer left — it has now been deleted (#74/#195).
 - **SHOULD THIS BE REVISITED:** Only if the "existing Injury Journal application" assumption turns
   out to be wrong (e.g. no such external app actually exists yet) — not expected based on the
   current product description.
