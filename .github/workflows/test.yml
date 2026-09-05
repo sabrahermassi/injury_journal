@@ -24,6 +24,31 @@ jobs:
       run:
         working-directory: backend
 
+    # Each run gets its own throwaway Postgres instead of sharing one Neon
+    # database across every concurrent job. That shared database (see #89) was
+    # the cause of two distinct flaky-CI signatures: a `migrate deploy`
+    # advisory-lock timeout when two jobs raced to migrate it at once, and
+    # foreign-key errors in cleanDatabase() when one job's rows were deleted
+    # mid-test by another job's cleanup. A private container per job removes
+    # both races rather than making them rarer. Same pattern as ai-ci.yml.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing_injury_journal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testing_injury_journal"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testing_injury_journal?schema=public
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,11 +65,8 @@ jobs:
 
       - name: Run database migrations
         run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run tests
         run: npm test
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}

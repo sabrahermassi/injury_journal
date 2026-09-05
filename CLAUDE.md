@@ -95,7 +95,7 @@ a React Native monorepo falls over. Don't fold subproject tooling into the root.
 - **Backend**: Node.js (ESM, `"type": "module"`), Express 5, Prisma 6 + PostgreSQL, JWT (`jsonwebtoken`), `bcrypt` for password hashing, `zod` for request validation, `helmet` + `cors` + `express-rate-limit` for hardening, `morgan` for request logging.
 - **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, `radix-ui`/shadcn components, `lucide-react` icons. See [`frontend/UI_GUIDE.md`](frontend/UI_GUIDE.md) for the design-token/component-pattern reference — read it before adding or changing UI.
 - **Testing**: Jest 30 + Supertest, run against a real Postgres test database (`.env.test`), not mocked.
-- **CI**: GitHub Actions (`.github/workflows/test.yml`) — runs `prisma migrate deploy` then `npm test` against a real `DATABASE_URL` secret on every push/PR to `main`.
+- **CI**: GitHub Actions (`.github/workflows/test.yml`) — runs `prisma migrate deploy` then `npm test` against a per-job ephemeral Postgres service container (`pgvector/pgvector:pg16`) on every push/PR to `main`, not a shared external database.
 
 ## 5. Running locally
 
