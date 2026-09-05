@@ -70,7 +70,8 @@ and so on. Map with `painLevel` → bucket:
   design's own pain ramp does *not* follow this rule (its swatches vary in
   lightness and rely on a fixed dark ink instead) — this project's ramp was
   re-hued into the same palette family rather than copied from it, specifically
-  to keep the constant-lightness/3:1 property.
+  to keep that constant-lightness intent (contrast not independently
+  verified — see Contrast below).
 - **Use it only for large numerals (≥ 24px) and graphical marks** — chart dots,
   sparkline endpoints, timeline marks. Never colour small text with a pain
   token; use `--foreground` or `--muted-foreground`.

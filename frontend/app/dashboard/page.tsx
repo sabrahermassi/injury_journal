@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronRight, PlusCircle } from "lucide-react";
@@ -16,7 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function greeting(hour: number) {
+function greeting(hour: number | null) {
+  if (hour === null) return "Welcome back";
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
@@ -28,15 +29,28 @@ export default function DashboardOverviewPage() {
   const { events, loading: eventsLoading, error: eventsError } = useAllTimelineEvents(injuries);
   const {
     symptoms,
+    loading: symptomsLoading,
     error: symptomsError,
     refresh: refreshSymptoms,
   } = useAllSymptoms(injuries);
   const { dueFollowUps, error: dueFollowUpsError } = useDueFollowUps(injuries);
   const [createOpen, setCreateOpen] = useState(false);
 
-  // Pinned once per mount -- reading the clock during render is impure, and
-  // the greeting has no business changing on an unrelated re-render.
-  const [hour] = useState(() => new Date().getHours());
+  // Rendered as null on both server and client so hydration matches, then
+  // filled in from the browser's own clock once mounted -- reading it during
+  // the initial render risks the server and client landing on different
+  // hours (and therefore a different greeting) if the request straddles the
+  // boundary or the two clocks simply disagree.
+  const [hour, setHour] = useState<number | null>(null);
+
+  useEffect(() => {
+    // The clock is a browser API, not derived from props/state -- there is
+    // nothing to synchronize this against, so the usual "compute during
+    // render instead" alternative the lint rule is guarding for doesn't
+    // apply here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHour(new Date().getHours());
+  }, []);
 
   const recent = useMemo(() => events.slice(0, 5), [events]);
 
@@ -149,6 +163,8 @@ export default function DashboardOverviewPage() {
                 <p className="py-8 text-sm text-muted-foreground">
                   Couldn&apos;t load pain levels — try refreshing.
                 </p>
+              ) : symptomsLoading ? (
+                <Skeleton className="h-44 w-full rounded-xl" />
               ) : (
                 <PainChart symptoms={symptoms} />
               )}

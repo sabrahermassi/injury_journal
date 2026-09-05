@@ -96,7 +96,7 @@
 
   --muted: #F6F3EE;
   --muted-foreground: #6E7269;               /* secondary text */
-  --muted-foreground-subtle: #8A8F86;        /* eyebrows, dates, ticks */
+  --muted-foreground-subtle: #697066;        /* eyebrows, dates, ticks */
 
   --accent: #E7EEE7;
   --accent-foreground: #3B5C4A;
@@ -109,7 +109,7 @@
      they read fine in a static mockup but fail the project's own 3:1 rule, so
      --input is a darker warm-neutral from the same family instead. */
   --border: #EFEAE2;
-  --input: #9B9284;
+  --input: #938B7D;
   --ring: #21382B;
 
   /* Constant lightness across the five steps (~L 0.55–0.60), same strategy as
@@ -173,7 +173,7 @@
   --destructive-foreground: oklch(0.192 0.011 175.7);
 
   --border: #332F27;
-  --input: #6B6355;
+  --input: #746B5C;
   --ring: #84A796;
 
   --pain-1: #96AC8C;
