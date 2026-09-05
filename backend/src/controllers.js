@@ -2,9 +2,19 @@ import crypto from 'node:crypto';
 import {
   register as registerUser,
   login as loginUser,
+  getUserById,
+  refreshSession,
+  revokeRefreshTokenFamily,
+  deleteAccount,
 } from './services/authService.js';
 import { authCookieOptions, csrfCookieOptions } from './utils.js';
+import { iconFor } from './entryIcons.js';
 import { askAssistant } from './services/assistantService.js';
+import { acceptExtraction } from './services/extractionService.js';
+import {
+  extractInjury,
+  getExtractionHistory,
+} from './services/extractorService.js';
 import {
   createInjury,
   getInjuries,
@@ -15,18 +25,21 @@ import {
 import {
   createTimelineEvent,
   getTimelineEvents,
+  getAllEventsForUser,
   updateTimelineEvent,
   deleteTimelineEvent,
 } from './services/timelineService.js';
 import {
   createSymptom,
   getSymptoms,
+  getAllSymptomsForUser,
   updateSymptom,
   deleteSymptom,
 } from './services/symptomService.js';
 import {
   createTreatment,
   getTreatments,
+  getAllTreatmentsForUser,
   updateTreatment,
   deleteTreatment,
 } from './services/treatmentService.js';
@@ -42,14 +55,36 @@ import {
   deleteTreatmentOutcome,
 } from './services/treatmentOutcomeService.js';
 
+// Native clients opt in to a refresh token with a header. The gate is the
+// point: without it the browser's login response would grow a `refreshToken`
+// field, and a long-lived credential sitting in a JSON body is exactly the
+// thing someone eventually parks in localStorage -- which is the mistake
+// issue #8 moved the access token into an httpOnly cookie to avoid. A native
+// bundle has no DOM and stores it in the Keychain/Keystore instead, so the
+// two clients get two different, individually correct answers.
+const isNativeClient = (req) => req.get('x-client') === 'native';
+
 // POST /api/auth/register
 export const register = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await registerUser(email, password);
+    const result = await registerUser(email, password, {
+      withRefreshToken: isNativeClient(req),
+    });
+    const csrfToken = crypto.randomBytes(32).toString('hex');
 
-    res.status(201).json(user);
+    res.cookie('token', result.token, authCookieOptions);
+    res.cookie('csrfToken', csrfToken, csrfCookieOptions);
+
+    // `id` and `email` stay at the top level: that was the entire previous
+    // response body, and existing callers read `email` straight off it.
+    res.status(201).json({
+      ...result.user,
+      token: result.token,
+      csrfToken,
+      ...(result.refreshToken ? { refreshToken: result.refreshToken } : {}),
+    });
   } catch (error) {
     next(error);
   }
@@ -60,7 +95,9 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const result = await loginUser(email, password);
+    const result = await loginUser(email, password, {
+      withRefreshToken: isNativeClient(req),
+    });
     const csrfToken = crypto.randomBytes(32).toString('hex');
 
     res.cookie('token', result.token, authCookieOptions);
@@ -71,11 +108,86 @@ export const login = async (req, res, next) => {
   }
 };
 
+// GET /api/auth/me
+export const me = async (req, res, next) => {
+  try {
+    const user = await getUserById(req.userId);
+
+    // The token verified but its subject is gone. That is a dead session, not
+    // a missing resource, so it gets the same answer as a bad token.
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/refresh
+export const refresh = async (req, res, next) => {
+  try {
+    res.json(await refreshSession(req.body.refreshToken));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // POST /api/auth/logout
-export const logout = async (req, res) => {
-  res.clearCookie('token', authCookieOptions);
-  res.clearCookie('csrfToken', csrfCookieOptions);
-  res.status(204).send();
+export const logout = async (req, res, next) => {
+  try {
+    // Native clients send the refresh token back so the server can actually
+    // end the session. Cookie clients have nothing to send and don't need to:
+    // clearing the cookie is the whole of their logout.
+    if (req.body?.refreshToken) {
+      await revokeRefreshTokenFamily(req.body.refreshToken);
+    }
+
+    res.clearCookie('token', authCookieOptions);
+    res.clearCookie('csrfToken', csrfCookieOptions);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/auth/me — removes the account and every record under it.
+// The session cookies go too: the token would otherwise stay valid until it
+// expires, pointing at a user row that no longer exists.
+export const deleteAccountController = async (req, res, next) => {
+  try {
+    const deleted = await deleteAccount(req.userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'User not found',
+      });
+    }
+
+    res.clearCookie('token', authCookieOptions);
+    res.clearCookie('csrfToken', csrfCookieOptions);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extractions/accept — files an AI extraction into the journal.
+export const acceptExtractionController = async (req, res, next) => {
+  try {
+    const result = await acceptExtraction(req.userId, req.body);
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'Injury not found',
+      });
+    }
+
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 // POST /api/injuries
@@ -177,6 +289,16 @@ export const createTimelineEventController = async (req, res, next) => {
 };
 
 // GET /api/injuries/:injuryId/events
+// GET /api/events — every timeline event the user has. See the note on
+// getAllSymptomsController for why there is no 404 branch.
+export const getAllEventsController = async (req, res, next) => {
+  try {
+    res.json(await getAllEventsForUser(req.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getTimelineEventsController = async (req, res, next) => {
   try {
     const events = await getTimelineEvents(
@@ -256,6 +378,17 @@ export const createSymptomController = async (req, res, next) => {
 };
 
 // GET /api/injuries/:injuryId/symptoms
+// GET /api/symptoms — every symptom the user has, across all their injuries.
+// No 404 branch: unlike the per-injury reads there is no parent to miss, and
+// a user with nothing logged legitimately gets an empty array.
+export const getAllSymptomsController = async (req, res, next) => {
+  try {
+    res.json(await getAllSymptomsForUser(req.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getSymptomsController = async (req, res, next) => {
   try {
     const symptoms = await getSymptoms(Number(req.params.injuryId), req.userId);
@@ -332,6 +465,16 @@ export const createTreatmentController = async (req, res, next) => {
 };
 
 // GET /api/injuries/:injuryId/treatments
+// GET /api/treatments — every treatment the user has, with its outcome
+// check-ins attached. See the note on getAllSymptomsController.
+export const getAllTreatmentsController = async (req, res, next) => {
+  try {
+    res.json(await getAllTreatmentsForUser(req.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getTreatmentsController = async (req, res, next) => {
   try {
     const treatments = await getTreatments(
@@ -530,6 +673,42 @@ export const deleteTreatmentOutcomeController = async (req, res, next) => {
 export const askAssistantController = async (req, res, next) => {
   try {
     const { status, data } = await askAssistant(req.token, req.body);
+
+    // The assistant is a separate service and knows nothing about icons, so
+    // its citations are stamped here on the way through. Same table as every
+    // other entry: a cited "Physiotherapy" draws what the timeline's
+    // "Physiotherapy" draws.
+    if (Array.isArray(data?.citations)) {
+      data.citations = data.citations.map((citation) => ({
+        ...citation,
+        icon: iconFor(citation?.label ?? citation?.sourceType),
+      }));
+    }
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/extractions/extract
+// The user id comes from the verified JWT, never from the request body — a
+// caller supplying their own would be choosing whose extraction history to
+// write into.
+export const extractInjuryController = async (req, res, next) => {
+  try {
+    const { status, data } = await extractInjury(req.userId, req.body);
+
+    res.status(status).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/extractions/history
+export const getExtractionHistoryController = async (req, res, next) => {
+  try {
+    const { status, data } = await getExtractionHistory(req.userId);
 
     res.status(status).json(data);
   } catch (error) {

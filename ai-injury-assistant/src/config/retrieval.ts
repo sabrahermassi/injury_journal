@@ -68,8 +68,36 @@ const INJURY_MATCH_FALLBACK_DISTANCE = parseNumberEnv(
   0.62,
 );
 
+// Ceiling on how much journal text may be assembled directly into a prompt
+// before the agent falls back to vector retrieval.
+//
+// The whole-record path exists because a single injury is small: measured
+// against the seeded dataset, the largest is ~1.8k tokens. Selecting a subset
+// of records within one injury therefore buys nothing and costs recall -- see
+// the distance-threshold problem in #122.
+//
+// The binding constraint is NOT the model's context window. gpt-oss-20b
+// advertises 131k, but the deployed Groq account is rate limited to 8000
+// tokens per minute (`x-ratelimit-limit-tokens`), and a request larger than
+// that bucket is rejected outright with HTTP 413 rather than queued. An entire
+// 10-injury journal measures ~10.3k tokens and fails that way; one injury
+// plus its summary figures is ~2k and succeeds.
+//
+// So this default is set from the account's limit, not the model's: it leaves
+// room within the same per-minute bucket for the system prompt, the question,
+// and the completion (which for a reasoning model includes tokens the answer
+// never shows). Journals above it fall back to retrieval, which is the case
+// vector search is genuinely for. Raise it via the environment if the account
+// tier changes -- re-check `x-ratelimit-limit-tokens` before doing so.
+const CONTEXT_TOKEN_BUDGET = parseNumberEnv(
+  'CONTEXT_TOKEN_BUDGET',
+  process.env.CONTEXT_TOKEN_BUDGET,
+  5000,
+);
+
 export {
   INJURY_MATCH_AMBIGUITY_MARGIN,
   MAX_MATCHED_INJURIES,
   INJURY_MATCH_FALLBACK_DISTANCE,
+  CONTEXT_TOKEN_BUDGET,
 };

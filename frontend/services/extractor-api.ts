@@ -1,6 +1,11 @@
-const API_URL = process.env.NEXT_PUBLIC_EXTRACTOR_API_URL;
-
+import { authFetch } from "@/services/api";
 import { InjuryExtraction, InjuryHistoryEntry } from "@/lib/injury-schema";
+
+// The extractor Lambda is no longer called from the browser. It has no auth of
+// its own that a browser could satisfy, and it used to file every extraction
+// under one shared user (issue #32) — so these go through this app's backend,
+// which authenticates the caller and proxies onward.
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -57,14 +62,11 @@ function isInjuryHistoryPayload(data: unknown): data is InjuryHistoryEntry[] {
 
 export async function extractInjury(text: string): Promise<InjuryExtraction> {
   if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_EXTRACTOR_API_URL is not configured");
+    throw new Error("NEXT_PUBLIC_API_URL is not configured");
   }
 
-  const response = await fetch(`${API_URL}/extract`, {
+  const response = await authFetch(`${API_URL}/api/extractions/extract`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({
       text,
     }),
@@ -91,10 +93,10 @@ export async function extractInjury(text: string): Promise<InjuryExtraction> {
 
 export async function getInjuryHistory(): Promise<InjuryHistoryEntry[]> {
   if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_EXTRACTOR_API_URL is not configured");
+    throw new Error("NEXT_PUBLIC_API_URL is not configured");
   }
 
-  const response = await fetch(`${API_URL}/injuries`);
+  const response = await authFetch(`${API_URL}/api/extractions/history`);
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "Failed to fetch injury history"));

@@ -22,7 +22,12 @@ resource "aws_api_gateway_method" "extract_post" {
   rest_api_id = aws_api_gateway_rest_api.injury_api.id
   resource_id = aws_api_gateway_resource.extract.id
 
-  http_method   = "POST"
+  http_method = "POST"
+
+  # "NONE" is API Gateway's own authorizer, not the absence of auth: the Lambda
+  # itself rejects any request without a matching X-Extractor-Secret (403). A
+  # gateway authorizer would have to be an IAM/Cognito/custom one, none of which
+  # fits a single trusted server-to-server caller.
   authorization = "NONE"
 }
 
@@ -30,9 +35,12 @@ resource "aws_api_gateway_method" "injuries_get" {
   rest_api_id = aws_api_gateway_rest_api.injury_api.id
   resource_id = aws_api_gateway_resource.injuries.id
 
-  http_method   = "GET"
-  # Development-only endpoint.
-  # Authentication and user-scoped access are handled by the consuming application.
+  http_method = "GET"
+
+  # "NONE" is API Gateway's own authorizer, not the absence of auth: the Lambda
+  # itself rejects any request without a matching X-Extractor-Secret (403). A
+  # gateway authorizer would have to be an IAM/Cognito/custom one, none of which
+  # fits a single trusted server-to-server caller.
   authorization = "NONE"
 }
 
@@ -74,11 +82,7 @@ resource "aws_api_gateway_deployment" "deployment" {
     redeployment = sha1(jsonencode([
       aws_api_gateway_resource.extract.id,
       aws_api_gateway_method.extract_post.id,
-      aws_api_gateway_method.extract_options.id,
       aws_api_gateway_integration.lambda.id,
-      aws_api_gateway_integration.extract_options.id,
-      aws_api_gateway_integration_response.extract_options.id,
-      var.allowed_origin,
 
       aws_api_gateway_resource.injuries.id,
       aws_api_gateway_method.injuries_get.id,
@@ -88,7 +92,7 @@ resource "aws_api_gateway_deployment" "deployment" {
 
   depends_on = [
     aws_api_gateway_integration.lambda,
-    aws_api_gateway_integration.extract_options
+    aws_api_gateway_integration.injuries_lambda
   ]
 
   lifecycle {
@@ -102,51 +106,16 @@ resource "aws_api_gateway_stage" "dev" {
   stage_name    = "dev"
 }
 
-resource "aws_api_gateway_method" "extract_options" {
-  rest_api_id   = aws_api_gateway_rest_api.injury_api.id
-  resource_id   = aws_api_gateway_resource.extract.id
-  http_method   = "OPTIONS"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "extract_options" {
+# Throttling. The backend's own extractorLimiter is the primary control, but
+# that only binds callers who come through the backend; this is the ceiling on
+# the API itself, so a leaked shared secret cannot mean unbounded Groq spend.
+resource "aws_api_gateway_method_settings" "throttle" {
   rest_api_id = aws_api_gateway_rest_api.injury_api.id
-  resource_id = aws_api_gateway_resource.extract.id
-  http_method = aws_api_gateway_method.extract_options.http_method
+  stage_name  = aws_api_gateway_stage.dev.stage_name
+  method_path = "*/*"
 
-  type = "MOCK"
-
-  request_templates = {
-    "application/json" = "{\"statusCode\": 200}"
+  settings {
+    throttling_rate_limit  = 5
+    throttling_burst_limit = 10
   }
-}
-
-resource "aws_api_gateway_method_response" "extract_options" {
-  rest_api_id = aws_api_gateway_rest_api.injury_api.id
-  resource_id = aws_api_gateway_resource.extract.id
-  http_method = aws_api_gateway_method.extract_options.http_method
-  status_code = "200"
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
-  }
-}
-
-resource "aws_api_gateway_integration_response" "extract_options" {
-  rest_api_id = aws_api_gateway_rest_api.injury_api.id
-  resource_id = aws_api_gateway_resource.extract.id
-  http_method = aws_api_gateway_method.extract_options.http_method
-  status_code = aws_api_gateway_method_response.extract_options.status_code
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
-    "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,POST,GET'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'${var.allowed_origin}'"
-  }
-
-  depends_on = [
-    aws_api_gateway_integration.extract_options
-  ]
 }

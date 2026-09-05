@@ -40,6 +40,7 @@ export const cleanDatabase = async () => {
   await prisma.symptom.deleteMany();
   await prisma.timelineEvent.deleteMany();
   await prisma.injury.deleteMany();
+  await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
 };
 

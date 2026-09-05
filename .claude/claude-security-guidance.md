@@ -57,7 +57,7 @@ content reaching either needs the same isolation treatment as everywhere else.
 ## Secrets and configuration
 
 - Secrets (`JWT_SECRET`, `DATABASE_URL`) must come from environment variables (`.env`, `.env.test`, or CI secrets) — never hardcoded.
-- Never commit `.env` or `.env.test` (already gitignored). Watch for accidental secret leakage through other checked-in files, such as `.http` scratch files with real tokens embedded (see `backend/requests_USER_*.http` — currently untracked but not gitignored by pattern; do not `git add -A` them).
+- Never commit `.env` or `.env.test` (already gitignored). Watch for accidental secret leakage through other checked-in files. REST Client scratch files are the known instance: `backend/.gitignore` ignores `*.http` by pattern so they cannot be committed, and their token variables must stay placeholders. The one tracked `.http`-adjacent file is `backend/requests.http.example`; never paste a real token or password into it.
 - Avoid exposing secrets through logs, error responses, tests, or generated files.
 
 ## Security review priorities
