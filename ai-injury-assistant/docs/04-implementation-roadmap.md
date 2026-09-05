@@ -130,10 +130,10 @@ Infrastructure as Code) — both are cloud-infra concepts with no local-codebase
 - [x] Consolidate `PrismaClient` instantiation behind `src/lib/prisma.ts` — `vector-storage.ts`,
   `journal-tool.ts`, `citation-source-mapper.ts`, and `citation-verifier.ts` now import the shared
   singleton instead of each constructing their own client. (#47)
-- [ ] Resolve the three unwired citation modules (`citation-verifier.ts`,
-  `citation-formatter.ts`, `citation-source-mapper.ts`) — either wire them into the response path
-  as #35 already plans, or remove them; two of the three only handle 2 of 5 valid `sourceType`
-  values (`treatment`, `medical_visit` — missing `symptom`, `timeline_event`, `injury`). (#124)
+- [x] Resolve the three unwired citation modules. `citation-verifier.ts` was extended to all 5
+  `sourceType` values and wired into `rag-service.ts` (#124); `citation-source-mapper.ts` was
+  retired as a redundant, ownership-unchecked overlap with it (#124); `citation-formatter.ts`
+  was retired as unwired display-formatting duplicated by the frontend (#75).
 - [x] Add `journal-tool.ts` test coverage — both `journalTool()` and `formatInjuryRecord()` are now
   covered in `tests/journal-tool.test.ts`. (#44)
 - [x] Surface `AgentState.intent` in the actual HTTP response — every `/ai-agent` response now
