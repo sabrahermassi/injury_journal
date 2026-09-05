@@ -8,6 +8,23 @@ import { PrismaClient } from '@prisma/client';
 
 export const prisma = new PrismaClient();
 
+// A thrown error whose statusCode reaches the client as-is via errorHandler.js
+// (`if (error.statusCode) ...`), instead of the service layer's message text
+// having to match a literal string errorHandler.js special-cases. That
+// string-matching was the actual bug in issue #19: reword the message (i18n,
+// tightening a security-relevant error) and the mapping breaks silently,
+// falling through to a generic 500 with no test failure to catch it unless a
+// test happens to assert the exact status code. Throw `new AppError(message,
+// statusCode)` from the service layer instead; errorHandler.js needs no
+// per-error-type change to honor it.
+export class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.name = 'AppError';
+    this.statusCode = statusCode;
+  }
+}
+
 // Prisma throws P2025 ("record not found") when an update or delete matches no
 // row. With the ownership filter folded into the mutation's own `where` — see
 // any service function here — that is precisely the "no such record, or not

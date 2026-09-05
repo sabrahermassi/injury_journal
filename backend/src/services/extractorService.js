@@ -1,3 +1,5 @@
+import { AppError } from '../utils.js';
+
 // Read per call, not once at module load — same reason as assistantService: at
 // module scope this resolves before a test can point it somewhere else.
 const extractorUrl = () => process.env.EXTRACTOR_API_URL;
@@ -22,9 +24,7 @@ const callExtractor = async (path, { method, body }) => {
   // Misconfiguration, not a bad request: fail loudly here rather than sending an
   // unauthenticated call that the Lambda would (correctly) reject as a 403.
   if (!baseUrl || !secret) {
-    const misconfigured = new Error('Extractor service unreachable');
-    misconfigured.statusCode = 503;
-    throw misconfigured;
+    throw new AppError('Extractor service unreachable', 503);
   }
 
   let response;
@@ -41,8 +41,7 @@ const callExtractor = async (path, { method, body }) => {
   } catch (error) {
     // The extractor is a separate, independently deployed service — it being
     // down is an upstream failure, not a bug in this request.
-    const unreachable = new Error('Extractor service unreachable');
-    unreachable.statusCode = 503;
+    const unreachable = new AppError('Extractor service unreachable', 503);
     unreachable.cause = error;
     throw unreachable;
   }
@@ -52,9 +51,7 @@ const callExtractor = async (path, { method, body }) => {
   try {
     data = await response.json();
   } catch {
-    const badResponse = new Error('Extractor service returned an invalid response');
-    badResponse.statusCode = 502;
-    throw badResponse;
+    throw new AppError('Extractor service returned an invalid response', 502);
   }
 
   // Pass the Lambda's own status and error body through rather than flattening
@@ -62,9 +59,7 @@ const callExtractor = async (path, { method, body }) => {
   // one exception is 403, which can only mean our own secret is wrong; that is
   // our misconfiguration to own, not something to blame on the user.
   if (response.status === 403) {
-    const rejected = new Error('Extractor service rejected this service');
-    rejected.statusCode = 502;
-    throw rejected;
+    throw new AppError('Extractor service rejected this service', 502);
   }
 
   return { status: response.status, data };

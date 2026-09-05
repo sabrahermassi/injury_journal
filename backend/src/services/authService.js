@@ -6,14 +6,10 @@ import {
   createRefreshToken,
   hashRefreshToken,
   REFRESH_TOKEN_TTL_MS,
+  AppError,
 } from '../utils.js';
 
-const unauthorized = (message) => {
-  const error = new Error(message);
-  error.statusCode = 401;
-
-  return error;
-};
+const unauthorized = (message) => new AppError(message, 401);
 
 // One row per rotation. `familyId` is stable across the whole chain that
 // descends from a single login, which is what makes reuse detection possible
@@ -44,7 +40,7 @@ export const register = async (email, password, { withRefreshToken = false } = {
   });
 
   if (existingUser) {
-    throw new Error('Email already registered');
+    throw new AppError('Email already registered', 400);
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -114,13 +110,13 @@ export const login = async (email, password, { withRefreshToken = false } = {}) 
   });
 
   if (!user) {
-    throw new Error('Invalid email or password');
+    throw new AppError('Invalid email or password', 401);
   }
 
   const passwordCorrect = await bcrypt.compare(password, user.password);
 
   if (!passwordCorrect) {
-    throw new Error('Invalid email or password');
+    throw new AppError('Invalid email or password', 401);
   }
 
   return {
