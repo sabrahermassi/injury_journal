@@ -1,13 +1,9 @@
 import { prisma } from '../utils.js';
+import { findOwnedResource } from './ownership.js';
 
 // Create treatment
 export const createTreatment = async (injuryId, userId, treatmentData) => {
-  const injury = await prisma.injury.findFirst({
-    where: {
-      id: injuryId,
-      userId,
-    },
-  });
+  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
 
   if (!injury) {
     return null;
@@ -23,12 +19,7 @@ export const createTreatment = async (injuryId, userId, treatmentData) => {
 
 // Get treatments
 export const getTreatments = async (injuryId, userId) => {
-  const injury = await prisma.injury.findFirst({
-    where: {
-      id: injuryId,
-      userId,
-    },
-  });
+  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
 
   if (!injury) {
     return null;
@@ -46,12 +37,9 @@ export const getTreatments = async (injuryId, userId) => {
 
 // Update treatment
 export const updateTreatment = async (id, userId, treatmentData) => {
-  const treatment = await prisma.treatment.findFirst({
-    where: {
-      id,
-      injury: {
-        userId,
-      },
+  const treatment = await findOwnedResource(prisma.treatment, id, {
+    injury: {
+      userId,
     },
   });
 
@@ -69,12 +57,9 @@ export const updateTreatment = async (id, userId, treatmentData) => {
 
 // Delete treatment
 export const deleteTreatment = async (id, userId) => {
-  const treatment = await prisma.treatment.findFirst({
-    where: {
-      id,
-      injury: {
-        userId,
-      },
+  const treatment = await findOwnedResource(prisma.treatment, id, {
+    injury: {
+      userId,
     },
   });
 
