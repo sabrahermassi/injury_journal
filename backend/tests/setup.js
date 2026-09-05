@@ -79,3 +79,72 @@ export const createTestInjury = async (token) => {
 
   return response.body;
 };
+
+export const createTestSymptom = async (token, injuryId) => {
+  const response = await request(app)
+    .post(`/api/injuries/${injuryId}/symptoms`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      location: 'Left hip',
+      painLevel: 7,
+      date: '2025-02-01T00:00:00.000Z',
+      notes: 'Pain after walking',
+    });
+
+  return response.body;
+};
+
+export const createTestTreatment = async (token, injuryId) => {
+  const response = await request(app)
+    .post(`/api/injuries/${injuryId}/treatments`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: 'Physiotherapy',
+      provider: 'Sports Clinic',
+      date: '2025-02-01T00:00:00.000Z',
+      cost: 100,
+      outcome: 'Reduced pain',
+    });
+
+  return response.body;
+};
+
+export const createTestMedicalVisit = async (token, injuryId) => {
+  const response = await request(app)
+    .post(`/api/injuries/${injuryId}/visits`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      doctor: 'Dr Smith',
+      clinic: 'Orthopedic Clinic',
+      date: '2025-02-07T00:00:00.000Z',
+      notes: 'Recommended MRI and physiotherapy',
+    });
+
+  return response.body;
+};
+
+export const createTestTimelineEvent = async (token, injuryId) => {
+  const response = await request(app)
+    .post(`/api/injuries/${injuryId}/events`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      type: 'Doctor visit',
+      description: 'MRI appointment',
+      date: '2025-02-01T00:00:00.000Z',
+    });
+
+  return response.body;
+};
+
+export const createTestTreatmentOutcome = async (token, treatmentId) => {
+  const response = await request(app)
+    .post(`/api/treatments/${treatmentId}/outcomes`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      status: 'Still helping',
+      reliefDays: 10,
+      painLevel: 3,
+    });
+
+  return response.body;
+};
