@@ -62,12 +62,14 @@ export function InjuryHistoryCard({ injury }: { injury: InjuryHistoryEntry }) {
   const data = injury.extractedData;
 
   return (
-    <Card>
+    <Card className="rounded-3xl">
       <CardHeader>
-        <CardDescription>Saved injury entry</CardDescription>
+        <CardDescription className="text-xs tracking-wide uppercase">
+          Saved injury entry
+        </CardDescription>
 
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Activity className="size-5 text-primary" />
+        <CardTitle className="flex items-center gap-2.5 font-serif text-2xl leading-tight font-normal">
+          <Activity className="size-5 flex-none text-accent-foreground" />
           {data.injury_name || "Unspecified injury"}
         </CardTitle>
       </CardHeader>
@@ -81,12 +83,14 @@ export function InjuryHistoryCard({ injury }: { injury: InjuryHistoryEntry }) {
           </Field>
 
           <Field icon={Gauge} label="Pain level">
-            <p className="text-sm font-medium">
-              {data.pain_level ?? "Not mentioned"}
-              {typeof data.pain_level === "number" && (
-                <span className="text-muted-foreground"> / 10</span>
-              )}
-            </p>
+            {typeof data.pain_level === "number" ? (
+              <p className="font-serif text-2xl leading-none text-foreground">
+                {data.pain_level}
+                <span className="text-sm text-muted-foreground"> / 10</span>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Not mentioned</p>
+            )}
           </Field>
         </div>
 

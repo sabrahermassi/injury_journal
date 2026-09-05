@@ -1,8 +1,29 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-if (!API_URL) {
+if (!CONFIGURED_API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined");
 }
+
+// In development the same dev server is reached two ways: as localhost from
+// this machine, and as a LAN IP from a phone on the same Wi-Fi. The API must be
+// called on whichever host served the page — the auth cookie is SameSite=Lax,
+// so a call from localhost:3000 to 192.168.x.x:3001 is cross-site and the
+// browser drops it, with nothing in the console explaining the 401. Only a
+// localhost host is rewritten, so a real deployed API URL is left alone.
+function resolveApiUrl(configured: string): string {
+  if (typeof window === "undefined") return configured;
+
+  const url = new URL(configured);
+
+  if (url.hostname === "localhost" && window.location.hostname !== "localhost") {
+    url.hostname = window.location.hostname;
+    return url.origin;
+  }
+
+  return configured;
+}
+
+const API_URL = resolveApiUrl(CONFIGURED_API_URL);
 
 export interface Injury {
   id: number;
@@ -75,11 +96,14 @@ function getCsrfToken(): string | null {
   return sessionStorage.getItem("csrfToken");
 }
 
-// There is no GET /api/auth/me — the only place the backend returns the
-// user's own record is the login response. Stashed alongside the CSRF token
-// so the UI has something real to show instead of a placeholder name; a hard
-// refresh with no re-login clears it, and callers should treat null as "we
-// don't know", not "signed out".
+// This is a read of the cache set alongside the CSRF token on login (and,
+// since issue #10, refreshed by fetchCurrentUser() below) — not itself a
+// server round trip. It exists so the UI has something real to show
+// immediately instead of a placeholder name; a hard refresh with no
+// intervening fetchCurrentUser() call clears it, and callers should treat
+// null as "we don't know", not "signed out". Anything that needs to actually
+// know whether the session is still valid — a route guard, for instance —
+// should call fetchCurrentUser() instead, which asks the server.
 export function getCurrentUser(): CurrentUser | null {
   if (typeof sessionStorage === "undefined") {
     return null;
@@ -93,6 +117,39 @@ export function getCurrentUser(): CurrentUser | null {
   } catch {
     return null;
   }
+}
+
+// Asks the backend who the httpOnly cookie actually belongs to, rather than
+// trusting the sessionStorage cache getCurrentUser() reads -- that cache is
+// only ever set as a side effect of login and is not itself proof of a live
+// session (it survives a token expiring, and disappears on a hard refresh
+// even when the cookie is still valid). This is what a route guard should
+// gate on instead: null means "the backend does not consider this request
+// authenticated," full stop, whatever sessionStorage happens to say.
+//
+// Also refreshes the sessionStorage cache on success, so a hard refresh that
+// cleared it (but not the cookie) repopulates it instead of leaving
+// useCurrentUser() stuck on null until the next login.
+export async function fetchCurrentUser(): Promise<CurrentUser | null> {
+  let response: Response;
+
+  try {
+    response = await authFetch(`${API_URL}/api/auth/me`);
+  } catch {
+    return null;
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const user = (await response.json()) as CurrentUser;
+
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.setItem("currentUser", JSON.stringify(user));
+  }
+
+  return user;
 }
 
 export async function authFetch(url: string, options: RequestInit = {}) {
@@ -263,7 +320,11 @@ export async function createSymptom(
   symptom: {
     date: string;
     painLevel: number;
-    location: string;
+    // Optional on the API too (symptomSchema in backend/src/validators.js) --
+    // a date and a level is a complete symptom, which is what the home
+    // screen's one-tap check-in sends. Omit it rather than sending "": the
+    // schema is `.min(1)`, so an empty string is rejected.
+    location?: string;
     trigger?: string;
     duration?: string;
     notes?: string;

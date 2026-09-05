@@ -1,21 +1,69 @@
-import { prisma } from '../utils.js';
+import { prisma, nullOnRecordNotFound, flattenInjuryName } from '../utils.js';
+import { iconFor, CATEGORIES } from '../entryIcons.js';
 import { findOwnedResource } from './ownership.js';
 
-// Create treatment
-export const createTreatment = async (injuryId, userId, treatmentData) => {
-  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
+// Create/update/delete carry the ownership predicate inside the statement that
+// writes, rather than proving it in a separate findFirst first (issue #21).
+// getTreatments below still does a real two-step check-then-list, and shares
+// that shape via ownership.js (issue #18) -- there's no mutation to race
+// against.
 
-  if (!injury) {
-    return null;
-  }
-
-  return prisma.treatment.create({
-    data: {
-      ...treatmentData,
-      injuryId,
+// Every treatment the user has, each with its outcome check-ins attached.
+//
+// The outcomes come along deliberately: the insights page needs them, and
+// fetching them separately cost one request per treatment on top of one per
+// injury -- 37 requests for this account before the page could render. See the
+// note on getAllSymptomsForUser.
+export const getAllTreatmentsForUser = async (userId) => {
+  const treatments = await prisma.treatment.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'asc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
+      outcomes: {
+        orderBy: {
+          recordedAt: 'asc',
+        },
+      },
     },
   });
+
+  // Matched on the name alone: two courses of "Physiotherapy" must draw the
+  // same picture whatever their provider, cost or notes say.
+  return treatments.map((treatment) => ({
+    ...flattenInjuryName(treatment),
+    icon: iconFor(treatment.name),
+    category: CATEGORIES.TREATMENT,
+  }));
 };
+
+// Create treatment
+// `connect` on the @@unique([id, userId]) rather than a bare injuryId: an
+// injury that is not this user's simply does not match, so there is no window
+// in which the parent could change hands between the check and the insert.
+export const createTreatment = async (injuryId, userId, treatmentData) =>
+  nullOnRecordNotFound(() =>
+    prisma.treatment.create({
+      data: {
+        ...treatmentData,
+        injury: {
+          connect: {
+            id_userId: { id: injuryId, userId },
+          },
+        },
+      },
+    })
+  );
 
 // Get treatments
 export const getTreatments = async (injuryId, userId) => {
@@ -28,6 +76,9 @@ export const getTreatments = async (injuryId, userId) => {
   return prisma.treatment.findMany({
     where: {
       injuryId,
+      injury: {
+        userId,
+      },
     },
     orderBy: {
       date: 'asc',
@@ -36,40 +87,28 @@ export const getTreatments = async (injuryId, userId) => {
 };
 
 // Update treatment
-export const updateTreatment = async (id, userId, treatmentData) => {
-  const treatment = await findOwnedResource(prisma.treatment, id, {
-    injury: {
-      userId,
-    },
-  });
-
-  if (!treatment) {
-    return null;
-  }
-
-  return prisma.treatment.update({
-    where: {
-      id,
-    },
-    data: treatmentData,
-  });
-};
+export const updateTreatment = async (id, userId, treatmentData) =>
+  nullOnRecordNotFound(() =>
+    prisma.treatment.update({
+      where: {
+        id,
+        injury: {
+          userId,
+        },
+      },
+      data: treatmentData,
+    })
+  );
 
 // Delete treatment
-export const deleteTreatment = async (id, userId) => {
-  const treatment = await findOwnedResource(prisma.treatment, id, {
-    injury: {
-      userId,
-    },
-  });
-
-  if (!treatment) {
-    return null;
-  }
-
-  return prisma.treatment.delete({
-    where: {
-      id,
-    },
-  });
-};
+export const deleteTreatment = async (id, userId) =>
+  nullOnRecordNotFound(() =>
+    prisma.treatment.delete({
+      where: {
+        id,
+        injury: {
+          userId,
+        },
+      },
+    })
+  );

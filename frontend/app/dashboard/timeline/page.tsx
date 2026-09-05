@@ -2,15 +2,28 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Activity, Pill, Stethoscope, CalendarClock, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { useInjuries } from "@/components/dashboard/injuries-provider";
 import { useAllTimelineEvents } from "@/hooks/use-timeline-events";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-const selectClassName =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+// `type` is a free-text field (backend/src/validators.js), not a fixed enum
+// -- these three are what the app's own forms write, everything else falls
+// back to a generic icon rather than assuming the set is closed.
+const TYPE_ICONS: Record<string, LucideIcon> = {
+  symptom: Activity,
+  treatment: Pill,
+  visit: Stethoscope,
+};
+
+function iconForType(type: string) {
+  return TYPE_ICONS[type.toLowerCase()] ?? CalendarClock;
+}
 
 export default function TimelinePage() {
   const router = useRouter();
@@ -32,33 +45,46 @@ export default function TimelinePage() {
   );
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Everything logged, across every injury, oldest choices and all.
-        </p>
+    <main className="flex flex-1 flex-col gap-7 p-4 md:p-11">
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div>
+          <h2 className="font-serif text-4xl leading-tight font-light tracking-tight text-foreground md:text-[42px]">
+            Timeline
+          </h2>
+          <p className="mt-3 text-[15.5px] leading-relaxed text-muted-foreground">
+            Everything logged, across every injury, oldest choices and all.
+          </p>
+        </div>
 
         {types.length > 0 && (
-          <select
-            className={selectClassName}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="all">All types</option>
-            {types.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            {["all", ...types].map((type) => {
+              const active = typeFilter === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTypeFilter(type)}
+                  className={cn(
+                    "h-11 rounded-full px-4.5 text-[13.5px] font-medium capitalize transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-popover text-muted-foreground ring-1 ring-border hover:text-foreground",
+                  )}
+                >
+                  {type === "all" ? "All" : type}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-20 rounded-xl" />
-          <Skeleton className="h-20 rounded-xl" />
-          <Skeleton className="h-20 rounded-xl" />
+        <div className="space-y-3.5">
+          <Skeleton className="h-24 rounded-[22px]" />
+          <Skeleton className="h-24 rounded-[22px]" />
+          <Skeleton className="h-24 rounded-[22px]" />
         </div>
       ) : error ? (
         <Card>
@@ -80,34 +106,75 @@ export default function TimelinePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
-          {filtered.map((event) => (
-            <Card key={`${event.injuryId}-${event.id}`}>
-              <CardContent className="flex items-start justify-between gap-4">
-                <div className="space-y-0.5">
-                  <p className="font-medium">{event.type}</p>
-                  <p className="text-sm">{event.description}</p>
-                  {event.result && (
-                    <p className="text-sm text-muted-foreground">
-                      Result: {event.result}
-                    </p>
-                  )}
+        <div className="flex flex-col gap-3.5">
+          {filtered.map((event) => {
+            const eventDate = new Date(event.date);
+            const Icon = iconForType(event.type);
+
+            return (
+              <div
+                key={`${event.injuryId}-${event.id}`}
+                className="flex items-stretch"
+              >
+                <div className="w-16 flex-none pt-5 md:w-26">
+                  <p className="text-sm leading-tight font-semibold text-foreground/80">
+                    {eventDate.toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                  <p className="mt-1 text-xs leading-tight text-muted-foreground">
+                    {eventDate.getFullYear()}
+                  </p>
                 </div>
 
-                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(event.date).toLocaleDateString()}
-                  </span>
-                  <button
-                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-                    onClick={() => router.push(`/dashboard/injuries/${event.injuryId}`)}
-                  >
-                    {event.injuryName}
-                  </button>
+                <div className="flex w-5.5 flex-none justify-center">
+                  <div className="w-px bg-border" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/dashboard/injuries/${event.injuryId}`)
+                  }
+                  className="flex min-w-0 flex-1 items-center gap-4 rounded-[22px] bg-card px-5.5 py-5 text-left ring-1 ring-border transition-colors hover:bg-accent/40 md:gap-4.5"
+                >
+                  <div className="flex size-11 flex-none items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <Icon className="size-[18px]" aria-hidden="true" />
+                  </div>
+
+                  {/* Stacked on a narrow screen, side by side from md up --
+                      the design's fixed 300px title column would squeeze the
+                      description to nothing on a phone. */}
+                  <div className="flex min-w-0 flex-1 flex-col gap-1 md:flex-row md:items-center md:gap-4.5">
+                    <div className="min-w-0 md:w-[220px] md:flex-none">
+                      <p className="truncate font-serif text-[19px] leading-tight font-medium text-foreground capitalize">
+                        {event.type}
+                      </p>
+                      <p className="mt-1 truncate text-[12.5px] text-muted-foreground">
+                        {event.injuryName}
+                      </p>
+                    </div>
+
+                    <p className="min-w-0 flex-1 text-sm leading-relaxed text-pretty text-foreground/80">
+                      {event.description}
+                    </p>
+                  </div>
+
+                  {event.result && (
+                    <span className="hidden flex-none rounded-full bg-muted px-3.5 py-2 text-[12.5px] font-medium text-muted-foreground lg:inline">
+                      {event.result}
+                    </span>
+                  )}
+
+                  <ChevronRight
+                    className="size-4 flex-none text-muted-foreground-subtle"
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </main>

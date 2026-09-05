@@ -16,4 +16,7 @@ src/generated/prisma/
 .claude/
 .windsurf/
 
-requests.http
+# REST Client scratch files: these hold real JWTs pasted from login
+# responses. Only requests.http.example (placeholders only) is tracked --
+# it ends in .example, so this pattern never matches it.
+*.http

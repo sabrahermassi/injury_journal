@@ -1,26 +1,71 @@
-import { prisma } from '../utils.js';
+import { prisma, nullOnRecordNotFound, flattenInjuryName } from '../utils.js';
+import { iconFor, categoryFor } from '../entryIcons.js';
 import { findOwnedResource } from './ownership.js';
 
-// Create timeline event
-export const createTimelineEvent = async (injuryId, userId, eventData) => {
-  // Check injury belongs to user
-  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
+// Create/update/delete carry the ownership predicate inside the statement that
+// writes, rather than proving it in a separate findFirst first (issue #21).
+// getTimelineEvents below still does a real two-step check-then-list, and
+// shares that shape via ownership.js (issue #18) -- there's no mutation to
+// race against.
 
-  if (!injury) {
-    return null;
-  }
-
-  const event = await prisma.timelineEvent.create({
-    data: {
-      ...eventData,
-      injuryId,
+// Every timeline event the user has, newest first. See the note on
+// getAllSymptomsForUser for why the per-injury fan-out was replaced.
+export const getAllEventsForUser = async (userId) => {
+  const events = await prisma.timelineEvent.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'desc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
-  return event;
+  // Matched on `type` alone. Including the description is what made this
+  // inconsistent before: two `doctor_visit` rows drew different icons because
+  // one of them happened to mention physical therapy.
+  return events.map((event) => ({
+    ...flattenInjuryName(event),
+    icon: iconFor(event.type),
+    category: categoryFor(event.type),
+  }));
 };
 
+// Create timeline event
+//
+// `connect` on the @@unique([id, userId]) rather than a bare injuryId: an
+// injury that is not this user's simply does not match, so there is no window
+// in which the parent could change hands between the check and the insert.
+export const createTimelineEvent = async (injuryId, userId, eventData) =>
+  nullOnRecordNotFound(() =>
+    prisma.timelineEvent.create({
+      data: {
+        ...eventData,
+        injury: {
+          connect: {
+            id_userId: { id: injuryId, userId },
+          },
+        },
+      },
+    })
+  );
+
 // Get timeline events
+//
+// This one keeps two queries. The contract distinguishes `null` (no such
+// injury, or not yours -> 404) from `[]` (yours, but nothing recorded -> 200),
+// and a single findMany cannot tell those apart -- it returns `[]` for both.
+// The ownership filter still goes on the read, so if the injury did change
+// hands mid-request the answer is an empty list rather than another user's
+// events.
 export const getTimelineEvents = async (injuryId, userId) => {
   const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
 
@@ -31,6 +76,9 @@ export const getTimelineEvents = async (injuryId, userId) => {
   const events = await prisma.timelineEvent.findMany({
     where: {
       injuryId,
+      injury: {
+        userId,
+      },
     },
     orderBy: {
       date: 'asc',
@@ -41,44 +89,28 @@ export const getTimelineEvents = async (injuryId, userId) => {
 };
 
 // Update timeline event
-export const updateTimelineEvent = async (id, userId, eventData) => {
-  const event = await findOwnedResource(prisma.timelineEvent, id, {
-    injury: {
-      userId,
-    },
-  });
-
-  if (!event) {
-    return null;
-  }
-
-  const updatedEvent = await prisma.timelineEvent.update({
-    where: {
-      id,
-    },
-    data: eventData,
-  });
-
-  return updatedEvent;
-};
+export const updateTimelineEvent = async (id, userId, eventData) =>
+  nullOnRecordNotFound(() =>
+    prisma.timelineEvent.update({
+      where: {
+        id,
+        injury: {
+          userId,
+        },
+      },
+      data: eventData,
+    })
+  );
 
 // Delete timeline event
-export const deleteTimelineEvent = async (id, userId) => {
-  const event = await findOwnedResource(prisma.timelineEvent, id, {
-    injury: {
-      userId,
-    },
-  });
-
-  if (!event) {
-    return null;
-  }
-
-  const deletedEvent = await prisma.timelineEvent.delete({
-    where: {
-      id,
-    },
-  });
-
-  return deletedEvent;
-};
+export const deleteTimelineEvent = async (id, userId) =>
+  nullOnRecordNotFound(() =>
+    prisma.timelineEvent.delete({
+      where: {
+        id,
+        injury: {
+          userId,
+        },
+      },
+    })
+  );

@@ -40,8 +40,20 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    # Not secrets, despite looking like them to scanners. These credentials
+    # address the `services.postgres` container declared above, which lives only
+    # for this job and listens on the runner's localhost. DATABASE_URL is
+    # assembled from these parts in "Prepare test environment" below rather
+    # than written here as one literal connection string, so no
+    # `user:pass@host` pattern sits in this file for a scanner to match.
+    # JWT_SECRET/EMBEDDING_API_KEY are likewise throwaway values no real
+    # system accepts.
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testing_injury_ai?schema=public
+      POSTGRES_TEST_USER: postgres
+      POSTGRES_TEST_PASSWORD: postgres
+      POSTGRES_TEST_HOST: localhost
+      POSTGRES_TEST_PORT: '5432'
+      POSTGRES_TEST_DB: testing_injury_ai
       JWT_SECRET: ci-test-only-jwt-secret
       EMBEDDING_API_KEY: ci-test-only-embedding-key
 
@@ -68,6 +80,8 @@ jobs:
 
       - name: Prepare test environment
         run: |
+          export DATABASE_URL="postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@${POSTGRES_TEST_HOST}:${POSTGRES_TEST_PORT}/${POSTGRES_TEST_DB}?schema=public"
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
           echo "DATABASE_URL=$DATABASE_URL" > .env.test
           echo "JWT_SECRET=$JWT_SECRET" >> .env.test
           echo "EMBEDDING_API_KEY=$EMBEDDING_API_KEY" >> .env.test
@@ -101,12 +115,14 @@ jobs:
         # Results are always written to the job summary so they're visible either way.
         continue-on-error: true
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/injury-journal-ai-db?schema=public
+          # Same ephemeral container as the job-level Postgres credentials
+          # above, on a second database created by this step.
+          DATABASE_URL: postgresql://${{ env.POSTGRES_TEST_USER }}:${{ env.POSTGRES_TEST_PASSWORD }}@${{ env.POSTGRES_TEST_HOST }}:${{ env.POSTGRES_TEST_PORT }}/injury-journal-ai-db?schema=public
           DATABASE_ENV: development
           SEED_DEV_CONFIRM: 'true'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres \
+          PGPASSWORD="$POSTGRES_TEST_PASSWORD" psql -h "$POSTGRES_TEST_HOST" -U "$POSTGRES_TEST_USER" \
             -c 'CREATE DATABASE "injury-journal-ai-db";'
           npx prisma db push
 

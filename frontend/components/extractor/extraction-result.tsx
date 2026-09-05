@@ -1,19 +1,5 @@
-import {
-  Activity,
-  Crosshair,
-  Gauge,
-  ListChecks,
-  Stethoscope,
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Crosshair, Gauge, ListChecks, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import type { InjuryExtraction } from "@/lib/injury-schema";
 
 function Field({
@@ -29,7 +15,7 @@ function Field({
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="size-4" aria-hidden="true" />
-        <span className="text-xs font-medium uppercase tracking-wide">
+        <span className="text-xs font-medium tracking-wide uppercase">
           {label}
         </span>
       </div>
@@ -53,53 +39,48 @@ function BadgeList({ items, empty }: { items: string[]; empty: string }) {
   );
 }
 
+// Rendered inside the "Extracted summary" panel in injury-extractor.tsx, so
+// this owns no card/heading of its own -- the panel supplies both.
 export function ExtractionResult({ result }: { result: InjuryExtraction }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription>Extracted result</CardDescription>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Activity className="size-5 text-primary" aria-hidden="true" />
-          {result.injuryName || "Unspecified injury"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field icon={Crosshair} label="Body area">
-            <p className="text-sm font-medium text-foreground">
-              {result.bodyArea || "Not specified"}
+    <div className="flex flex-col gap-5 px-[22px] pb-6">
+      <p className="font-serif text-2xl leading-tight text-foreground">
+        {result.injuryName || "Unspecified injury"}
+      </p>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field icon={Crosshair} label="Body area">
+          <p className="text-sm font-medium text-foreground">
+            {result.bodyArea || "Not specified"}
+          </p>
+        </Field>
+
+        <Field icon={Gauge} label="Pain level">
+          {typeof result.painLevel === "number" ? (
+            <p className="font-serif text-2xl leading-none text-foreground">
+              {result.painLevel}
+              <span className="text-sm text-muted-foreground"> / 10</span>
             </p>
-          </Field>
-          <Field icon={Gauge} label="Pain level">
-            {typeof result.painLevel === "number" ? (
-              <p className="text-sm font-medium text-foreground">
-                {result.painLevel}
-                <span className="text-muted-foreground"> / 10</span>
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Not mentioned</p>
-            )}
-          </Field>
-        </div>
-
-        <Separator />
-
-        <Field icon={ListChecks} label="Symptoms">
-          <BadgeList items={result.symptoms} empty="No symptoms detected." />
+          ) : (
+            <p className="text-sm text-muted-foreground">Not mentioned</p>
+          )}
         </Field>
+      </div>
 
-        <Field icon={Stethoscope} label="Possible causes">
-          <BadgeList
-            items={result.possibleCauses}
-            empty="No causes detected."
-          />
-        </Field>
+      <div className="h-px bg-border" />
 
-        <p className="text-xs text-muted-foreground text-pretty">
-          This is an automated extraction for informational purposes only and is
-          not a medical diagnosis.
-        </p>
-      </CardContent>
-    </Card>
+      <Field icon={ListChecks} label="Symptoms">
+        <BadgeList items={result.symptoms} empty="No symptoms detected." />
+      </Field>
+
+      <Field icon={Stethoscope} label="Possible causes">
+        <BadgeList items={result.possibleCauses} empty="No causes detected." />
+      </Field>
+
+      <p className="text-xs text-muted-foreground-subtle text-pretty">
+        This is an automated extraction for informational purposes only and is
+        not a medical diagnosis.
+      </p>
+    </div>
   );
 }

@@ -1,22 +1,19 @@
-// Cross-user data isolation is the single most security-critical invariant in
-// this app (see .claude/claude-security-guidance.md, "Authorization and data
-// ownership"). Before this helper existed, every update/delete function across
-// injury/timeline/symptom/treatment/medicalVisit(/treatmentOutcome) services
-// repeated the same shape by hand: findFirst with an ownership filter, return
-// null if not found, otherwise mutate by bare id. Centralizing it here means a
-// future change to how the check works lands in one place instead of ~19
-// (issue #18).
+// Several read functions across these services follow the same shape: does
+// the parent resource (an Injury, or a Treatment for its outcomes) exist and
+// belong to this user, before listing what hangs off it (issue #18).
+//
+// This is deliberately NOT used for create/update/delete. Those used to
+// follow the same "check first, then mutate by bare id" shape, but that had a
+// TOCTOU gap -- the row could change hands between the check and the mutation
+// (issue #21) -- so they now fold the ownership check into the mutation's own
+// `where`/`connect` and rely on `nullOnRecordNotFound` (utils.js) instead. A
+// read has no second step to race against, so the two-query shape here is
+// fine.
 //
 // `ownershipWhere` is a plain Prisma where-fragment, not a relation-path
 // string to parse: every call site already knows its exact ownership shape
 // (`{ userId }` for a direct column, `{ injury: { userId } }` for a one-hop
-// relation, `{ treatment: { injury: { userId } } }` for two hops), so it can
-// just pass that fragment straight through.
-//
-// Returns the record or null -- it does not throw -- so callers keep the
-// existing `if (!x) return null` -> controller `404` pattern (CLAUDE.md §7:
-// 404 for both "doesn't exist" and "belongs to someone else", deliberately,
-// to avoid leaking existence of other users' records).
+// relation), so it can just pass that fragment straight through.
 export const findOwnedResource = (model, id, ownershipWhere) =>
   model.findFirst({
     where: {

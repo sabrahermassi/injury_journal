@@ -1,4 +1,11 @@
-const ASSISTANT_URL = process.env.AI_ASSISTANT_URL || 'http://localhost:3002';
+import { AppError } from '../utils.js';
+
+// Read per call, not once at module load. At module scope this resolved before
+// any test could point it somewhere else, so `assistant.test.js` — which sets
+// AI_ASSISTANT_URL to a closed port precisely so its "unreachable" case cannot
+// reach a real service — quietly kept talking to localhost:3002 and got a 401
+// from it instead of the 503 it was asserting. Same fix as extractorService.
+const assistantUrl = () => process.env.AI_ASSISTANT_URL || 'http://localhost:3002';
 
 // Thin proxy to the AI assistant service (ai-injury-assistant/).
 //
@@ -18,7 +25,7 @@ export const askAssistant = async (token, { question, injuryId }) => {
   let response;
 
   try {
-    response = await fetch(`${ASSISTANT_URL}/ai-agent`, {
+    response = await fetch(`${assistantUrl()}/ai-agent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -29,8 +36,7 @@ export const askAssistant = async (token, { question, injuryId }) => {
   } catch (error) {
     // The assistant is a separate, independently deployed service — it being
     // down is an upstream failure, not a bug in this request.
-    const unreachable = new Error('Assistant service unreachable');
-    unreachable.statusCode = 503;
+    const unreachable = new AppError('Assistant service unreachable', 503);
     unreachable.cause = error;
     throw unreachable;
   }
@@ -40,9 +46,7 @@ export const askAssistant = async (token, { question, injuryId }) => {
   try {
     data = await response.json();
   } catch {
-    const badResponse = new Error('Assistant service returned an invalid response');
-    badResponse.statusCode = 502;
-    throw badResponse;
+    throw new AppError('Assistant service returned an invalid response', 502);
   }
 
   // Pass the assistant's own status and error body through rather than

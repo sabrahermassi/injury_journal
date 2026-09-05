@@ -1,6 +1,7 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AuthGuard } from "@/components/dashboard/auth-guard";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { InjuriesProvider } from "@/components/dashboard/injuries-provider";
 
@@ -10,16 +11,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <InjuriesProvider>
-      <SidebarProvider>
-        <AppSidebar />
+    <AuthGuard>
+      <InjuriesProvider>
+        <SidebarProvider>
+          <AppSidebar />
 
-        <SidebarInset>
-          <DashboardHeader />
+          <SidebarInset>
+            <DashboardHeader />
 
-          {children}
-        </SidebarInset>
-      </SidebarProvider>
-    </InjuriesProvider>
+            {children}
+          </SidebarInset>
+        </SidebarProvider>
+      </InjuriesProvider>
+    </AuthGuard>
   );
 }

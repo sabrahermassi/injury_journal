@@ -3,6 +3,9 @@ import {
   register,
   login,
   logout,
+  me,
+  refresh,
+  deleteAccountController,
   createInjuryController,
   getInjuriesController,
   getInjuryController,
@@ -10,14 +13,17 @@ import {
   deleteInjuryController,
   createTimelineEventController,
   getTimelineEventsController,
+  getAllEventsController,
   updateTimelineEventController,
   deleteTimelineEventController,
   createSymptomController,
   getSymptomsController,
+  getAllSymptomsController,
   updateSymptomController,
   deleteSymptomController,
   createTreatmentController,
   getTreatmentsController,
+  getAllTreatmentsController,
   updateTreatmentController,
   deleteTreatmentController,
   createMedicalVisitController,
@@ -28,17 +34,22 @@ import {
   getTreatmentOutcomesController,
   deleteTreatmentOutcomeController,
   askAssistantController,
+  extractInjuryController,
+  getExtractionHistoryController,
+  acceptExtractionController,
 } from './controllers.js';
 import {
   authenticate,
   validate,
   validateNumericParam,
   authLimiter,
+  extractorLimiter,
   verifyCsrf,
 } from './middleware.js';
 import {
   registerSchema,
   loginSchema,
+  refreshSchema,
   injurySchema,
   updateInjurySchema,
   timelineSchema,
@@ -51,6 +62,8 @@ import {
   updateMedicalVisitSchema,
   treatmentOutcomeSchema,
   assistantAskSchema,
+  extractTextSchema,
+  acceptExtractionSchema,
 } from './validators.js';
 
 const router = express.Router();
@@ -77,8 +90,48 @@ if (process.env.NODE_ENV !== 'test') {
   router.post('/auth/login', validate(loginSchema), login);
 }
 
+// GET /api/auth/me
+router.get('/auth/me', authenticate, me);
+
+// POST /api/auth/refresh
+// Deliberately not behind authLimiter: the token is 256 bits of CSPRNG output,
+// so there is nothing to brute-force, and sharing login's ten-request bucket
+// would let ordinary session upkeep lock a user out of logging in -- which is
+// a real risk on mobile, where carrier NAT puts many users on one address.
+router.post('/auth/refresh', validate(refreshSchema), refresh);
+
 // POST /api/auth/logout
 router.post('/auth/logout', logout);
+
+// DELETE /api/auth/me
+router.delete('/auth/me', authenticate, deleteAccountController);
+
+// The extractor Lambda used to be called straight from the browser, with no
+// auth at all — see src/services/extractorService.js for why it now goes
+// through here. Rate limiting is dropped under test for the same reason the
+// auth routes drop theirs: the suite would trip it.
+const extractorLimiters =
+  process.env.NODE_ENV === 'test' ? [] : [extractorLimiter];
+
+// POST /api/extractions/extract — free text -> structured injury data
+router.post(
+  '/extractions/extract',
+  authenticate,
+  ...extractorLimiters,
+  validate(extractTextSchema),
+  extractInjuryController
+);
+
+// GET /api/extractions/history — this user's past extractions
+router.get('/extractions/history', authenticate, getExtractionHistoryController);
+
+// POST /api/extractions/accept — turn an AI extraction into journal records
+router.post(
+  '/extractions/accept',
+  authenticate,
+  validate(acceptExtractionSchema),
+  acceptExtractionController
+);
 
 // POST /api/injuries
 router.post(
@@ -126,6 +179,9 @@ router.post(
 );
 
 // GET /api/injuries/:injuryId/events
+// GET /api/events — all of the user's events in one request
+router.get('/events', authenticate, getAllEventsController);
+
 router.get(
   '/injuries/:injuryId/events',
   authenticate,
@@ -160,6 +216,9 @@ router.post(
 );
 
 // GET /api/injuries/:injuryId/symptoms
+// GET /api/symptoms — all of the user's symptoms in one request
+router.get('/symptoms', authenticate, getAllSymptomsController);
+
 router.get(
   '/injuries/:injuryId/symptoms',
   authenticate,
@@ -194,6 +253,9 @@ router.post(
 );
 
 // GET /api/injuries/:injuryId/treatments
+// GET /api/treatments — all of the user's treatments, outcomes included
+router.get('/treatments', authenticate, getAllTreatmentsController);
+
 router.get(
   '/injuries/:injuryId/treatments',
   authenticate,
