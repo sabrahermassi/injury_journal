@@ -33,15 +33,17 @@ if (!/test/i.test(databaseName)) {
   );
 }
 
+// A single TRUNCATE instead of 7 sequential deleteMany() calls, for two
+// reasons: it's one atomic statement, so there's no window between "delete
+// Treatment rows" and "delete Injury rows" for a concurrent writer to insert
+// into (the FK-restrict race behind #89); and CASCADE means the delete order
+// doesn't have to be hand-maintained -- the previous list had already drifted
+// out of sync with the schema (TreatmentOutcome was missing, and only
+// survived because it cascades from Treatment).
 export const cleanDatabase = async () => {
-  await prisma.documentChunk.deleteMany();
-  await prisma.medicalVisit.deleteMany();
-  await prisma.treatment.deleteMany();
-  await prisma.symptom.deleteMany();
-  await prisma.timelineEvent.deleteMany();
-  await prisma.injury.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "User", "RefreshToken", "Injury", "TimelineEvent", "Symptom", "Treatment", "TreatmentOutcome", "MedicalVisit", "DocumentChunk" RESTART IDENTITY CASCADE;'
+  );
 };
 
 export const disconnectDatabase = async () => {
