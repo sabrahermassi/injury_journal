@@ -1,13 +1,9 @@
 import { prisma } from '../utils.js';
+import { findOwnedResource } from './ownership.js';
 
 // Create medical visit
 export const createMedicalVisit = async (injuryId, userId, visitData) => {
-  const injury = await prisma.injury.findFirst({
-    where: {
-      id: injuryId,
-      userId,
-    },
-  });
+  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
 
   if (!injury) {
     return null;
@@ -23,12 +19,7 @@ export const createMedicalVisit = async (injuryId, userId, visitData) => {
 
 // Get visits
 export const getMedicalVisits = async (injuryId, userId) => {
-  const injury = await prisma.injury.findFirst({
-    where: {
-      id: injuryId,
-      userId,
-    },
-  });
+  const injury = await findOwnedResource(prisma.injury, injuryId, { userId });
 
   if (!injury) {
     return null;
@@ -46,12 +37,9 @@ export const getMedicalVisits = async (injuryId, userId) => {
 
 // Update visit
 export const updateMedicalVisit = async (id, userId, visitData) => {
-  const visit = await prisma.medicalVisit.findFirst({
-    where: {
-      id,
-      injury: {
-        userId,
-      },
+  const visit = await findOwnedResource(prisma.medicalVisit, id, {
+    injury: {
+      userId,
     },
   });
 
@@ -69,12 +57,9 @@ export const updateMedicalVisit = async (id, userId, visitData) => {
 
 // Delete visit
 export const deleteMedicalVisit = async (id, userId) => {
-  const visit = await prisma.medicalVisit.findFirst({
-    where: {
-      id,
-      injury: {
-        userId,
-      },
+  const visit = await findOwnedResource(prisma.medicalVisit, id, {
+    injury: {
+      userId,
     },
   });
 

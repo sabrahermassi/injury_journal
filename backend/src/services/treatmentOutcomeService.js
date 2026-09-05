@@ -1,4 +1,5 @@
 import { prisma } from '../utils.js';
+import { findOwnedResource } from './ownership.js';
 
 // Outcomes are append-only observations against a treatment — see the
 // TreatmentOutcome model comment in schema.prisma. There is deliberately no
@@ -6,12 +7,9 @@ import { prisma } from '../utils.js';
 
 // Create treatment outcome
 export const createTreatmentOutcome = async (treatmentId, userId, outcomeData) => {
-  const treatment = await prisma.treatment.findFirst({
-    where: {
-      id: treatmentId,
-      injury: {
-        userId,
-      },
+  const treatment = await findOwnedResource(prisma.treatment, treatmentId, {
+    injury: {
+      userId,
     },
   });
 
@@ -29,12 +27,9 @@ export const createTreatmentOutcome = async (treatmentId, userId, outcomeData) =
 
 // Get treatment outcomes
 export const getTreatmentOutcomes = async (treatmentId, userId) => {
-  const treatment = await prisma.treatment.findFirst({
-    where: {
-      id: treatmentId,
-      injury: {
-        userId,
-      },
+  const treatment = await findOwnedResource(prisma.treatment, treatmentId, {
+    injury: {
+      userId,
     },
   });
 
@@ -54,13 +49,10 @@ export const getTreatmentOutcomes = async (treatmentId, userId) => {
 
 // Delete treatment outcome
 export const deleteTreatmentOutcome = async (id, userId) => {
-  const outcome = await prisma.treatmentOutcome.findFirst({
-    where: {
-      id,
-      treatment: {
-        injury: {
-          userId,
-        },
+  const outcome = await findOwnedResource(prisma.treatmentOutcome, id, {
+    treatment: {
+      injury: {
+        userId,
       },
     },
   });
