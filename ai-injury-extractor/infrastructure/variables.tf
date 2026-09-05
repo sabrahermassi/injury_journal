@@ -10,6 +10,11 @@ variable "groq_api_key" {
 variable "jwt_secret" {
   type      = string
   sensitive = true
+
+  validation {
+    condition     = length(trimspace(var.jwt_secret)) > 0
+    error_message = "jwt_secret must not be empty or whitespace-only."
+  }
 }
 
 variable "allowed_origin" {

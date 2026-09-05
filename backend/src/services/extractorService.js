@@ -8,6 +8,8 @@
 // Read per-call, not at module load -- unlike the assistant, this Lambda has
 // no runnable localhost default, so leaving it unset must fail cleanly
 // rather than resolve to some placeholder that only breaks at fetch time.
+const EXTRACTOR_TIMEOUT_MS = 10_000;
+
 async function callExtractor(token, path, options = {}) {
   const extractorUrl = process.env.EXTRACTOR_API_URL;
 
@@ -26,6 +28,7 @@ async function callExtractor(token, path, options = {}) {
         Authorization: `Bearer ${token}`,
         ...options.headers,
       },
+      signal: AbortSignal.timeout(EXTRACTOR_TIMEOUT_MS),
     });
   } catch (error) {
     // The extractor is a separate, independently deployed service -- it
