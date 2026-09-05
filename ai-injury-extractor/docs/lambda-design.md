@@ -12,7 +12,12 @@ The Lambda function receives injury descriptions from the frontend, uses the Gro
 
 This repository focuses on the AI extraction service and serverless infrastructure.
 
-Authentication, user management, and full injury tracking workflows are handled by the consuming application.
+User management and full injury tracking workflows are handled by the
+consuming application (`backend/` + `frontend/` at the repo root).
+Authentication is now wired end to end: `backend/` proxies requests here,
+presenting a shared secret (`X-Extractor-Secret`) this Lambda checks before
+doing anything else, plus the `userId` it already resolved from the
+caller's own JWT (`lambda/handler.py` `is_authorised`) — see `CLAUDE.md` §3.
 
 ---
 
@@ -172,25 +177,33 @@ Permissions:
 ```text
 dynamodb:PutItem
 dynamodb:Query
+secretsmanager:GetSecretValue
 ```
 
 Purpose:
 
 - Store extracted injury entries
-- Retrieve injury history, scoped to the hardcoded `userId`
+- Retrieve injury history, scoped to the `userId` on the request
 
 Note:
 
-The `/injuries` endpoint already scopes reads to a single `userId` via Query
-rather than a table-wide Scan. `userId` is still hardcoded (no auth exists
-yet — see `CLAUDE.md` §3), so this scoping doesn't provide real user
-isolation until authentication is added.
+The `/injuries` endpoint scopes reads to a single `userId` via Query rather
+than a table-wide Scan. As of issue #32 this is real per-user isolation: the
+`userId` comes from the request the host backend sends (resolved from the
+caller's own JWT there, not from a Lambda-side JWT claim — see `CLAUDE.md`
+§3), and the Lambda rejects any request without a matching shared secret
+before this scoping is even reached. Entries written before this change are
+stored under the old hardcoded `"test-user-001"` and are unreachable through
+the authenticated path.
 
-Before production use:
+Production posture (issue #32):
 
-- Add authentication and authorization
-- Extract user identity from JWT claims instead of the hardcoded userId
-- Apply least-privilege IAM permissions
+- Authentication and authorization: done, via the shared-secret + host-backend
+  pattern above, not a Lambda-side authorizer.
+- User identity: taken from the request `userId`, not a hardcoded value.
+- IAM permissions: already least-privilege (`PutItem`/`Query` only, see above).
+- Throttling: a flat stage-level throttle in `infrastructure/api_gateway.tf`
+  (issue #60) is in place; usage-plan-level per-caller quotas remain future work.
 
 ---
 
@@ -212,15 +225,21 @@ Enable application logging and debugging.
 
 ## Groq API Access
 
-The Groq API key is provided through environment variables.
+The Groq API key is held in AWS Secrets Manager and read once per container,
+at cold start, by `load_groq_api_key()` in `handler.py`.
 
-Example:
+The Lambda's environment carries only the ARN of the secret:
 
 ```text
-GROQ_API_KEY
+GROQ_SECRET_ARN
 ```
 
-The key is never stored directly in source code.
+The key is never stored in source code, and deliberately never passed as an
+environment variable: Terraform records environment variable values in its state
+file in plaintext, so that route would expose the key to anyone able to read the
+state (issue #36). Terraform manages an empty secret — a container with no
+version — and the value is written into it out of band with the AWS CLI, so the
+value never enters a Terraform attribute.
 
 ---
 

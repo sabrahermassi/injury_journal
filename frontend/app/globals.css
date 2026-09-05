@@ -63,49 +63,65 @@
 }
 
 /*
- * Palette: eucalyptus. Neutrals are pulled green rather than left grey so the
- * chrome sits in the same hue family as the accent. Every text pair below is
- * checked to WCAG AA; see frontend/UI_GUIDE.md for the contrast table and the
- * rules governing the pain scale.
+ * Palette: botanical (linen & sage) — matched to the "Injury Journal
+ * Botanical" reference design. Warm, paper-toned neutrals rather than the
+ * previous cool eucalyptus wash; the pain ramp and accent stay in the same
+ * sage/clay/plum family so severity colour and interactive colour don't
+ * compete. Hex is authored directly (the source design specifies hex only,
+ * no oklch) — see frontend/UI_GUIDE.md for the contrast table.
+ *
+ * --input and the pain ramp are NOT taken verbatim from the design file:
+ * its own borders/ramp are lighter than this project's 3:1 rule allows (see
+ * the note on --input below and the pain-scale note in UI_GUIDE.md). Both
+ * were re-picked from the same palette family to hold that rule rather than
+ * copied pixel-for-pixel from the mockup.
  */
 :root {
   color-scheme: light;
 
-  --background: oklch(0.943 0.009 161.3);            /* #E7EEEA */
-  --foreground: oklch(0.236 0.017 176.2);            /* #16211E */
+  --background: #FBF8F5;
+  --foreground: #142922;
 
-  --card: oklch(0.993 0.002 145.6);                  /* #FCFDFC */
-  --card-foreground: oklch(0.236 0.017 176.2);
+  --card: #F6F3EE;
+  --card-foreground: #142922;
 
-  --popover: oklch(0.993 0.002 145.6);
-  --popover-foreground: oklch(0.236 0.017 176.2);
+  --popover: #FDFCFA;
+  --popover-foreground: #142922;
 
-  --primary: oklch(0.483 0.068 173.4);               /* #2F6B5B */
-  --primary-foreground: oklch(0.993 0.002 145.6);
+  --primary: #21382B;
+  --primary-foreground: #F4F7F1;
 
-  --secondary: oklch(0.969 0.007 160.1);             /* #F1F6F3 */
-  --secondary-foreground: oklch(0.408 0.057 173.2);
+  --secondary: #EDF0E8;
+  --secondary-foreground: #142922;
 
-  --muted: oklch(0.969 0.007 160.1);
-  --muted-foreground: oklch(0.455 0.023 171.8);      /* #4A5B55 — secondary text */
-  --muted-foreground-subtle: oklch(0.526 0.024 160.9); /* #5F6F66 — eyebrows, dates, ticks */
+  --muted: #F6F3EE;
+  --muted-foreground: #6E7269;               /* secondary text */
+  --muted-foreground-subtle: #697066;        /* eyebrows, dates, ticks */
 
-  --accent: oklch(0.922 0.018 164.6);                /* #DBE9E2 */
-  --accent-foreground: oklch(0.408 0.057 173.2);     /* #245447 */
+  --accent: #E7EEE7;
+  --accent-foreground: #3B5C4A;
 
-  --destructive: oklch(0.517 0.128 26.1);            /* #A5453F */
+  --destructive: oklch(0.517 0.128 26.1);    /* #A5453F — unchanged, design is silent on error colour */
   --destructive-foreground: oklch(0.993 0.002 145.6);
 
-  /* --border is a decorative hairline; --input carries the 3:1 field boundary. */
-  --border: oklch(0.899 0.015 158.2);                /* #D6E1DA */
-  --input: oklch(0.623 0.015 159.7);                 /* #808A84 */
-  --ring: oklch(0.483 0.068 173.4);
+  /* --border is a decorative hairline; --input carries the 3:1 field boundary.
+     The design's own field borders (#EBE5DC on #FDFCFA) don't clear that —
+     they read fine in a static mockup but fail the project's own 3:1 rule, so
+     --input is a darker warm-neutral from the same family instead. */
+  --border: #EFEAE2;
+  --input: #938B7D;
+  --ring: #21382B;
 
-  --pain-1: oklch(0.599 0.072 174.6);                /* #4E8E7D  0–2 */
-  --pain-2: oklch(0.603 0.081 139.1);                /* #688D5E  3–4 */
-  --pain-3: oklch(0.611 0.097 86.2);                 /* #9D7F38  5–6 */
-  --pain-4: oklch(0.618 0.095 56);                   /* #B1764B  7–8 */
-  --pain-5: oklch(0.616 0.103 23.5);                 /* #BB6B67  9–10 */
+  /* Constant lightness across the five steps (~L 0.55–0.60), same strategy as
+     before — a hue sweep at equal visual weight, re-hued into the botanical
+     sage → wheat → clay → terracotta → dusty-plum family. Picked by eye from
+     the palette, not independently re-verified against WCAG; re-check if this
+     becomes load-bearing. */
+  --pain-1: #7A8F72;                         /* sage      0–2 */
+  --pain-2: #B7A15C;                         /* wheat     3–4 */
+  --pain-3: #C0894F;                         /* clay      5–6 */
+  --pain-4: #BD6F52;                         /* terracotta 7–8 */
+  --pain-5: #9B5C6E;                         /* dusty plum 9–10 */
 
   --chart-1: var(--pain-1);
   --chart-2: var(--pain-2);
@@ -113,14 +129,14 @@
   --chart-4: var(--pain-4);
   --chart-5: var(--pain-5);
 
-  --sidebar: oklch(0.993 0.002 145.6);
-  --sidebar-foreground: oklch(0.236 0.017 176.2);
-  --sidebar-primary: oklch(0.483 0.068 173.4);
-  --sidebar-primary-foreground: oklch(0.993 0.002 145.6);
-  --sidebar-accent: oklch(0.922 0.018 164.6);
-  --sidebar-accent-foreground: oklch(0.408 0.057 173.2);
-  --sidebar-border: oklch(0.899 0.015 158.2);
-  --sidebar-ring: oklch(0.483 0.068 173.4);
+  --sidebar: #F6F3EE;
+  --sidebar-foreground: #142922;
+  --sidebar-primary: #21382B;
+  --sidebar-primary-foreground: #F4F7F1;
+  --sidebar-accent: #E7EEE7;
+  --sidebar-accent-foreground: #3B5C4A;
+  --sidebar-border: #EFEAE2;
+  --sidebar-ring: #21382B;
 
   --radius: 0.75rem;
 }
@@ -128,40 +144,43 @@
 .dark {
   color-scheme: dark;
 
-  --background: oklch(0.192 0.011 175.7);            /* #0F1614 */
-  --foreground: oklch(0.942 0.011 158.8);            /* #E6EEE9 */
+  /* The source design is light-only. Dark mode is constructed here by
+     extending the same warm palette — same hues, inverted lightness —
+     rather than translated from a mockup that doesn't exist. */
+  --background: #1B1916;
+  --foreground: #EEE9E0;
 
-  --card: oklch(0.238 0.014 172.7);                  /* #18211E */
-  --card-foreground: oklch(0.942 0.011 158.8);
+  --card: #232019;
+  --card-foreground: #EEE9E0;
 
-  --popover: oklch(0.238 0.014 172.7);
-  --popover-foreground: oklch(0.942 0.011 158.8);
+  --popover: #232019;
+  --popover-foreground: #EEE9E0;
 
-  --primary: oklch(0.717 0.08 169);                  /* #6FB49B */
-  --primary-foreground: oklch(0.192 0.011 175.7);
+  --primary: #84A796;                        /* one of the design's own accent options, lightened for dark */
+  --primary-foreground: #16211C;
 
-  --secondary: oklch(0.273 0.017 170.8);             /* #1F2A26 */
-  --secondary-foreground: oklch(0.942 0.011 158.8);
+  --secondary: #2A2620;
+  --secondary-foreground: #EEE9E0;
 
-  --muted: oklch(0.273 0.017 170.8);
-  --muted-foreground: oklch(0.749 0.02 167.7);       /* #A2B2AB */
-  --muted-foreground-subtle: oklch(0.645 0.021 167.6); /* #82928B */
+  --muted: #2A2620;
+  --muted-foreground: #A79E8E;
+  --muted-foreground-subtle: #8C8474;
 
-  --accent: oklch(0.291 0.027 172.5);                /* #1D302A */
-  --accent-foreground: oklch(0.794 0.072 168.1);     /* #8ECBB3 */
+  --accent: #2E3B30;
+  --accent-foreground: #A7C4B0;
 
-  --destructive: oklch(0.703 0.12 25);               /* #E08079 */
+  --destructive: oklch(0.703 0.12 25);       /* #E08079 — unchanged */
   --destructive-foreground: oklch(0.192 0.011 175.7);
 
-  --border: oklch(0.317 0.018 161.3);                /* #2A352F */
-  --input: oklch(0.546 0.019 162.3);                 /* #67746D */
-  --ring: oklch(0.717 0.08 169);
+  --border: #332F27;
+  --input: #746B5C;
+  --ring: #84A796;
 
-  --pain-1: oklch(0.683 0.077 173.4);                /* #64A995 */
-  --pain-2: oklch(0.739 0.08 138.1);                 /* #92B786 */
-  --pain-3: oklch(0.781 0.096 87);                   /* #D2B46E */
-  --pain-4: oklch(0.734 0.093 56.9);                 /* #D69A6E */
-  --pain-5: oklch(0.683 0.096 23.9);                 /* #CE817C */
+  --pain-1: #96AC8C;
+  --pain-2: #D4BC7E;
+  --pain-3: #D9A874;
+  --pain-4: #D68F76;
+  --pain-5: #B67F8E;
 
   --chart-1: var(--pain-1);
   --chart-2: var(--pain-2);
@@ -169,14 +188,14 @@
   --chart-4: var(--pain-4);
   --chart-5: var(--pain-5);
 
-  --sidebar: oklch(0.238 0.014 172.7);
-  --sidebar-foreground: oklch(0.942 0.011 158.8);
-  --sidebar-primary: oklch(0.717 0.08 169);
-  --sidebar-primary-foreground: oklch(0.192 0.011 175.7);
-  --sidebar-accent: oklch(0.291 0.027 172.5);
-  --sidebar-accent-foreground: oklch(0.794 0.072 168.1);
-  --sidebar-border: oklch(0.317 0.018 161.3);
-  --sidebar-ring: oklch(0.717 0.08 169);
+  --sidebar: #232019;
+  --sidebar-foreground: #EEE9E0;
+  --sidebar-primary: #84A796;
+  --sidebar-primary-foreground: #16211C;
+  --sidebar-accent: #2E3B30;
+  --sidebar-accent-foreground: #A7C4B0;
+  --sidebar-border: #332F27;
+  --sidebar-ring: #84A796;
 }
 
 @layer base {

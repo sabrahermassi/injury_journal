@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   LineChart,
   MessageCircleQuestion,
-  PenLine,
+  Plus,
   Settings,
   Sparkles,
 } from "lucide-react";
@@ -24,21 +24,29 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
+
+// Pill nav rows at the reference design's proportions: 48px tall, fully
+// rounded, 11px gap. The design's own nav is a flat list of five because it
+// only mocks five screens; this app has eight real routes, so the groups
+// stay — dropping them would make the list harder to scan, and dropping the
+// entries would strand real pages.
+const NAV_ITEM_CLASS =
+  "h-12 gap-[11px] rounded-full px-3.5 text-sm data-[active=true]:font-medium";
 
 const trackingNav = [
   { title: "Today", href: "/dashboard", icon: LayoutDashboard },
   { title: "Injuries", href: "/dashboard/injuries", icon: HeartPulse },
   { title: "Timeline", href: "/dashboard/timeline", icon: Clock },
   { title: "Insights", href: "/dashboard/insights", icon: LineChart },
-  { title: "Log entry", href: "/dashboard/log", icon: PenLine },
 ];
 
 const toolsNav = [
   { title: "AI Extractor", href: "/dashboard/extractor", icon: Sparkles },
-  { title: "Ask your journal", href: "/dashboard/assistant", icon: MessageCircleQuestion },
+  { title: "AI Assistant", href: "/dashboard/assistant", icon: MessageCircleQuestion },
 ];
 
 const secondaryNav = [
@@ -61,7 +69,7 @@ export function AppSidebar() {
             <HeartPulse className="size-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-tight">
+            <span className="font-serif text-base leading-tight">
               Injury Journal
             </span>
             <span className="text-xs text-muted-foreground">
@@ -69,6 +77,13 @@ export function AppSidebar() {
             </span>
           </div>
         </div>
+
+        <Button asChild size="lg" className="h-12 w-full justify-start gap-[11px] rounded-full px-3.5">
+          <Link href="/dashboard/log">
+            <Plus className="size-4" aria-hidden="true" />
+            New entry
+          </Link>
+        </Button>
       </SidebarHeader>
 
       <SidebarContent>
@@ -82,6 +97,7 @@ export function AppSidebar() {
                     asChild
                     tooltip={item.title}
                     isActive={isActive(item.href)}
+                    className={NAV_ITEM_CLASS}
                   >
                     <Link href={item.href}>
                       <item.icon />
@@ -104,6 +120,7 @@ export function AppSidebar() {
                     asChild
                     tooltip={item.title}
                     isActive={isActive(item.href)}
+                    className={NAV_ITEM_CLASS}
                   >
                     <Link href={item.href}>
                       <item.icon />
@@ -125,6 +142,7 @@ export function AppSidebar() {
                     asChild
                     tooltip={item.title}
                     isActive={isActive(item.href)}
+                    className={NAV_ITEM_CLASS}
                   >
                     <Link href={item.href}>
                       <item.icon />
@@ -153,13 +171,20 @@ function SidebarUser() {
   const label = user?.email ?? "Signed in";
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
 
+  // The design's footer shows a display name above the email; there is no
+  // name on CurrentUser ({ id, email }), so the email carries the row alone
+  // rather than inventing one.
   return (
-    <div className="flex items-center gap-3 rounded-lg p-2">
+    <div className="flex items-center gap-[11px] border-t border-border px-2 pt-3.5 pb-1">
       <Avatar className="size-9">
-        <AvatarFallback>{initials}</AvatarFallback>
+        <AvatarFallback className="bg-accent text-xs font-medium text-accent-foreground">
+          {initials}
+        </AvatarFallback>
       </Avatar>
       <div className="flex min-w-0 flex-col">
-        <span className="truncate text-sm font-medium">{label}</span>
+        <span className="truncate text-[12.5px] font-medium text-foreground">
+          {label}
+        </span>
       </div>
     </div>
   );

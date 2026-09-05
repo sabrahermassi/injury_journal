@@ -6,13 +6,9 @@ import { registerUser } from "../../services/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import PageContainer from "@/components/PageContainer";
-import AuthCard from "@/components/AuthCard";
-import AuthHeader from "@/components/AuthHeader";
-
+import { AuthLayout } from "@/components/auth-layout";
+import { AuthField, AuthPasswordField } from "@/components/auth-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -53,50 +49,52 @@ export default function RegisterPage() {
     }
   };
 
+  // The design has no sign-up frame — only "Web · sign in". This mirrors it
+  // so the two screens are one flow rather than two visual languages.
   return (
-    <PageContainer>
-      <div className="w-full max-w-md">
-        <AuthHeader />
+    <AuthLayout
+      title="Start your record"
+      subtitle="A few seconds now, and the next appointment has something to go on."
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+        <AuthField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="email"
+          required
+        />
 
-        <AuthCard title="Create your account">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+        <AuthPasswordField
+          value={password}
+          onChange={setPassword}
+          autoComplete="new-password"
+          hint="At least 8 characters."
+        />
 
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.currentTarget.value)}
-              />
-            </div>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="mt-2.5 h-14 rounded-full text-[15px] font-semibold"
+        >
+          {loading ? "Creating account..." : "Create account"}
+        </Button>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+        <p aria-live="polite" className="min-h-5 text-center text-sm text-muted-foreground">
+          {message}
+        </p>
 
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.currentTarget.value)}
-              />
-            </div>
-
-            <Button type="submit" disabled={loading} className="w-full">
-              Register
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/login" className="underline">
-                Log in
-              </Link>
-            </p>
-          </form>
-
-          {message && <p className="mt-4 text-center text-sm">{message}</p>}
-        </AuthCard>
-      </div>
-    </PageContainer>
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-accent-foreground hover:text-foreground"
+          >
+            Sign in
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }

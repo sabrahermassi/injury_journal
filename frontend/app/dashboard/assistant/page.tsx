@@ -1,30 +1,43 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
+
 import { AskForm } from "@/components/assistant/ask-form";
 
 export default function AssistantPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 p-6">
-      <header className="flex flex-col gap-4">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Sparkles className="size-6" aria-hidden="true" />
-        </div>
+    <main className="flex flex-1 flex-col gap-7 p-4 md:p-11">
+      <header className="flex items-start gap-3.5">
+        <Image
+          src="/art-sparkle.png"
+          alt=""
+          width={38}
+          height={38}
+          aria-hidden="true"
+          className="mt-1 size-[38px] flex-none select-none"
+        />
 
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Ask your journal
-          </h1>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3.5">
+            <h2 className="font-serif text-4xl leading-tight font-light tracking-tight text-foreground md:text-[42px]">
+              AI Assistant
+            </h2>
+            <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium tracking-wide text-accent-foreground uppercase">
+              AI
+            </span>
+          </div>
 
-          <p className="text-muted-foreground leading-relaxed">
-            Ask a question about what you&apos;ve logged — which treatments
-            helped, or a summary across one injury or all of them. Answers
-            are grounded in your own entries and cite them.
+          <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+            Ask about your own record — which treatments helped, or a summary
+            across one injury or all of them. Every answer cites the entries
+            behind it.
           </p>
         </div>
       </header>
 
-      <AskForm />
+      <div className="w-full max-w-3xl">
+        <AskForm />
+      </div>
     </main>
   );
 }

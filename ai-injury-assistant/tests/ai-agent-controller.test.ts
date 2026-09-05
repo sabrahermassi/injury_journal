@@ -408,7 +408,7 @@ describe('ai agent controller', () => {
     const res = mockResponse();
 
     runAgentMock.mockRejectedValue(
-      new Groq.APIError(429, undefined, 'Rate limit exceeded', undefined),
+      new Groq.APIError(500, undefined, 'Internal server error', undefined),
     );
 
     await askAgent(req, res);
@@ -419,4 +419,37 @@ describe('ai agent controller', () => {
       code: 'llm_service_error',
     });
   });
+
+  // A full context is several thousand tokens against an 8000/min bucket, so
+  // these two are reachable in normal use, not just under abuse. They must not
+  // read as "the assistant is broken".
+  it.each([
+    [429, 'Rate limit exceeded'],
+    [413, 'Request too large'],
+  ])(
+    'returns 503 with llm_rate_limited when Groq answers %i',
+    async (status, message) => {
+      const req: MockRequest = {
+        userId: 1,
+        body: {
+          question: 'test',
+        },
+      };
+
+      const res = mockResponse();
+
+      runAgentMock.mockRejectedValue(
+        new Groq.APIError(status, undefined, message, undefined),
+      );
+
+      await askAgent(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.json).toHaveBeenCalledWith({
+        error:
+          'The assistant is temporarily over its request limit. Wait a moment and ask again, or select a single injury to ask about less at once.',
+        code: 'llm_rate_limited',
+      });
+    },
+  );
 });

@@ -145,7 +145,7 @@ export function LogEntryForm({
   }
 
   return (
-    <Card>
+    <Card className="rounded-3xl">
       <CardContent className="flex flex-col gap-5 py-2">
         <div className="flex flex-wrap gap-2">
           {(Object.keys(ENTRY_LABELS) as EntryType[]).map((type) => (

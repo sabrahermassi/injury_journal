@@ -1,4 +1,44 @@
-import { prisma } from '../utils.js';
+import { prisma, flattenInjuryName } from '../utils.js';
+import { iconFor, CATEGORIES } from '../entryIcons.js';
+
+// Every treatment the user has, each with its outcome check-ins attached.
+//
+// The outcomes come along deliberately: the insights page needs them, and
+// fetching them separately cost one request per treatment on top of one per
+// injury -- 37 requests for this account before the page could render. See the
+// note on getAllSymptomsForUser.
+export const getAllTreatmentsForUser = async (userId) => {
+  const treatments = await prisma.treatment.findMany({
+    where: {
+      injury: {
+        userId,
+      },
+    },
+    orderBy: {
+      date: 'asc',
+    },
+    include: {
+      injury: {
+        select: {
+          name: true,
+        },
+      },
+      outcomes: {
+        orderBy: {
+          recordedAt: 'asc',
+        },
+      },
+    },
+  });
+
+  // Matched on the name alone: two courses of "Physiotherapy" must draw the
+  // same picture whatever their provider, cost or notes say.
+  return treatments.map((treatment) => ({
+    ...flattenInjuryName(treatment),
+    icon: iconFor(treatment.name),
+    category: CATEGORIES.TREATMENT,
+  }));
+};
 
 // Create treatment
 export const createTreatment = async (injuryId, userId, treatmentData) => {

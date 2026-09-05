@@ -100,7 +100,13 @@ describe('data isolation regression tests', () => {
     mockGenerateAnswer.mockResolvedValue('mocked agent answer');
   });
 
-  it('scopes RAG retrieval to the requested injuryId and excludes another injury/user', async () => {
+  // Both test injuries are bare (no symptoms/treatments/etc.), so both go
+  // through the whole-record journal path rather than RAG -- the stored
+  // document chunks above exist only to prove they are NOT what gets
+  // returned once an injury has enough of its own content to answer from
+  // directly. The isolation property under test is unchanged: a request
+  // scoped to injury A's id must return only injury A's data.
+  it('scopes retrieval to the requested injuryId and excludes another injury/user', async () => {
     const response = await request(app)
       .post('/ai-agent')
       .set('Authorization', authHeader)
@@ -113,14 +119,14 @@ describe('data isolation regression tests', () => {
 
     expect(response.body.metadata.retrievedChunks).toEqual([
       {
-        sourceType: 'data-isolation-integration-test',
-        sourceId: 1,
+        sourceType: 'injury',
+        sourceId: injuryAId,
         injuryId: injuryAId,
       },
     ]);
   });
 
-  it('scopes retrieval to the caller\'s own chunks across injuries when injuryId is omitted', async () => {
+  it('scopes retrieval to the caller\'s own injuries across the journal when injuryId is omitted', async () => {
     const response = await request(app)
       .post('/ai-agent')
       .set('Authorization', authHeader)
@@ -130,17 +136,15 @@ describe('data isolation regression tests', () => {
 
     expect(response.status).toBe(200);
 
-    const sourceIds = (
-      response.body.metadata.retrievedChunks as {
-        sourceType: string;
-        sourceId: number;
-      }[]
+    const injuryIds = (
+      response.body.metadata.retrievedChunks as { injuryId: number }[]
     )
-      .filter((chunk) => chunk.sourceType === 'data-isolation-integration-test')
-      .map((chunk) => chunk.sourceId)
+      .map((chunk) => chunk.injuryId)
       .sort();
 
-    expect(sourceIds).toEqual([1]);
+    // User A owns only injury A, so nothing from injury B (user B's) can
+    // appear here even though both users have chunks stored.
+    expect(injuryIds).toEqual([injuryAId]);
   });
 
   it('rejects a journal request for an injuryId owned by another user', async () => {
@@ -157,6 +161,9 @@ describe('data isolation regression tests', () => {
       answer: 'No injury record was found.',
       citations: [],
       intent: 'journal',
+      metadata: {
+        retrievedChunks: [],
+      },
     });
 
     expect(mockGenerateAnswer).not.toHaveBeenCalled();
@@ -176,6 +183,9 @@ describe('data isolation regression tests', () => {
       answer: 'No injury record was found.',
       citations: [],
       intent: 'journal',
+      metadata: {
+        retrievedChunks: [],
+      },
     });
 
     expect(mockGenerateAnswer).not.toHaveBeenCalled();
