@@ -188,7 +188,7 @@ npm test            # cross-env NODE_ENV=test jest --runInBand, uses .env.test
 - Every Zod schema has a paired `updateXSchema = xSchema.partial()` for PATCH-style PUT requests.
 - Controllers return `404` with `{ error: '<Resource> not found' }` when a service returns `null` (used both for "doesn't exist" and "exists but belongs to another user" — this is intentional, not a bug: it avoids leaking existence of other users' records).
 - Errors that need a specific HTTP status are `new AppError(message, statusCode)` (`backend/src/utils.js`), thrown from the service layer — `errorHandler.js` honors `error.statusCode` generically and needs no per-error-type change. Do not match on literal `error.message` strings in `errorHandler.js`; that was issue #19 (rewording a matched message silently fell through to a generic `500`).
-- Rate limiting (`authLimiter`, `apiLimiter`) is skipped entirely when `NODE_ENV === 'test'` (see `routes.js` and `app.js`) — don't assume rate-limit tests will run in CI as currently written.
+- Rate limiting (`authLimiter`, `apiLimiter`, `extractorLimiter`) is skipped entirely when `NODE_ENV === 'test'` (see `routes.js` and `app.js`) — don't assume a test hitting these routes through the real app will ever get rate-limited. The limiter objects themselves (`windowMs`, `max`, `message`, `keyGenerator`) do have direct coverage, in `backend/tests/rateLimiting.test.js`, which imports them straight from `middleware.js` onto a throwaway app rather than through the NODE_ENV-gated wiring (issue #15).
 
 ## 8. Known constraints / gotchas (from audit)
 
